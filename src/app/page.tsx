@@ -11,8 +11,9 @@ export default async function HomePage() {
 			<div className="flex flex-wrap">
 				{recipes.map((recipe) => (
 					<div key={recipe.id} className="w-1/2 p-2">
-						{recipe.instructions}
+						{recipe.name}
 						<img src={recipe.imageUrl} alt="" />
+						{recipe.instructions}
 					</div>
 				))}
 			</div>
