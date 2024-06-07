@@ -1,15 +1,22 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import Image from "next/image";
 import { getMyRecipes } from "~/server/queries";
 export const dynamic = "force-dynamic";
 
 const Recipes = async () => {
 	const recipes = await getMyRecipes();
 	return (
-		<div className="flex flex-wrap">
+		<div className="flex flex-wrap justify-center gap-4">
 			{recipes.map((recipe) => (
-				<div key={recipe.id} className="w-1/2 p-2">
+				<div key={recipe.id} className="flex h-48 w-48 flex-col">
 					{recipe.name}
-					<img src={recipe.imageUrl} alt="" />
+					<Image
+						src={recipe.imageUrl}
+						style={{ objectFit: "contain" }}
+						width={192}
+						height={192}
+						alt={recipe.name}
+					/>
 					{recipe.instructions}
 				</div>
 			))}
