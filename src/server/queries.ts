@@ -13,3 +13,18 @@ export const getMyRecipes = async () => {
 	});
 	return recipes;
 };
+
+export const getRecipe = async (id: number) => {
+	const user = auth();
+
+	if (!user.userId) throw new Error("Unauthorized");
+
+	const recipe = await db.query.recipes.findFirst({
+		where: (model, { eq }) => eq(model.id, id),
+	});
+
+	if (!recipe) throw new Error("Recipe not found");
+	if (recipe.userId !== user.userId) throw new Error("Unauthorized");
+
+	return recipe;
+};
