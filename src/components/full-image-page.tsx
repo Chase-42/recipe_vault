@@ -3,8 +3,8 @@ import { getRecipe } from "~/server/queries";
 export default async function FullPageImageView(props: { id: number }) {
 	const recipe = await getRecipe(props.id);
 	return (
-		<div className="flex h-full w-full min-w-0 bg-green-200">
-			<div className="flex-shrink">
+		<div className="flex h-full w-full min-w-">
+			<div className="flex-shrink flex justify-center items-center">
 				<img
 					src={recipe.imageUrl}
 					alt="image"
@@ -12,7 +12,7 @@ export default async function FullPageImageView(props: { id: number }) {
 				/>
 			</div>
 
-			<div className="w-48 flex flex-col flex-shrink-0">
+			<div className="w-48 flex flex-col flex-shrink-0 border-l">
 				<div className="text-xl font-bold">{recipe.name}</div>
 			</div>
 		</div>
