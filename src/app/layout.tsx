@@ -1,6 +1,5 @@
 import "~/styles/globals.css";
 import "@uploadthing/react/styles.css";
-
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TopNav } from "./_components/topnav";
@@ -22,8 +21,10 @@ export default function RootLayout({
 		<ClerkProvider>
 			<html lang="en" className={`${GeistSans.variable}`}>
 				<body>
-					<TopNav />
-					{children}
+					<div className="h-screen grid grid-rows-[auto,1fr]">
+						<TopNav />
+						<main className="overflow-y-scroll">{children}</main>
+					</div>
 					{modal}
 					<div id="modal-root" />
 				</body>

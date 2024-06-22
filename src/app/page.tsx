@@ -7,9 +7,9 @@ export const dynamic = "force-dynamic";
 const Recipes = async () => {
 	const recipes = await getMyRecipes();
 	return (
-		<div className="flex flex-wrap justify-center gap-4">
-			{recipes.map((recipe) => (
-				<div key={recipe.id} className="flex h-48 w-48 flex-col m-1">
+		<div className="flex flex-wrap justify-center gap-4 p-4">
+			{[...recipes, ...recipes].map((recipe) => (
+				<div key={recipe.id} className="flex h-auto w-auto flex-col">
 					{recipe.name}
 					<Link href={`/img/${recipe.id}`}>
 						<Image
@@ -20,7 +20,6 @@ const Recipes = async () => {
 							alt={recipe.name}
 						/>
 					</Link>
-					{recipe.instructions}
 				</div>
 			))}
 		</div>

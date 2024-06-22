@@ -14,6 +14,8 @@ export default async function FullPageImageView(props: { id: number }) {
 
 			<div className="w-48 flex flex-col flex-shrink-0 border-l">
 				<div className="text-xl font-bold">{recipe.name}</div>
+				<div className="text-sm">{recipe.instructions}</div>
+				<div className="text-sm"> {recipe.link}</div>
 			</div>
 		</div>
 	);
