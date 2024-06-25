@@ -8,7 +8,7 @@ const Recipes = async () => {
 	const recipes = await getMyRecipes();
 	return (
 		<div className="flex flex-wrap justify-center gap-4 p-4">
-			{[...recipes, ...recipes].map((recipe) => (
+			{recipes.map((recipe) => (
 				<div key={recipe.id} className="flex h-auto w-auto flex-col">
 					{recipe.name}
 					<Link href={`/img/${recipe.id}`}>

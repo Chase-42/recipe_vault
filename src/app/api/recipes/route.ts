@@ -1,9 +1,9 @@
-// src/app/api/recipes/route.ts
-import type { NextApiRequest, NextApiResponse } from "next";
+import { type NextRequest, NextResponse } from "next/server";
 import { recipes } from "../../../server/db/schema";
 import { db } from "../../../server/db/index";
 import * as cheerio from "cheerio";
 import { uploadImage } from "../../../utils/uploadImage";
+import { getAuth } from "@clerk/nextjs/server";
 
 // Define the structure for recipe details
 interface RecipeDetails {
@@ -23,51 +23,63 @@ const fetchRecipeDetails = async (link: string): Promise<RecipeDetails> => {
 	return { imageUrl, instructions };
 };
 
-// Main handler function for the API route
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-	if (req.method === "POST") {
-		try {
-			// Extract and validate the link from the request body
-			const { link } = req.body as { link: string };
-			if (!link || typeof link !== "string") {
-				return res.status(400).json({ error: "Invalid link" });
-			}
-
-			// Fetch recipe details from the provided link
-			const { imageUrl, instructions } = await fetchRecipeDetails(link);
-
-			// Upload the image and get the URL
-			const uploadedImageUrl = await uploadImage(imageUrl);
-
-			// Insert the recipe details into the database
-			const [recipe] = await db
-				.insert(recipes)
-				.values({
-					link,
-					imageUrl: uploadedImageUrl,
-					instructions,
-				})
-				.returning();
-
-			// Respond with the newly created recipe
-			return res.status(200).json(recipe);
-		} catch (error) {
-			console.error(error);
-			return res.status(500).json({ error: "Failed to save recipe" });
+// POST handler
+export async function POST(req: NextRequest) {
+	try {
+		const { userId } = getAuth(req);
+		if (!userId) {
+			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+			});
 		}
-	} else if (req.method === "GET") {
-		try {
-			// Fetch all recipes from the database
-			const recipeList = await db.select().from(recipes);
-			return res.status(200).json(recipeList);
-		} catch (error) {
-			console.error(error);
-			return res.status(500).json({ error: "Failed to fetch recipes" });
+
+		const { link, name } = (await req.json()) as { link: string; name: string };
+		if (
+			!link ||
+			typeof link !== "string" ||
+			!name ||
+			typeof name !== "string"
+		) {
+			return new NextResponse(
+				JSON.stringify({ error: "Invalid link or name" }),
+				{ status: 400 },
+			);
 		}
-	} else {
-		res.setHeader("Allow", ["POST", "GET"]);
-		return res.status(405).end(`Method ${req.method} Not Allowed`);
+
+		const { imageUrl, instructions } = await fetchRecipeDetails(link);
+		const uploadedImageUrl = await uploadImage(imageUrl);
+
+		const [recipe] = await db
+			.insert(recipes)
+			.values({
+				link,
+				imageUrl: uploadedImageUrl,
+				instructions,
+				name,
+				userId,
+			})
+			.returning();
+
+		return NextResponse.json(recipe);
+	} catch (error) {
+		console.error(error);
+		return new NextResponse(
+			JSON.stringify({ error: "Failed to save recipe" }),
+			{ status: 500 },
+		);
 	}
-};
+}
 
-export default handler;
+// GET handler
+export async function GET() {
+	try {
+		const recipeList = await db.select().from(recipes);
+		return NextResponse.json(recipeList);
+	} catch (error) {
+		console.error(error);
+		return new NextResponse(
+			JSON.stringify({ error: "Failed to fetch recipes" }),
+			{ status: 500 },
+		);
+	}
+}
