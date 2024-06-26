@@ -1,27 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { recipes } from "../../../server/db/schema";
 import { db } from "../../../server/db/index";
-import * as cheerio from "cheerio";
+import { fetchRecipeDetails } from "../../../utils/scraper";
 import { uploadImage } from "../../../utils/uploadImage";
 import { getAuth } from "@clerk/nextjs/server";
-
-// Define the structure for recipe details
-interface RecipeDetails {
-	imageUrl: string;
-	instructions: string;
-}
-
-// Function to fetch recipe details from a given link
-const fetchRecipeDetails = async (link: string): Promise<RecipeDetails> => {
-	const response = await fetch(link);
-	const html = await response.text();
-	const $ = cheerio.load(html);
-
-	const imageUrl = $('meta[property="og:image"]').attr("content") || "";
-	const instructions = $("div.instructions").text() || "";
-
-	return { imageUrl, instructions };
-};
 
 // POST handler
 export async function POST(req: NextRequest) {
@@ -46,7 +28,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const { imageUrl, instructions } = await fetchRecipeDetails(link);
+		const { imageUrl, instructions, ingredients } =
+			await fetchRecipeDetails(link);
 		const uploadedImageUrl = await uploadImage(imageUrl);
 
 		const [recipe] = await db
@@ -55,6 +38,7 @@ export async function POST(req: NextRequest) {
 				link,
 				imageUrl: uploadedImageUrl,
 				instructions,
+				ingredients: ingredients.join("\n"),
 				name,
 				userId,
 			})

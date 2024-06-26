@@ -1,7 +1,7 @@
 import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
-import { TopNav } from "./_components/topnav";
+import { TopNav } from "../components/topnav";
 
 export const metadata = {
 	title: "Recipe Vault",
@@ -22,7 +22,7 @@ export default function RootLayout({
 				<body>
 					<div className="h-screen grid grid-rows-[auto,1fr]">
 						<TopNav />
-						<main className="overflow-y-scroll">{children}</main>
+						<main className="overflow-y-auto">{children}</main>
 					</div>
 					{modal}
 					<div id="modal-root" />

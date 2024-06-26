@@ -1,6 +1,4 @@
-import { sql } from "drizzle-orm";
 import {
-	index,
 	pgTableCreator,
 	serial,
 	text,
@@ -17,5 +15,6 @@ export const recipes = createTable("recipes", {
 	userId: varchar("userId", { length: 256 }).notNull(),
 	imageUrl: text("imageUrl").notNull(),
 	instructions: text("instructions").notNull(),
+	ingredients: text("ingredients").notNull(),
 	createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

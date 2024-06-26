@@ -2,8 +2,8 @@
 
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useState } from "react";
-import { Modal } from "./Modal";
 import AddRecipe from "./AddRecipe";
+import { Modal } from "./Modal";
 
 export const TopNav = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +27,7 @@ export const TopNav = () => {
 				<SignedIn>
 					<button
 						onClick={handleOpenModal}
-						className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-700"
+						className="px-4 py-2 text-white bg-red-800 rounded-md hover:bg-red-500"
 						type="button"
 					>
 						Add Recipe
