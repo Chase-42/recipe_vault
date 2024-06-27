@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import ClientProvider from "~/components/ClientProvider";
 import { TopNav } from "../components/topnav";
+import { SearchProvider } from "../providers";
 
 export const metadata = {
 	title: "Recipe Vault",
@@ -20,16 +21,18 @@ export default function RootLayout({
 	return (
 		<ClientProvider>
 			<ClerkProvider>
-				<html lang="en" className={`${GeistSans.variable} dark`}>
-					<body>
-						<div className="h-screen grid grid-rows-[auto,1fr]">
-							<TopNav />
-							<main className="overflow-y-auto">{children}</main>
-						</div>
-						{modal}
-						<div id="modal-root" />
-					</body>
-				</html>
+				<SearchProvider>
+					<html lang="en" className={`${GeistSans.variable} dark`}>
+						<body>
+							<div className="h-screen grid grid-rows-[auto,1fr]">
+								<TopNav />
+								<main className="overflow-y-auto">{children}</main>
+							</div>
+							{modal}
+							<div id="modal-root" />
+						</body>
+					</html>
+				</SearchProvider>
 			</ClerkProvider>
 		</ClientProvider>
 	);

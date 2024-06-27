@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearch } from "../providers";
 
 interface Recipe {
 	link: string;
@@ -35,6 +36,7 @@ const fetchRecipes = async (): Promise<Recipe[]> => {
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
+	const { searchTerm } = useSearch();
 	const {
 		data: recipes = initialRecipes,
 		error,
@@ -44,6 +46,10 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
 		queryFn: fetchRecipes,
 		initialData: initialRecipes,
 	});
+
+	const filteredRecipes = recipes.filter((recipe) =>
+		recipe.name.toLowerCase().includes(searchTerm.toLowerCase()),
+	);
 
 	if (isLoading) {
 		return (
@@ -63,7 +69,7 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
 
 	return (
 		<div className="flex flex-wrap justify-center gap-4 p-4">
-			{recipes.map((recipe) => (
+			{filteredRecipes.map((recipe) => (
 				<div
 					key={recipe.id}
 					className="recipe-card flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition group border-2 border-transparent hover:border-white hover:animate-swirl-border"

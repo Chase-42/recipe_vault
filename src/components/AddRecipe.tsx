@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast, Toaster } from "sonner";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
 	const [link, setLink] = useState("");
@@ -50,29 +52,25 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
 					onSubmit={handleSubmit}
 					className="flex flex-col items-center p-5 bg-gray-800 rounded-md shadow-md max-w-lg w-full"
 				>
-					<input
+					<Input
 						type="text"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						placeholder="Enter recipe name"
+						className="mb-3"
 						required
-						className="w-full p-2.5 mb-4 border border-gray-600 rounded-md bg-gray-700 text-white text-base"
 					/>
-					<input
+					<Input
 						type="url"
 						value={link}
 						onChange={(e) => setLink(e.target.value)}
 						placeholder="Enter recipe link"
+						className="mb-4"
 						required
-						className="w-full p-2.5 mb-4 border border-gray-600 rounded-md bg-gray-700 text-white text-base"
 					/>
-					<button
-						type="submit"
-						className="px-4 py-2 text-white bg-red-800 rounded-md hover:bg-red-500 text-center"
-						disabled={isLoading}
-					>
+					<Button type="submit" disabled={isLoading}>
 						{isLoading ? "Saving..." : "Save Recipe"}
-					</button>
+					</Button>
 				</form>
 			</div>
 		</>

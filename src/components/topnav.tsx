@@ -4,9 +4,14 @@ import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useState } from "react";
 import AddRecipe from "./AddRecipe";
 import { Modal } from "./Modal";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+
+import { useSearch } from "../providers";
 
 export const TopNav = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const { searchTerm, setSearchTerm } = useSearch();
 
 	const handleOpenModal = () => {
 		setIsModalOpen(true);
@@ -25,13 +30,15 @@ export const TopNav = () => {
 					<SignInButton />
 				</SignedOut>
 				<SignedIn>
-					<button
-						onClick={handleOpenModal}
-						className="px-4 py-2 text-white bg-red-800 rounded-md hover:bg-red-500"
-						type="button"
-					>
+					<Button onClick={handleOpenModal} type="button">
 						Add Recipe
-					</button>
+					</Button>
+					<Input
+						type="text"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						placeholder="Search recipes..."
+					/>
 					<UserButton />
 				</SignedIn>
 			</div>
