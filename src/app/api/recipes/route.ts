@@ -56,8 +56,14 @@ export async function POST(req: NextRequest) {
 }
 
 // GET handler
-export async function GET() {
+export async function GET(req: NextRequest) {
 	try {
+		const { userId } = getAuth(req);
+		if (!userId) {
+			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+			});
+		}
 		const recipes = await getMyRecipes();
 		return NextResponse.json(recipes);
 	} catch (error) {

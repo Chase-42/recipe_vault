@@ -22,12 +22,9 @@ interface RecipesClientProps {
 
 const fetchRecipes = async (): Promise<Recipe[]> => {
 	try {
-		const response: Response = await fetch(
-			`${process.env.NEXT_PUBLIC_API_URL}/api/recipes`,
-		);
+		const response: Response = await fetch("/api/recipes");
 		console.log("response", response);
 		if (!response.ok) {
-			console.error("Network response was not ok", response.statusText);
 			throw new Error("Network response was not ok");
 		}
 		const data: Recipe[] = (await response.json()) as Recipe[];
