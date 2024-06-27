@@ -19,8 +19,8 @@ export default function RootLayout({
 	modal: React.ReactNode;
 }) {
 	return (
-		<ClientProvider>
-			<ClerkProvider>
+		<ClerkProvider>
+			<ClientProvider>
 				<SearchProvider>
 					<html lang="en" className={`${GeistSans.variable} dark`}>
 						<body>
@@ -33,7 +33,7 @@ export default function RootLayout({
 						</body>
 					</html>
 				</SearchProvider>
-			</ClerkProvider>
-		</ClientProvider>
+			</ClientProvider>
+		</ClerkProvider>
 	);
 }
