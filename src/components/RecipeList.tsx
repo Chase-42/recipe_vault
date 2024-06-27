@@ -1,33 +1,90 @@
-// src/app/_components/RecipeList.tsx
-import { useEffect, useState } from "react";
+"use client";
 
-const RecipeList = () => {
-	const [recipes, setRecipes] = useState([]);
+import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
 
-	useEffect(() => {
-		const fetchRecipes = async () => {
-			const response = await fetch("/api/recipes");
-			const data = await response.json();
-			setRecipes(data);
-		};
+interface Recipe {
+	link: string;
+	id: number;
+	name: string;
+	userId: string;
+	imageUrl: string;
+	instructions: string;
+	ingredients: string;
+	createdAt: Date;
+}
 
-		fetchRecipes();
-	}, []);
+interface RecipesClientProps {
+	initialRecipes: Recipe[];
+}
+
+const fetchRecipes = async (): Promise<Recipe[]> => {
+	try {
+		const response: Response = await fetch("/api/recipes");
+		console.log("response", response);
+		if (!response.ok) {
+			throw new Error("Network response was not ok");
+		}
+		const data: Recipe[] = (await response.json()) as Recipe[];
+		return data;
+	} catch (error) {
+		console.error("Failed to fetch recipes:", error);
+		throw error;
+	}
+};
+
+const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
+	const {
+		data: recipes = initialRecipes,
+		error,
+		isLoading,
+	} = useQuery<Recipe[]>({
+		queryKey: ["recipes"],
+		queryFn: fetchRecipes,
+		initialData: initialRecipes,
+	});
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center h-full">
+				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-red-800 mt-10" />
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex items-center justify-center h-full">
+				<div className="text-red-800 text-xl">Error loading recipes</div>
+			</div>
+		);
+	}
 
 	return (
-		<div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+		<div className="flex flex-wrap justify-center gap-4 p-4">
 			{recipes.map((recipe) => (
-				<div key={recipe.id} className="p-4 bg-white rounded-md shadow-md">
-					<img
-						src={recipe.imageUrl}
-						alt="Recipe"
-						className="w-full mb-4 rounded-md"
-					/>
-					<p className="text-gray-700">{recipe.instructions}</p>
+				<div
+					key={recipe.id}
+					className="recipe-card flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition group border-2 border-transparent hover:border-white hover:animate-swirl-border"
+				>
+					<h2 className="text-md font-semibold mb-2 text-center break-words">
+						{recipe.name}
+					</h2>
+					<Link href={`/img/${recipe.id}`} className="group relative">
+						<Image
+							src={recipe.imageUrl}
+							className="rounded-md"
+							style={{ objectFit: "cover" }}
+							width={192}
+							height={192}
+							alt={recipe.name}
+						/>
+					</Link>
 				</div>
 			))}
 		</div>
 	);
 };
 
-export default RecipeList;
+export default RecipesClient;

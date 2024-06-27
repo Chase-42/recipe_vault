@@ -3,7 +3,8 @@ import { recipes } from "../../../server/db/schema";
 import { db } from "../../../server/db/index";
 import { fetchRecipeDetails } from "../../../utils/scraper";
 import { uploadImage } from "../../../utils/uploadImage";
-import { getAuth } from "@clerk/nextjs/server";
+import { auth, getAuth } from "@clerk/nextjs/server";
+import { getMyRecipes } from "~/server/queries";
 
 // POST handler
 export async function POST(req: NextRequest) {
@@ -57,8 +58,8 @@ export async function POST(req: NextRequest) {
 // GET handler
 export async function GET() {
 	try {
-		const recipeList = await db.select().from(recipes);
-		return NextResponse.json(recipeList);
+		const recipes = await getMyRecipes();
+		return NextResponse.json(recipes);
 	} catch (error) {
 		console.error(error);
 		return new NextResponse(

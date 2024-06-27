@@ -64,3 +64,64 @@
     max-width: 100vw;
     max-height: 100vh;
   }
+
+@keyframes swirl-border {
+	0% {
+		border-color: white transparent transparent transparent;
+	}
+	6.25% {
+		border-color: white white transparent transparent;
+	}
+	12.5% {
+		border-color: white white transparent transparent;
+	}
+	18.75% {
+		border-color: white white white transparent;
+	}
+	25% {
+		border-color: white white white transparent;
+	}
+	31.25% {
+		border-color: white white white white;
+	}
+	37.5% {
+		border-color: white white white white;
+	}
+	43.75% {
+		border-color: white white white white;
+	}
+	50% {
+		border-color: white white white white;
+	}
+	56.25% {
+		border-color: white white white white;
+	}
+	62.5% {
+		border-color: white white white white;
+	}
+	68.75% {
+		border-color: white white white white;
+	}
+	75% {
+		border-color: white white white white;
+	}
+	81.25% {
+		border-color: white white white white;
+	}
+	87.5% {
+		border-color: white white white white;
+	}
+	93.75% {
+		border-color: white white white white;
+	}
+	100% {
+		border-color: white white white white;
+	}
+}
+.recipe-card {
+	transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+.hover\:animate-swirl-border:hover {
+	animation: swirl-border .4s ease-in-out forwards;
+}

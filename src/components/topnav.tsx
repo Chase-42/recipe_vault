@@ -38,7 +38,7 @@ export const TopNav = () => {
 
 			{isModalOpen && (
 				<Modal onClose={handleCloseModal}>
-					<AddRecipe />
+					<AddRecipe onSuccess={handleCloseModal} />
 				</Modal>
 			)}
 		</nav>

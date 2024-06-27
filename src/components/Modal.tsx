@@ -4,12 +4,10 @@ import { type ElementRef, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 
-interface ModalProps {
-	children: React.ReactNode;
-	onClose?: () => void;
-}
-
-export function Modal({ children, onClose }: ModalProps) {
+export function Modal({
+	children,
+	onClose,
+}: { children: React.ReactNode; onClose?: () => void }) {
 	const router = useRouter();
 	const dialogRef = useRef<ElementRef<"dialog">>(null);
 
@@ -30,7 +28,7 @@ export function Modal({ children, onClose }: ModalProps) {
 	return createPortal(
 		<dialog
 			ref={dialogRef}
-			className="absolute h-screen w-screen bg-black/90 text-white"
+			className="fixed z-50 h-screen w-screen bg-black/90 text-white"
 			onClose={onDismiss}
 		>
 			<button
