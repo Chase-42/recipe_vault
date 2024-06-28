@@ -2,7 +2,7 @@ import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import ClientProvider from "~/components/ClientProvider";
-import { TopNav } from "~/components/TopNav";
+import { TopNav } from "../components/TopNav";
 import { SearchProvider } from "../providers";
 import { Toaster } from "sonner";
 
