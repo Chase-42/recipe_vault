@@ -13,7 +13,6 @@ interface RecipesClientProps {
 const fetchRecipes = async (): Promise<Recipe[]> => {
 	try {
 		const response: Response = await fetch("/api/recipes");
-		console.log("response", response);
 		if (!response.ok) {
 			throw new Error("Network response was not ok");
 		}
@@ -62,7 +61,7 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
 			{filteredRecipes.map((recipe) => (
 				<div
 					key={recipe.id}
-					className="recipe-card flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition group border-2 border-transparent hover:border-white hover:animate-swirl-border"
+					className="recipe-card group flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition border-2 border-transparent hover:border-white"
 				>
 					<h2 className="text-md font-semibold mb-2 text-center break-words">
 						{recipe.name}
@@ -72,6 +71,7 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
 							src={recipe.imageUrl}
 							className="rounded-md"
 							style={{ objectFit: "cover" }}
+							layout="responsive"
 							width={192}
 							height={192}
 							alt={recipe.name}

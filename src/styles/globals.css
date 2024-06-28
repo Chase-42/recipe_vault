@@ -125,3 +125,13 @@
 .hover\:animate-swirl-border:hover {
 	animation: swirl-border .4s ease-in-out forwards;
 }
+
+.recipe-card {
+  @apply flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition border-2 border-transparent hover:border-white hover:animate-swirl-border;
+}
+
+@media (max-width: 768px) {
+  .recipe-card {
+    @apply max-w-full;
+  }
+}

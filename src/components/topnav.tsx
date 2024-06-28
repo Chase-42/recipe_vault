@@ -6,8 +6,8 @@ import AddRecipe from "./AddRecipe";
 import { Modal } from "./Modal";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-
 import { useSearch } from "../providers";
+import Link from "next/link";
 
 export const TopNav = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,8 +22,10 @@ export const TopNav = () => {
 	};
 
 	return (
-		<nav className="flex w-full items-center justify-between border-b p-4 text-xl font-semibold">
-			<div>Recipes</div>
+		<nav className="flex w-full items-center justify-between border-b p-4 text-xl font-semibold z-50">
+			<Link href="/" className="text-white hover:underline">
+				Recipes
+			</Link>
 
 			<div className="flex flex-row items-center gap-4">
 				<SignedOut>

@@ -12,41 +12,44 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
 
 	const handleSubmit = async (e: { preventDefault: () => void }) => {
 		e.preventDefault();
-		if (link && name) {
-			setIsLoading(true);
-			try {
-				const response = await fetch("/api/recipes", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ link, name }),
-				});
-				if (!response.ok) {
-					throw new Error("Failed to save recipe");
-				}
-				setLink("");
-				setName("");
-				toast.success("Recipe saved successfully!");
-				setTimeout(() => {
-					onSuccess();
-				}, 1000);
-				await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-			} catch (error) {
-				console.error("An error occurred:", error);
-				toast.error("Failed to save recipe.");
-			} finally {
-				setIsLoading(false);
+		if (!link || !name) {
+			return;
+		}
+
+		setIsLoading(true);
+
+		try {
+			const response = await fetch("/api/recipes", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ link, name }),
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to save recipe");
 			}
+
+			await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+
+			setTimeout(() => {
+				onSuccess();
+			}, 1000);
+		} catch (error) {
+			console.error("An error occurred:", error);
+			toast.error("Failed to save recipe.");
+		} finally {
+			setIsLoading(false);
+			toast.success("Recipe saved successfully!", {
+				duration: 2500,
+				id: "success",
+			});
 		}
 	};
 
 	return (
 		<>
-			<Toaster
-				position="top-center"
-				toastOptions={{ style: { zIndex: 9999 } }}
-			/>
 			<div className="flex items-center justify-center h-full w-full">
 				<form
 					onSubmit={handleSubmit}

@@ -28,12 +28,12 @@ export function Modal({
 	return createPortal(
 		<dialog
 			ref={dialogRef}
-			className="fixed z-50 h-screen w-screen bg-black/90 text-white"
+			className="absolute h-screen w-screen bg-black/90 text-white"
 			onClose={onDismiss}
 		>
 			<button
 				onClick={onDismiss}
-				className="absolute top-4 right-4 transform text-3xl text-white transition-transform duration-200 hover:scale-110"
+				className="z-50 absolute right-4 transform text-3xl text-white transition-transform duration-200 hover:scale-110"
 				aria-label="Close"
 				type="button"
 			>

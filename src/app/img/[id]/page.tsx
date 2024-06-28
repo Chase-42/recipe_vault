@@ -1,4 +1,4 @@
-import FullPageImageView from "~/components/full-image-page";
+import FullPageImageView from "~/components/FullImagePage";
 
 export default function RecipePage({
 	params: { id: photoId },
@@ -8,7 +8,7 @@ export default function RecipePage({
 	const idAsNumber = Number(photoId);
 	if (Number.isNaN(idAsNumber)) throw new Error("Invalid photo id");
 	return (
-		<div className="flex h-full min-h-0 w-full min-w-0 overflow-y-hidden">
+		<div className="flex h-full min-h-0 w-full min-w-0">
 			<FullPageImageView id={idAsNumber} />
 		</div>
 	);
