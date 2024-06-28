@@ -1,11 +1,16 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import Image from "next/image";
-import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import RecipeList from "~/components/RecipeList";
 import { getMyRecipes } from "~/server/queries";
+import type { Recipe } from "~/types";
 
 export default async function HomePage() {
-	const recipes = await getMyRecipes();
+	const { userId } = auth();
+	let recipes: Recipe[] = [];
+
+	if (userId) {
+		recipes = await getMyRecipes();
+	}
 	return (
 		<main className="">
 			<SignedOut>

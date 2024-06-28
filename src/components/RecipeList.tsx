@@ -4,17 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearch } from "../providers";
-
-interface Recipe {
-	link: string;
-	id: number;
-	name: string;
-	userId: string;
-	imageUrl: string;
-	instructions: string;
-	ingredients: string;
-	createdAt: Date;
-}
+import type { Recipe } from "~/types";
 
 interface RecipesClientProps {
 	initialRecipes: Recipe[];

@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+import { db } from "../../../server/db";
 import { recipes } from "../../../server/db/schema";
-import { db } from "../../../server/db/index";
 import { fetchRecipeDetails } from "../../../utils/scraper";
 import { uploadImage } from "../../../utils/uploadImage";
-import { auth, getAuth } from "@clerk/nextjs/server";
 import { getMyRecipes } from "~/server/queries";
 
-// POST handler
 export async function POST(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -25,7 +24,9 @@ export async function POST(req: NextRequest) {
 		) {
 			return new NextResponse(
 				JSON.stringify({ error: "Invalid link or name" }),
-				{ status: 400 },
+				{
+					status: 400,
+				},
 			);
 		}
 
@@ -50,12 +51,13 @@ export async function POST(req: NextRequest) {
 		console.error(error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to save recipe" }),
-			{ status: 500 },
+			{
+				status: 500,
+			},
 		);
 	}
 }
 
-// GET handler
 export async function GET(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -70,7 +72,9 @@ export async function GET(req: NextRequest) {
 		console.error(error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
-			{ status: 500 },
+			{
+				status: 500,
+			},
 		);
 	}
 }
