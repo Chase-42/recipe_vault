@@ -8,19 +8,19 @@ interface RecipeDetails {
 
 const cleanText = (text: string): string => {
 	return text
-		.replace(/\s+/g, " ") // Replace multiple spaces with a single space
-		.replace(/[\r\n\t]+/g, " ") // Replace newlines and tabs with a space
-		.replace(/please enable targetting cookies.*$/, "") // Remove unwanted text
-		.replace(/if \(window\.innerWidth.*\{.*\}\);/g, "") // Remove inline scripts
-		.replace(/propertag\.cmd\.push\(function\(\) \{.*\}\);/g, "") // Remove inline ads
-		.replace(/<.*?>/g, "") // Remove HTML tags
-		.replace(/^\s*$/g, "") // Remove empty lines
-		.replace(/ingredients?\s*:\s*/i, "") // Remove leading "Ingredients:" text
-		.replace(/instructions?\s*:\s*/i, "") // Remove leading "Instructions:" text
-		.replace(/tips?\s*:\s*/i, "") // Remove leading "Tips:" text
-		.replace(/methods?\s*:\s*/i, "") // Remove leading "Method:" text
-		.replace(/•\s+/g, "• ") // Clean up bullet points
-		.replace(/^\s*•/gm, "•") // Ensure bullet points are at the start of the line
+		.replace(/\s+/g, " ") 
+		.replace(/[\r\n\t]+/g, " ") 
+		.replace(/please enable targetting cookies.*$/, "") 
+		.replace(/if \(window\.innerWidth.*\{.*\}\);/g, "") 
+		.replace(/propertag\.cmd\.push\(function\(\) \{.*\}\);/g, "") 
+		.replace(/<.*?>/g, "") 
+		.replace(/^\s*$/g, "") 
+		.replace(/ingredients?\s*:\s*/i, "") 
+		.replace(/instructions?\s*:\s*/i, "") 
+		.replace(/tips?\s*:\s*/i, "") 
+		.replace(/methods?\s*:\s*/i, "") 
+		.replace(/•\s+/g, "• ") 
+		.replace(/^\s*•/gm, "•") 
 		.trim();
 };
 
@@ -78,7 +78,7 @@ const filterInstructions = ($: cheerio.Root): string => {
 	}
 
 	if (!instructions) {
-		// Try more generic selectors if no instructions found
+		
 		instructions = $(
 			'div[class*="instruction"], div[class*="step"], ol li, ul li',
 		)
@@ -129,7 +129,7 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 	}
 
 	if (ingredients.length === 0) {
-		// Try more generic selectors if no ingredients found
+		
 		$('div[class*="ingredient"], ul li, ol li').each((_, elem) => {
 			const text = cleanText($(elem).text());
 			if (text) {
@@ -147,8 +147,6 @@ export const fetchRecipeDetails = async (
 	const response = await fetch(link);
 	const html = await response.text();
 	const $ = cheerio.load(html);
-
-	// Remove footer and other unwanted sections
 	$(
 		"footer, .footer, .site-footer, .site-header, nav, .nav, .navbar, header, .header",
 	).remove();
@@ -156,7 +154,7 @@ export const fetchRecipeDetails = async (
 	const imageUrl =
 		$('meta[property="og:image"], meta[name="twitter:image"]').attr(
 			"content",
-		) || "";
+		) ?? "";
 
 	const instructions = filterInstructions($);
 	const ingredients = filterIngredients($);

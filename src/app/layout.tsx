@@ -1,8 +1,8 @@
 import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
-import ClientProvider from "~/app/_components/ClientProvider";
-import { SearchProvider } from "../providers";
+import ClientProvider from "~/providers";	
+import { SearchProvider } from "~/providers";
 import { Toaster } from "sonner";
 import { TopNav } from "~/app/_components/topnav";
 
