@@ -1,10 +1,10 @@
 import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
-import ClientProvider from "~/components/ClientProvider";
-import { TopNav } from "../components/TopNav";
+import ClientProvider from "~/app/_components/ClientProvider";
 import { SearchProvider } from "../providers";
 import { Toaster } from "sonner";
+import { TopNav } from "~/app/_components/topnav";
 
 export const metadata = {
 	title: "Recipe Vault",

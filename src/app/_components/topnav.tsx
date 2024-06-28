@@ -4,9 +4,9 @@ import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useState } from "react";
 import AddRecipe from "./AddRecipe";
 import { Modal } from "./Modal";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { useSearch } from "../providers";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { useSearch } from "../../providers";
 import Link from "next/link";
 
 export const TopNav = () => {

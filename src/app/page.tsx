@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import RecipeList from "~/components/RecipeList";
+import RecipeList from "~/app/_components/RecipeList";
 import { getMyRecipes } from "~/server/queries";
 import type { Recipe } from "~/types";
 

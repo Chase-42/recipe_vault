@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearch } from "../providers";
+import { useSearch } from "../../providers";
 import type { Recipe } from "~/types";
 
 interface RecipesClientProps {

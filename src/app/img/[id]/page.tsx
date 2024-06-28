@@ -1,4 +1,4 @@
-import FullPageImageView from "~/components/FullImagePage";
+import FullPageImageView from "~/app/_components/FullImagePage";
 
 export default function RecipePage({
 	params: { id: photoId },
