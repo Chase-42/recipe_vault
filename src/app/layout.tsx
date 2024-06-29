@@ -4,7 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ClientProvider } from "~/providers";
 import { SearchProvider } from "~/providers";
 import { Toaster } from "sonner";
-import { TopNav } from "./_components/TopNav";
+import { TopNav } from "~/app/_components/topnav";
 
 export const metadata = {
   title: "Recipe Vault",
