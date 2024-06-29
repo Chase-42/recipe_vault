@@ -2,6 +2,12 @@
   @tailwind components;
   @tailwind utilities;
 
+/* Tailwind CSS */
+@layer utilities {
+  .border-dark-red {
+    border-color: #8b0000;
+  }
+}
 
   @layer base {
     :root {
@@ -123,7 +129,7 @@
 }
 
 .hover\:animate-swirl-border:hover {
-	animation: swirl-border .4s ease-in-out forwards;
+	animation: swirl-border .75s ease-in-out forwards;
 }
 
 .recipe-card {

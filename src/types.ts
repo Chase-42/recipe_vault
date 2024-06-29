@@ -4,6 +4,7 @@ export interface Recipe {
 	name: string;
 	userId: string;
 	imageUrl: string;
+	blurDataUrl: string;
 	instructions: string;
 	ingredients: string;
 	createdAt: Date;

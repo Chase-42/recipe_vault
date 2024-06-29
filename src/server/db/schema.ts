@@ -14,6 +14,7 @@ export const recipes = createTable("recipes", {
 	name: text("name").notNull(),
 	userId: varchar("userId", { length: 256 }).notNull(),
 	imageUrl: text("imageUrl").notNull(),
+	blurDataUrl: text("blurDataUrl").notNull(),
 	instructions: text("instructions").notNull(),
 	ingredients: text("ingredients").notNull(),
 	createdAt: timestamp("createdAt").defaultNow().notNull(),

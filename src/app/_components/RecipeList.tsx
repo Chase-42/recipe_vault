@@ -5,82 +5,88 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearch } from "../../providers";
 import type { Recipe } from "~/types";
+import { motion } from "framer-motion";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface RecipesClientProps {
-	initialRecipes: Recipe[];
+  initialRecipes: Recipe[];
 }
 
 const fetchRecipes = async (): Promise<Recipe[]> => {
-	try {
-		const response: Response = await fetch("/api/recipes");
-		if (!response.ok) {
-			throw new Error("Network response was not ok");
-		}
-		const data: Recipe[] = (await response.json()) as Recipe[];
-		return data;
-	} catch (error) {
-		console.error("Failed to fetch recipes:", error);
-		throw error;
-	}
+  try {
+    const response: Response = await fetch("/api/recipes");
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data: Recipe[] = (await response.json()) as Recipe[];
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch recipes:", error);
+    throw error;
+  }
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
-	const { searchTerm } = useSearch();
-	const {
-		data: recipes = initialRecipes,
-		error,
-		isLoading,
-	} = useQuery<Recipe[]>({
-		queryKey: ["recipes"],
-		queryFn: fetchRecipes,
-		initialData: initialRecipes,
-	});
+  const { searchTerm } = useSearch();
 
-	const filteredRecipes = recipes.filter((recipe) =>
-		recipe.name.toLowerCase().includes(searchTerm.toLowerCase()),
-	);
+  const {
+    data: recipes = initialRecipes,
+    error,
+    isLoading,
+  } = useQuery<Recipe[]>({
+    queryKey: ["recipes"],
+    queryFn: fetchRecipes,
+    initialData: initialRecipes,
+  });
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-full">
-				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-red-800 mt-10" />
-			</div>
-		);
-	}
+  const filteredRecipes = recipes.filter((recipe) =>
+    recipe.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
-	if (error) {
-		return (
-			<div className="flex items-center justify-center h-full">
-				<div className="text-red-800 text-xl">Error loading recipes</div>
-			</div>
-		);
-	}
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
-	return (
-		<div className="flex flex-wrap justify-center gap-4 p-4">
-			{filteredRecipes.map((recipe) => (
-				<div
-					key={recipe.id}
-					className="recipe-card group flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition border-2 border-transparent hover:border-white"
-				>
-					<h2 className="text-md font-semibold mb-2 text-center break-words">
-						{recipe.name}
-					</h2>
-					<Link href={`/img/${recipe.id}`} className="group relative">
-						<Image
-							src={recipe.imageUrl}
-							className="rounded-md"
-							style={{ objectFit: "cover" }}
-							layout="responsive"
-							width={192}
-							height={192}
-							alt={recipe.name}
-						/>
-					</Link>
-				</div>
-			))}
-		</div>
-	);
+  if (error) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-xl text-red-800">Error loading recipes</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap justify-center gap-4 p-4">
+      {filteredRecipes.map((recipe) => (
+        <motion.div
+          key={recipe.id}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="recipe-card group flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
+        >
+          <h2 className="text-md mb-2 break-words text-center font-semibold">
+            {recipe.name}
+          </h2>
+          <Link href={`/img/${recipe.id}`} className="group relative">
+            <Image
+              src={recipe.imageUrl}
+              className="rounded-md"
+              style={{ objectFit: "cover" }}
+              width={192}
+              height={192}
+              alt={`Image of ${recipe.name}`}
+              placeholder="blur"
+              blurDataURL={recipe.blurDataUrl}
+            />
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  );
 };
 
 export default RecipesClient;

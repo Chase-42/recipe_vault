@@ -5,6 +5,7 @@ import { recipes } from "../../../server/db/schema";
 import { fetchRecipeDetails } from "../../../utils/scraper";
 import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
+import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -32,13 +33,16 @@ export async function POST(req: NextRequest) {
 
 		const { imageUrl, instructions, ingredients } =
 			await fetchRecipeDetails(link);
-		const uploadedImageUrl = await uploadImage(imageUrl);
+			const uploadedImageUrl = await uploadImage(imageUrl);
+
+			const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
 
 		const [recipe] = await db
 			.insert(recipes)
 			.values({
 				link,
 				imageUrl: uploadedImageUrl,
+				blurDataUrl: blurDataURL,
 				instructions,
 				ingredients: ingredients.join("\n"),
 				name,
