@@ -8,19 +8,19 @@ interface RecipeDetails {
 
 const cleanText = (text: string): string => {
 	return text
-		.replace(/\s+/g, " ") 
-		.replace(/[\r\n\t]+/g, " ") 
-		.replace(/please enable targetting cookies.*$/, "") 
-		.replace(/if \(window\.innerWidth.*\{.*\}\);/g, "") 
-		.replace(/propertag\.cmd\.push\(function\(\) \{.*\}\);/g, "") 
-		.replace(/<.*?>/g, "") 
-		.replace(/^\s*$/g, "") 
-		.replace(/ingredients?\s*:\s*/i, "") 
-		.replace(/instructions?\s*:\s*/i, "") 
-		.replace(/tips?\s*:\s*/i, "") 
-		.replace(/methods?\s*:\s*/i, "") 
-		.replace(/•\s+/g, "• ") 
-		.replace(/^\s*•/gm, "•") 
+		.replace(/\s+/g, " ")
+		.replace(/[\r\n\t]+/g, " ")
+		.replace(/please enable targetting cookies.*$/, "")
+		.replace(/if \(window\.innerWidth.*\{.*\}\);/g, "")
+		.replace(/propertag\.cmd\.push\(function\(\) \{.*\}\);/g, "")
+		.replace(/<.*?>/g, "")
+		.replace(/^\s*$/g, "")
+		.replace(/ingredients?\s*:\s*/i, "")
+		.replace(/instructions?\s*:\s*/i, "")
+		.replace(/tips?\s*:\s*/i, "")
+		.replace(/methods?\s*:\s*/i, "")
+		.replace(/•\s+/g, "• ")
+		.replace(/^\s*•/gm, "•")
 		.trim();
 };
 
@@ -37,7 +37,7 @@ const extractText = ($elem: cheerio.Cheerio, $: cheerio.Root): string => {
 };
 
 const filterInstructions = ($: cheerio.Root): string => {
-	let instructions = "";
+	const instructions = new Set<string>();
 	const instructionSelectors = [
 		"div.instructions",
 		"ol.instructions",
@@ -72,26 +72,27 @@ const filterInstructions = ($: cheerio.Root): string => {
 		$(selector).each((_, elem) => {
 			const text = extractText($(elem), $);
 			if (text) {
-				instructions += `${text}\n`;
+				instructions.add(text);
 			}
 		});
 	}
 
-	if (!instructions) {
-		
-		instructions = $(
-			'div[class*="instruction"], div[class*="step"], ol li, ul li',
-		)
-			.map((_, elem) => `${cleanText($(elem).text())}`)
-			.get()
-			.join("\n");
+	if (instructions.size === 0) {
+		$('div[class*="instruction"], div[class*="step"], ol li, ul li').each(
+			(_, elem) => {
+				const text = extractText($(elem), $);
+				if (text) {
+					instructions.add(text);
+				}
+			},
+		);
 	}
 
-	return instructions.trim();
+	return Array.from(instructions).join("\n").trim();
 };
 
 const filterIngredients = ($: cheerio.Root): string[] => {
-	const ingredients: string[] = [];
+	const ingredients = new Set<string>();
 	const ingredientSelectors = [
 		"ul.ingredients li",
 		"div.ingredients li",
@@ -123,22 +124,21 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 		$(selector).each((_, elem) => {
 			const text = extractText($(elem), $);
 			if (text) {
-				ingredients.push(`${cleanText(text)}`);
+				ingredients.add(text);
 			}
 		});
 	}
 
-	if (ingredients.length === 0) {
-		
+	if (ingredients.size === 0) {
 		$('div[class*="ingredient"], ul li, ol li').each((_, elem) => {
 			const text = cleanText($(elem).text());
 			if (text) {
-				ingredients.push(`${text}`);
+				ingredients.add(text);
 			}
 		});
 	}
 
-	return ingredients;
+	return Array.from(ingredients);
 };
 
 export const fetchRecipeDetails = async (
