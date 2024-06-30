@@ -2,10 +2,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { db } from "../../../server/db";
 import { recipes } from "../../../server/db/schema";
-import { fetchRecipeDetails } from "../../../utils/scraper";
 import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
+
+const baseUrl =
+	process.env.NODE_ENV === "development"
+		? "http://localhost:3000/"
+		: process.env.NEXT_PUBLIC_DOMAIN;
 
 export async function POST(req: NextRequest) {
 	try {
@@ -31,11 +35,21 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const { imageUrl, instructions, ingredients } =
-			await fetchRecipeDetails(link);
-			const uploadedImageUrl = await uploadImage(imageUrl);
+		const response = await fetch("/api/scrape_recipe", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ url: link }),
+		});
 
-			const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
+		if (!response.ok) {
+			throw new Error("Failed to scrape recipe");
+		}
+
+		const { imageUrl, instructions, ingredients } = await response.json();
+		const uploadedImageUrl = await uploadImage(imageUrl);
+		const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
 
 		const [recipe] = await db
 			.insert(recipes)

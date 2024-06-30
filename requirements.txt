@@ -1,0 +1,2 @@
+Flask==2.0.1
+recipe-scrapers==13.7.1

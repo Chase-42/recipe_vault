@@ -25,7 +25,7 @@ export default function RootLayout({
         <SearchProvider>
           <html lang="en" className={`${GeistSans.variable} dark`}>
             <body>
-              <Toaster position="top-center" closeButton />
+              <Toaster position="top-center" />
               <div className="grid h-screen grid-rows-[auto,1fr]">
                 <TopNav />
                 <main className="overflow-y-auto">{children}</main>

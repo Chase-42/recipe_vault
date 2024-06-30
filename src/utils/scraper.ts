@@ -19,8 +19,17 @@ const cleanText = (text: string): string => {
 		.replace(/instructions?\s*:\s*/i, "")
 		.replace(/tips?\s*:\s*/i, "")
 		.replace(/methods?\s*:\s*/i, "")
+		.replace(/comments?.*$/i, "")
+		.replace(/ratings?.*$/i, "")
+		.replace(/reply?.*$/i, "")
 		.replace(/•\s+/g, "• ")
 		.replace(/^\s*•/gm, "•")
+		.replace(/•/g, "")
+		.replace(/^\s*▢/gm, "")
+		.replace(
+			/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+/gu,
+			"",
+		)
 		.trim();
 };
 
@@ -138,7 +147,15 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 		});
 	}
 
-	return Array.from(ingredients);
+	const cleanedIngredients = Array.from(ingredients);
+
+	// Remove any overly long entries that are likely concatenated duplicates
+	const maxIngredientLength = 200; // Adjust this value as needed
+	const filteredIngredients = cleanedIngredients.filter(
+		(ingredient) => ingredient.length <= maxIngredientLength,
+	);
+
+	return filteredIngredients;
 };
 
 export const fetchRecipeDetails = async (
@@ -147,6 +164,11 @@ export const fetchRecipeDetails = async (
 	const response = await fetch(link);
 	const html = await response.text();
 	const $ = cheerio.load(html);
+
+	// Remove unwanted elements
+	$(
+		'*[class*="comment"], *[id*="comment"], *[class*="comments"], *[id*="comments"], *[class*="ratings"], *[id*="ratings"], *[class*="reply"], *[id*="reply"], *[class*="replies"], *[id*="replies"]',
+	).remove();
 	$(
 		"footer, .footer, .site-footer, .site-header, nav, .nav, .navbar, header, .header",
 	).remove();
@@ -155,6 +177,7 @@ export const fetchRecipeDetails = async (
 		$('meta[property="og:image"], meta[name="twitter:image"]').attr(
 			"content",
 		) ?? "";
+	console.log("imageUrl", imageUrl);
 
 	const instructions = filterInstructions($);
 	const ingredients = filterIngredients($);

@@ -41,15 +41,12 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
       }
 
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-
-      setTimeout(() => {
-        onSuccess();
-      }, 1000);
     } catch (error) {
       console.error("An error occurred:", error);
       toast.error("Failed to save recipe.");
     } finally {
       setIsLoading(false);
+      onSuccess();
       toast.success("Recipe saved successfully!", {
         duration: 2500,
         id: "success",
