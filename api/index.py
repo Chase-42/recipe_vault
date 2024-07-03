@@ -7,3 +7,4 @@ def scraper():
     return jsonify(message="This is the scraper endpoint")
 
 
+
