@@ -3,7 +3,16 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 @app.route('/api/flask/scraper', methods=['GET'])
-def hello_world():
-    return jsonify(message="Hello, World!")
+def scraper():
+    return jsonify(message="This is the scraper endpoint")
 
-# No need for the `if __name__ == '__main__':` block, as Vercel handles the server startup.
+# Ensure that app.py works as a module
+if __name__ != "__main__":
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    from werkzeug.serving import run_simple
+
+    application = DispatcherMiddleware(app, {
+        '/api': app
+    })
+else:
+    app.run(port=5328)
