@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { db } from "../../../server/db";
+import { db } from "../../../server/db/index";
 import { recipes } from "../../../server/db/schema";
 import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
+import { fetchRecipeDetails } from "~/utils/scraper";
 
 const baseUrl =
 	process.env.NODE_ENV === "development"
@@ -35,19 +36,9 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const response = await fetch("/api/scrape_recipe", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ url: link }),
-		});
+		const { imageUrl, instructions, ingredients } =
+			await fetchRecipeDetails(link);
 
-		if (!response.ok) {
-			throw new Error("Failed to scrape recipe");
-		}
-
-		const { imageUrl, instructions, ingredients } = await response.json();
 		const uploadedImageUrl = await uploadImage(imageUrl);
 		const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
 

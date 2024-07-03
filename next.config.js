@@ -15,6 +15,14 @@ const coreConfig = {
 	eslint: {
 		ignoreDuringBuilds: true,
 	},
+	rewrites: async () => {
+		return [
+			{
+				source: "/api/flask/:path*",
+				destination: "http://127.0.0.1:5328/api/flask/:path*", // Proxy to Flask backend
+			},
+		];
+	},
 };
 
 import { withSentryConfig } from "@sentry/nextjs";

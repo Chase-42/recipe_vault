@@ -50,3 +50,5 @@ yarn-error.log*
 
 # Vscode
 .vscode
+# Ignore virtual environment
+venv/
