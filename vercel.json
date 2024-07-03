@@ -1,0 +1,13 @@
+{
+	"functions": {
+		"api/**": {
+			"excludeFiles": "{.next,*.cache,node_modules,public,app}/**"
+		}
+	},
+	"rewrites": [
+		{
+			"source": "/api/python/:path*",
+			"destination": "/api/python/app.py"
+		}
+	]
+}
