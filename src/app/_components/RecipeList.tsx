@@ -31,7 +31,7 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch("/api/flask/scraper")
+    fetch("/api/python")
       .then((response) => response.json())
       .then((data) => setData(data));
   }, []);
