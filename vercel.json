@@ -1,0 +1,13 @@
+{
+	"functions": {
+		"api/flask/app.py": {
+			"runtime": "python3.9"
+		}
+	},
+	"rewrites": [
+		{
+			"source": "/api/flask/:path*",
+			"destination": "/api/flask/app.py"
+		}
+	]
+}
