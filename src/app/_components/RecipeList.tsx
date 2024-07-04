@@ -7,7 +7,6 @@ import { useSearch } from "../../providers";
 import type { Recipe } from "~/types";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./LoadingSpinner";
-import { useEffect, useState } from "react";
 
 interface RecipesClientProps {
   initialRecipes: Recipe[];
@@ -28,13 +27,6 @@ const fetchRecipes = async (): Promise<Recipe[]> => {
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/scraper")
-      .then((response) => response.json())
-      .then((data) => setData(data));
-  }, []);
   const { searchTerm } = useSearch();
 
   const {
@@ -69,7 +61,6 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
 
   return (
     <div className="flex flex-wrap justify-center gap-4 p-4">
-      {data ? <p>{data.message}</p> : <p>Loading...</p>}
       {filteredRecipes.map((recipe) => (
         <motion.div
           key={recipe.id}

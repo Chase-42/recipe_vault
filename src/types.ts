@@ -9,3 +9,10 @@ export interface Recipe {
 	ingredients: string;
 	createdAt: Date;
 }
+
+export interface RecipeDetails {
+	name: string;
+	imageUrl: string;
+	instructions: string;
+	ingredients: string[];
+}

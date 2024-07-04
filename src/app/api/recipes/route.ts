@@ -5,7 +5,7 @@ import { recipes } from "../../../server/db/schema";
 import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
-import { fetchRecipeDetails } from "~/utils/scraper";
+import type { RecipeDetails } from "~/types";
 
 const baseUrl =
 	process.env.NODE_ENV === "development"
@@ -21,13 +21,8 @@ export async function POST(req: NextRequest) {
 			});
 		}
 
-		const { link, name } = (await req.json()) as { link: string; name: string };
-		if (
-			!link ||
-			typeof link !== "string" ||
-			!name ||
-			typeof name !== "string"
-		) {
+		const { link } = (await req.json()) as { link: string };
+		if (!link || typeof link !== "string") {
 			return new NextResponse(
 				JSON.stringify({ error: "Invalid link or name" }),
 				{
@@ -36,11 +31,19 @@ export async function POST(req: NextRequest) {
 			);
 		}
 		// Call the Flask API
-		const flaskApiUrl = `${baseUrl}/api/scraper`;
+		const flaskApiUrl = `${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
 		const response = await fetch(flaskApiUrl);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(`Flask API responded with an error: ${errorText}`);
+			throw new Error("Failed to fetch data from Flask API");
+		}
+
 		console.log("response", response);
-		const { imageUrl, instructions, ingredients } =
-			await fetchRecipeDetails(link);
+		const data = (await response.json()) as RecipeDetails;
+		console.log("data", data);
+		const { imageUrl, instructions, ingredients, name } = data;
 
 		const uploadedImageUrl = await uploadImage(imageUrl);
 		const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);

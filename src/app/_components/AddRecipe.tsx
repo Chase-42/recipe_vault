@@ -21,7 +21,7 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (!link || !name) {
+    if (!link) {
       return;
     }
 
@@ -62,14 +62,14 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col items-center">
-            <Input
+            {/* <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter recipe name"
               className="mb-3"
               required
-            />
+            /> */}
             <Input
               type="url"
               value={link}
