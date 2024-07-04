@@ -11,7 +11,7 @@ const baseUrl =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000/"
 		: process.env.NEXT_PUBLIC_DOMAIN;
-
+console.log("baseUrl", baseUrl);
 export async function POST(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -30,17 +30,19 @@ export async function POST(req: NextRequest) {
 				},
 			);
 		}
-		// Call the Flask API
-		const flaskApiUrl = `${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
+
+		const flaskApiUrl = `${baseUrl}/api/scraper?url=${encodeURIComponent(link)}`;
+		console.log(`Fetching data from Flask API at: ${flaskApiUrl}`);
+
 		const response = await fetch(flaskApiUrl);
+		console.log("response", response);
 
 		if (!response.ok) {
 			const errorText = await response.text();
 			console.error(`Flask API responded with an error: ${errorText}`);
-			throw new Error("Failed to fetch data from Flask API");
+			throw new Error(`Failed to fetch data from Flask API: ${errorText}`);
 		}
 
-		console.log("response", response);
 		const data = (await response.json()) as RecipeDetails;
 		console.log("data", data);
 		const { imageUrl, instructions, ingredients, name } = data;
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json(recipe);
 	} catch (error) {
-		console.error(error);
+		console.error(`Error in POST /api/recipes: ${error.message}`);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to save recipe" }),
 			{
@@ -84,7 +86,7 @@ export async function GET(req: NextRequest) {
 		const recipes = await getMyRecipes();
 		return NextResponse.json(recipes);
 	} catch (error) {
-		console.error(error);
+		console.error(`Error in GET /api/recipes: ${error.message}`);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
 			{

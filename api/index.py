@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request
 from recipe_scrapers import scrape_me
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/api/scraper', methods=['GET'])
 def scraper():
