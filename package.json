@@ -9,7 +9,9 @@
 		"dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"db:push": "drizzle-kit push:pg",
+		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^5.1.3",

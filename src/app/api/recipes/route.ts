@@ -35,7 +35,10 @@ export async function POST(req: NextRequest) {
 				},
 			);
 		}
-
+		// Call the Flask API
+		const flaskApiUrl = `${baseUrl}/api/scraper`;
+		const response = await fetch(flaskApiUrl);
+		console.log("response", response);
 		const { imageUrl, instructions, ingredients } =
 			await fetchRecipeDetails(link);
 

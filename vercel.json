@@ -6,8 +6,8 @@
 	},
 	"rewrites": [
 		{
-			"source": "/api/python/:path*",
-			"destination": "/api/python/app.py"
+			"source": "/api/scraper/:path*",
+			"destination": "/api/scraper/app.py"
 		}
 	]
 }
