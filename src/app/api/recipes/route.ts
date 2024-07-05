@@ -11,20 +11,25 @@ import { fetchRecipeDetails } from "~/utils/scraper";
 const baseUrl =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000/"
-		: process.env.NEXT_PUBLIC_DOMAIN;
+		: process.env.NEXT_PUBLIC_DOMAIN ?? "";
 
-const flaskApiUrl = (link: string) =>
+const flaskApiUrl = (link: string): string =>
 	`${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
 
 const fetchDataFromFlask = async (link: string): Promise<RecipeDetails> => {
-	const response = await fetch(flaskApiUrl(link));
-	if (!response.ok) {
-		const errorText = await response.text();
-		console.error(`Flask API responded with an error: ${errorText}`);
-		throw new Error("Failed to fetch data from Flask API");
+	try {
+		const response: Response = await fetch(flaskApiUrl(link));
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(`Flask API responded with an error: ${errorText}`);
+			throw new Error("Failed to fetch data from Flask API");
+		}
+		const data = (await response.json()) as RecipeDetails;
+		return data;
+	} catch (error) {
+		console.error("fetchDataFromFlask error:", error);
+		throw error;
 	}
-	const data = (await response.json()) as RecipeDetails;
-	return data;
 };
 
 export async function POST(req: NextRequest) {
@@ -46,7 +51,14 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const data = await fetchDataFromFlask(link);
+		let data: RecipeDetails;
+		try {
+			data = await fetchDataFromFlask(link);
+		} catch (error) {
+			console.error("Error fetching data from Flask API:", error);
+			throw new Error("Failed to fetch data from Flask API");
+		}
+
 		let { imageUrl, instructions, ingredients, name } = data;
 
 		if (!name || !imageUrl || !instructions || !ingredients) {
@@ -75,7 +87,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json(recipe);
 	} catch (error) {
-		console.error(error);
+		console.error("Failed to save recipe:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to save recipe" }),
 			{
@@ -96,7 +108,7 @@ export async function GET(req: NextRequest) {
 		const recipes = await getMyRecipes();
 		return NextResponse.json(recipes);
 	} catch (error) {
-		console.error(error);
+		console.error("Failed to fetch recipes:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
 			{
