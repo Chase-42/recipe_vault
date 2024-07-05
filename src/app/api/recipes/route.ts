@@ -61,21 +61,27 @@ export async function POST(req: NextRequest) {
 
 		let { imageUrl, instructions, ingredients, name } = data;
 
-		if (!name || !imageUrl || !instructions || !ingredients) {
+		if (
+			!name ||
+			!imageUrl ||
+			!instructions ||
+			!ingredients ||
+			ingredients.length === 0
+		) {
 			console.log("Falling back to alternative scraping");
 			const fallbackData = (await getRecipeData(link)) as RecipeResponse;
 			console.log("fallbackData", fallbackData);
 
-			imageUrl = imageUrl || fallbackData.image.url;
+			imageUrl = imageUrl ?? fallbackData.image?.url ?? "";
 			if (!imageUrl) {
 				const imageUrls = await fetchRecipeImages(link);
 				imageUrl = imageUrls.length > 0 ? imageUrls[0] : "";
 			}
 
 			instructions =
-				instructions ||
+				instructions ??
 				(fallbackData.recipeInstructions || [])
-					.map((instruction) => sanitizeString(instruction?.text))
+					.map((instruction) => sanitizeString(instruction?.text ?? ""))
 					.filter(Boolean)
 					.join("\n");
 
@@ -84,15 +90,17 @@ export async function POST(req: NextRequest) {
 					? ingredients
 					: (fallbackData.recipeIngredient || []).map((i) => sanitizeString(i));
 
-			name = name || sanitizeString(fallbackData.name);
+			name = name ?? sanitizeString(fallbackData.name ?? "");
 		}
 
 		if (!imageUrl || !instructions || !ingredients.length || !name) {
 			throw new Error("Incomplete recipe data");
 		}
 
-		const uploadedImageUrl = await uploadImage(imageUrl);
-		const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
+		const [uploadedImageUrl, blurDataURL] = await Promise.all([
+			uploadImage(imageUrl),
+			dynamicBlurDataUrl(imageUrl),
+		]);
 
 		const [recipe] = await db
 			.insert(recipes)
