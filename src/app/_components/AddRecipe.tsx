@@ -1,17 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { Input } from "../../components/ui/input";
 import { motion } from "framer-motion";
-import { Toaster } from "sonner";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { on } from "events";
 
 const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
   const [link, setLink] = useState("");
@@ -41,16 +40,18 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
       }
 
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-    } catch (error) {
-      console.error("An error occurred:", error);
-      toast.error("Failed to save recipe.");
-    } finally {
-      setIsLoading(false);
-      onSuccess();
+
       toast.success("Recipe saved successfully!", {
         duration: 2500,
         id: "success",
       });
+      onSuccess();
+    } catch (error) {
+      onSuccess();
+      console.error("An error occurred:", error);
+      toast.error("Failed to save recipe.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
