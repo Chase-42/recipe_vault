@@ -6,27 +6,27 @@ import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 import type { RecipeDetails, RecipeResponse } from "~/types";
-import fetchRecipeImages, { fetchRecipeDetails } from "~/utils/scraper";
+import fetchRecipeImages from "~/utils/scraper";
 import getRecipeData from "@rethora/url-recipe-scraper";
+import sanitizeString from "~/utils/sanitizeString";
 
 const baseUrl =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000/"
-		: `${process.env.NEXT_PUBLIC_DOMAIN}/`; // Ensure trailing slash
+		: `${process.env.NEXT_PUBLIC_DOMAIN}/`;
 
 const flaskApiUrl = (link: string): string =>
 	`${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
 
 const fetchDataFromFlask = async (link: string): Promise<RecipeDetails> => {
 	try {
-		const response: Response = await fetch(flaskApiUrl(link));
+		const response = await fetch(flaskApiUrl(link));
 		if (!response.ok) {
 			const errorText = await response.text();
 			console.error(`Flask API responded with an error: ${errorText}`);
 			throw new Error("Failed to fetch data from Flask API");
 		}
-		const data = (await response.json()) as RecipeDetails;
-		return data;
+		return (await response.json()) as RecipeDetails;
 	} catch (error) {
 		console.error("fetchDataFromFlask error:", error);
 		throw error;
@@ -46,9 +46,7 @@ export async function POST(req: NextRequest) {
 		if (!link || typeof link !== "string") {
 			return new NextResponse(
 				JSON.stringify({ error: "Invalid link or name" }),
-				{
-					status: 400,
-				},
+				{ status: 400 },
 			);
 		}
 
@@ -67,17 +65,30 @@ export async function POST(req: NextRequest) {
 			console.log("Falling back to alternative scraping");
 			const fallbackData = (await getRecipeData(link)) as RecipeResponse;
 			console.log("fallbackData", fallbackData);
+
 			imageUrl = imageUrl || fallbackData.image.url;
 			if (!imageUrl) {
 				const imageUrls = await fetchRecipeImages(link);
 				imageUrl = imageUrls.length > 0 ? imageUrls[0] : "";
 			}
+
 			instructions =
 				instructions ||
-				fallbackData.recipeInstructions
-					.map((instruction) => instruction.text)
+				(fallbackData.recipeInstructions || [])
+					.map((instruction) => sanitizeString(instruction?.text))
+					.filter(Boolean)
 					.join("\n");
-			ingredients = ingredients || fallbackData.recipeIngredient;
+
+			ingredients =
+				ingredients && ingredients.length > 0
+					? ingredients
+					: (fallbackData.recipeIngredient || []).map((i) => sanitizeString(i));
+
+			name = name || sanitizeString(fallbackData.name);
+		}
+
+		if (!imageUrl || !instructions || !ingredients.length || !name) {
+			throw new Error("Incomplete recipe data");
 		}
 
 		const uploadedImageUrl = await uploadImage(imageUrl);
@@ -101,9 +112,7 @@ export async function POST(req: NextRequest) {
 		console.error("Failed to save recipe:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to save recipe" }),
-			{
-				status: 500,
-			},
+			{ status: 500 },
 		);
 	}
 }
@@ -122,9 +131,7 @@ export async function GET(req: NextRequest) {
 		console.error("Failed to fetch recipes:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
-			{
-				status: 500,
-			},
+			{ status: 500 },
 		);
 	}
 }
