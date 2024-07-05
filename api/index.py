@@ -34,14 +34,20 @@ def get_recipe_details(scraper, url):
     """Helper function to extract recipe details with default messages if not available."""
     try:
         name = scraper.title()
+        if not name.strip():
+            name = None
     except:
         name = None
     try:
         ingredients = scraper.ingredients()
+        if not ingredients or all(not ingredient.strip() for ingredient in ingredients):
+            ingredients = None
     except:
         ingredients = None
     try:
         instructions = scraper.instructions()
+        if not instructions.strip():
+            instructions = None
     except:
         instructions = None
     try:
