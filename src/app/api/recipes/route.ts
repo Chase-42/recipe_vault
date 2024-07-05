@@ -11,24 +11,20 @@ import { fetchRecipeDetails } from "~/utils/scraper";
 const baseUrl =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000/"
-		: process.env.NEXT_PUBLIC_DOMAIN ?? "";
+		: process.env.NEXT_PUBLIC_DOMAIN + "/"; // Ensure trailing slash
 
-const flaskApiUrl = (link: string): string => {
-	console.log("flaskApiUrl", link);
-	return `${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
-};
+const flaskApiUrl = (link: string): string =>
+	`${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
 
 const fetchDataFromFlask = async (link: string): Promise<RecipeDetails> => {
 	try {
-		console.log("fetchDataFromFlask", link);
 		const response: Response = await fetch(flaskApiUrl(link));
-		console.log("response", response);
 		if (!response.ok) {
 			const errorText = await response.text();
 			console.error(`Flask API responded with an error: ${errorText}`);
 			throw new Error("Failed to fetch data from Flask API");
 		}
-		const data = (await response.json()) as RecipeDetails;
+		const data: RecipeDetails = await response.json();
 		return data;
 	} catch (error) {
 		console.error("fetchDataFromFlask error:", error);
