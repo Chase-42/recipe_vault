@@ -6,8 +6,8 @@ interface RecipeDetails {
 	ingredients: string[];
 }
 
-const cleanText = (text: string): string => {
-	return text
+const cleanText = (text: string): string =>
+	text
 		.replace(/\s+/g, " ")
 		.replace(/[\r\n\t]+/g, " ")
 		.replace(/please enable targetting cookies.*$/, "")
@@ -31,7 +31,6 @@ const cleanText = (text: string): string => {
 			"",
 		)
 		.trim();
-};
 
 const extractText = ($elem: cheerio.Cheerio, $: cheerio.Root): string => {
 	let text = "";
@@ -61,38 +60,29 @@ const filterInstructions = ($: cheerio.Root): string => {
 		"div.wprm-recipe-instructions-container",
 		"div.directions",
 		"div.steps",
-		"div.instructions",
 		".directions-list",
-		".step",
-		".instruction",
 		"li.step",
 		"li.direction",
 		"ol.steps li",
 		"ol.directions li",
 		"ol.instructions li",
-		"div.wprm-recipe-instructions",
-		"div.wprm-recipe-instructions-container",
 		"div.wprm-recipe-instruction-text",
 		"div.tasty-recipe-instructions",
 		"div.yumprint-recipe-instructions",
 	];
 
-	for (const selector of instructionSelectors) {
+	instructionSelectors.forEach((selector) => {
 		$(selector).each((_, elem) => {
 			const text = extractText($(elem), $);
-			if (text) {
-				instructions.add(text);
-			}
+			if (text) instructions.add(text);
 		});
-	}
+	});
 
 	if (instructions.size === 0) {
 		$('div[class*="instruction"], div[class*="step"], ol li, ul li').each(
 			(_, elem) => {
 				const text = extractText($(elem), $);
-				if (text) {
-					instructions.add(text);
-				}
+				if (text) instructions.add(text);
 			},
 		);
 	}
@@ -109,7 +99,6 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 		".recipe-ingredients li",
 		".ingredients-item",
 		".ingredient-item",
-		".ingredient",
 		".ingredient-list",
 		".wprm-recipe-ingredient",
 		"ul.wprm-recipe-ingredients li",
@@ -119,31 +108,23 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 		".ingredients li",
 		"li.ingredient",
 		".ingredients-item",
-		"li.ingredients-item",
-		"div.ingredient",
 		"ul.ingredient-list li",
 		"li.ingredient-list-item",
-		"ul.wprm-recipe-ingredients",
-		"li.wprm-recipe-ingredient",
 		"div.tasty-recipe-ingredients",
 		"div.yumprint-recipe-ingredients",
 	];
 
-	for (const selector of ingredientSelectors) {
+	ingredientSelectors.forEach((selector) => {
 		$(selector).each((_, elem) => {
 			const text = extractText($(elem), $);
-			if (text) {
-				ingredients.add(text);
-			}
+			if (text) ingredients.add(text);
 		});
-	}
+	});
 
 	if (ingredients.size === 0) {
 		$('div[class*="ingredient"], ul li, ol li').each((_, elem) => {
 			const text = cleanText($(elem).text());
-			if (text) {
-				ingredients.add(text);
-			}
+			if (text) ingredients.add(text);
 		});
 	}
 
@@ -151,16 +132,15 @@ const filterIngredients = ($: cheerio.Root): string[] => {
 
 	// Remove any overly long entries that are likely concatenated duplicates
 	const maxIngredientLength = 200; // Adjust this value as needed
-	const filteredIngredients = cleanedIngredients.filter(
+	return cleanedIngredients.filter(
 		(ingredient) => ingredient.length <= maxIngredientLength,
 	);
-
-	return filteredIngredients;
 };
 
 export const fetchRecipeDetails = async (
 	link: string,
 ): Promise<RecipeDetails> => {
+	console.log("fetchRecipeDetails", link);
 	const response = await fetch(link);
 	const html = await response.text();
 	const $ = cheerio.load(html);

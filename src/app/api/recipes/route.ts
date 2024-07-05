@@ -6,12 +6,27 @@ import { uploadImage } from "../../../utils/uploadImage";
 import { getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 import type { RecipeDetails } from "~/types";
+import { fetchRecipeDetails } from "~/utils/scraper";
 
 const baseUrl =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000/"
 		: process.env.NEXT_PUBLIC_DOMAIN;
-console.log("baseUrl", baseUrl);
+
+const flaskApiUrl = (link: string) =>
+	`${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
+
+const fetchDataFromFlask = async (link: string): Promise<RecipeDetails> => {
+	const response = await fetch(flaskApiUrl(link));
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.error(`Flask API responded with an error: ${errorText}`);
+		throw new Error("Failed to fetch data from Flask API");
+	}
+	const data = (await response.json()) as RecipeDetails;
+	return data;
+};
+
 export async function POST(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -31,21 +46,16 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const flaskApiUrl = `${baseUrl}/api/scraper?url=${encodeURIComponent(link)}`;
-		console.log(`Fetching data from Flask API at: ${flaskApiUrl}`);
+		const data = await fetchDataFromFlask(link);
+		let { imageUrl, instructions, ingredients, name } = data;
 
-		const response = await fetch(flaskApiUrl);
-		console.log("response", response);
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			console.error(`Flask API responded with an error: ${errorText}`);
-			throw new Error(`Failed to fetch data from Flask API: ${errorText}`);
+		if (!name || !imageUrl || !instructions || !ingredients) {
+			console.log("Falling back to alternative scraping");
+			const fallbackData = await fetchRecipeDetails(link);
+			imageUrl = imageUrl || fallbackData.imageUrl;
+			instructions = instructions || fallbackData.instructions;
+			ingredients = ingredients || fallbackData.ingredients;
 		}
-
-		const data = (await response.json()) as RecipeDetails;
-		console.log("data", data);
-		const { imageUrl, instructions, ingredients, name } = data;
 
 		const uploadedImageUrl = await uploadImage(imageUrl);
 		const blurDataURL = await dynamicBlurDataUrl(uploadedImageUrl);
@@ -65,7 +75,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json(recipe);
 	} catch (error) {
-		console.error(`Error in POST /api/recipes: ${error.message}`);
+		console.error(error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to save recipe" }),
 			{
@@ -86,7 +96,7 @@ export async function GET(req: NextRequest) {
 		const recipes = await getMyRecipes();
 		return NextResponse.json(recipes);
 	} catch (error) {
-		console.error(`Error in GET /api/recipes: ${error.message}`);
+		console.error(error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
 			{
