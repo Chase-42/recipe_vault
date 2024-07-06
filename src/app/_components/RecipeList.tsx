@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import LoadingSpinner from "./LoadingSpinner";
 import { useMemo } from "react";
 import Fuse from "fuse.js";
+import { Button } from "~/components/ui/button";
 
 interface RecipesClientProps {
   initialRecipes: Recipe[];
@@ -74,23 +75,43 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
           key={recipe.id}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="recipe-card group flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
+          className="recipe-card group relative flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
         >
-          <h2 className="text-md mb-2 break-words text-center font-semibold">
-            {recipe.name}
-          </h2>
-          <Link href={`/img/${recipe.id}`} className="group relative">
-            <Image
-              src={recipe.imageUrl}
-              className="rounded-md"
-              style={{ objectFit: "cover" }}
-              width={192}
-              height={192}
-              alt={`Image of ${recipe.name}`}
-              placeholder="blur"
-              blurDataURL={recipe.blurDataUrl}
-            />
-          </Link>
+          <div className="flex w-full flex-grow flex-col items-center">
+            <h2 className="text-md mb-2 break-words text-center font-semibold">
+              {recipe.name}
+            </h2>
+            <Link href={`/img/${recipe.id}`} className="group relative">
+              <Image
+                src={recipe.imageUrl}
+                className="rounded-md"
+                style={{ objectFit: "cover" }}
+                width={192}
+                height={192}
+                alt={`Image of ${recipe.name}`}
+                placeholder="blur"
+                blurDataURL={recipe.blurDataUrl}
+              />
+            </Link>
+          </div>
+          <div className="mt-2 hidden w-full justify-between group-hover:flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2"
+              onClick={() => alert("Edit action")}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2"
+              onClick={() => alert("Delete action")}
+            >
+              Delete
+            </Button>
+          </div>
         </motion.div>
       ))}
     </div>
