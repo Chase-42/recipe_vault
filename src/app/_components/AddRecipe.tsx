@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { toast, Toaster } from "sonner";
 import { Input } from "../../components/ui/input";
 import { motion } from "framer-motion";
@@ -10,15 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { on } from "events";
 
-const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
+interface AddRecipeProps {
+  onSuccess: () => void;
+}
+
+const AddRecipe: React.FC<AddRecipeProps> = ({ onSuccess }) => {
   const [link, setLink] = useState("");
-  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!link) {
       return;
@@ -32,7 +34,7 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ link, name }),
+        body: JSON.stringify({ link }),
       });
 
       if (!response.ok) {
@@ -63,14 +65,6 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col items-center">
-            {/* <Input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter recipe name"
-              className="mb-3"
-              required
-            /> */}
             <Input
               type="url"
               value={link}
@@ -78,11 +72,14 @@ const AddRecipe = ({ onSuccess }: { onSuccess: () => void }) => {
               placeholder="Enter recipe link"
               className="mb-4"
               required
+              aria-label="Recipe link"
             />
             <motion.button
               type="submit"
-              disabled={isLoading}
-              className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-md bg-white text-black"
+              disabled={!link || isLoading}
+              className={`relative flex h-12 w-full items-center justify-center overflow-hidden rounded-md bg-white text-black ${
+                !link || isLoading ? "cursor-not-allowed opacity-50" : ""
+              }`}
             >
               <span
                 className={

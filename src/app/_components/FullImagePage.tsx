@@ -23,8 +23,8 @@ export default async function FullPageImageView({
   const instructions = recipe.instructions.split("\n");
 
   return (
-    <div className="flex h-full w-full">
-      <div className="flex w-1/2 flex-col border-r p-4">
+    <div className="flex h-full w-full flex-col md:flex-row">
+      <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
         <div className="border-b p-2 text-center text-lg font-bold">
           {recipe.name}
         </div>
@@ -55,16 +55,18 @@ export default async function FullPageImageView({
           </a>
         </div>
       </div>
-      <div className="relative flex size-full w-1/2 items-center justify-center">
-        <Image
-          src={recipe.imageUrl}
-          alt={`Image of ${recipe.name}`}
-          className="h-full w-full object-contain p-4"
-          placeholder="blur"
-          blurDataURL={recipe.blurDataUrl}
-          fill
-          priority
-        />
+      <div className="relative flex w-full items-center justify-center p-4 md:w-1/2">
+        <div className="relative h-96 w-full md:h-full">
+          <Image
+            src={recipe.imageUrl}
+            alt={`Image of ${recipe.name}`}
+            className="object-contain"
+            placeholder="blur"
+            blurDataURL={recipe.blurDataUrl}
+            fill
+            priority
+          />
+        </div>
       </div>
     </div>
   );

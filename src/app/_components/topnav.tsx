@@ -6,7 +6,6 @@ import { Modal } from "./Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useSearch } from "../../providers";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -23,8 +22,8 @@ export const TopNav = () => {
   };
 
   return (
-    <nav className="z-50 flex w-full items-center justify-between border-b p-4 text-xl font-semibold">
-      <div className="flex items-center gap-2">
+    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row">
+      <div className="mb-4 flex items-center gap-2 md:mb-0">
         <Image
           src="/recipe_vault_image.svg"
           alt="Recipe Vault Icon"
@@ -36,12 +35,16 @@ export const TopNav = () => {
         </Link>
       </div>
 
-      <div className="flex flex-row items-center gap-4">
+      <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
         <SignedOut>
           <SignInButton />
         </SignedOut>
         <SignedIn>
-          <Button onClick={handleOpenModal} type="button">
+          <Button
+            onClick={handleOpenModal}
+            type="button"
+            className="w-full md:w-auto"
+          >
             Add Recipe
           </Button>
           <Input
@@ -49,6 +52,7 @@ export const TopNav = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search recipes..."
+            className="w-full md:w-auto"
           />
           <UserButton />
         </SignedIn>

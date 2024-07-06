@@ -7,23 +7,25 @@ import { useSearch } from "../../providers";
 import type { Recipe } from "~/types";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./LoadingSpinner";
+import { useMemo } from "react";
+import Fuse from "fuse.js";
 
 interface RecipesClientProps {
   initialRecipes: Recipe[];
 }
 
 const fetchRecipes = async (): Promise<Recipe[]> => {
-  try {
-    const response: Response = await fetch("/api/recipes");
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    const data: Recipe[] = (await response.json()) as Recipe[];
-    return data;
-  } catch (error) {
-    console.error("Failed to fetch recipes:", error);
-    throw error;
+  const response = await fetch("/api/recipes");
+  if (!response.ok) {
+    throw new Error("Failed to fetch recipes");
   }
+  const data = (await response.json()) as Recipe[];
+  return data;
+};
+
+const fuseOptions = {
+  keys: ["name"],
+  threshold: 0.4,
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
@@ -39,9 +41,15 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
     initialData: initialRecipes,
   });
 
-  const filteredRecipes = recipes.filter((recipe) =>
-    recipe.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const fuse = useMemo(() => new Fuse(recipes, fuseOptions), [recipes]);
+
+  const filteredRecipes = useMemo(() => {
+    if (!searchTerm) {
+      return recipes;
+    }
+    const result = fuse.search(searchTerm);
+    return result.map(({ item }) => item);
+  }, [recipes, searchTerm, fuse]);
 
   if (isLoading) {
     return (
