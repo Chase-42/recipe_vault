@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { db } from "../../../server/db/index";
 import { recipes } from "../../../server/db/schema";
 import { uploadImage } from "../../../utils/uploadImage";
-import { getMyRecipes } from "~/server/queries";
+import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 import type { RecipeDetails, RecipeResponse } from "~/types";
 import fetchRecipeImages from "~/utils/scraper";
@@ -139,6 +139,39 @@ export async function GET(req: NextRequest) {
 		console.error("Failed to fetch recipes:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to fetch recipes" }),
+			{ status: 500 },
+		);
+	}
+}
+
+export async function DELETE(req: NextRequest) {
+	try {
+		const { userId } = getAuth(req);
+		if (!userId) {
+			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+			});
+		}
+
+		const url = new URL(req.url);
+		const id = url.searchParams.get("id");
+		if (!id) {
+			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {
+				status: 400,
+			});
+		}
+
+		await deleteRecipe(Number(id));
+		return new NextResponse(
+			JSON.stringify({ message: "Recipe deleted successfully" }),
+			{
+				status: 200,
+			},
+		);
+	} catch (error) {
+		console.error("Failed to delete recipe:", error);
+		return new NextResponse(
+			JSON.stringify({ error: "Failed to delete recipe" }),
 			{ status: 500 },
 		);
 	}

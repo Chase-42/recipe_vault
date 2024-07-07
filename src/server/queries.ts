@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
+import { recipes } from "./db/schema";
+import { and, eq } from "drizzle-orm";
 
 export const getMyRecipes = async () => {
 	const user = auth();
@@ -28,3 +30,12 @@ export const getRecipe = async (id: number) => {
 
 	return recipe;
 };
+
+export async function deleteRecipe(id: number) {
+	const user = auth();
+	if (!user.userId) throw new Error("Unauthorized");
+
+	await db
+		.delete(recipes)
+		.where(and(eq(recipes.id, id), eq(recipes.userId, user.userId)));
+}
