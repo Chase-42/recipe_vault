@@ -90,7 +90,7 @@ const AddRecipe: React.FC<AddRecipeProps> = ({ onSuccess }) => {
               </span>
               {isLoading && (
                 <motion.div
-                  className="absolute inset-0 bg-red-800"
+                  className="absolute inset-0 bg-primary"
                   initial={{ width: "0%" }}
                   animate={{ width: "100%" }}
                   transition={{ duration: 2, ease: "linear" }}

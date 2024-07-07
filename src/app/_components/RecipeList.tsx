@@ -23,7 +23,7 @@ const fetchRecipes = async (): Promise<Recipe[]> => {
 
 const fuseOptions = {
   keys: ["name"],
-  threshold: 0.4,
+  threshold: 0.3,
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {

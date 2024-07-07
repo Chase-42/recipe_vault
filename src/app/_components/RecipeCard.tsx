@@ -38,8 +38,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onDelete }) => (
           src={recipe.imageUrl}
           className="rounded-md"
           style={{ objectFit: "cover" }}
-          width={192}
-          height={192}
+          width={256}
+          height={256}
           alt={`Image of ${recipe.name}`}
           placeholder="blur"
           blurDataURL={recipe.blurDataUrl}
