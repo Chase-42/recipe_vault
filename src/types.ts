@@ -79,3 +79,9 @@ export interface RecipeResponse {
 	prepTime: string;
 	totalTime: string;
 }
+
+export interface UpdatedRecipe {
+	name: string;
+	instructions: string;
+	ingredients: string;
+}

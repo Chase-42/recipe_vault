@@ -3,6 +3,7 @@ import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
 import { and, eq } from "drizzle-orm";
+import type { UpdatedRecipe } from "~/types";
 
 export const getMyRecipes = async () => {
 	const user = auth();
@@ -38,4 +39,18 @@ export async function deleteRecipe(id: number) {
 	await db
 		.delete(recipes)
 		.where(and(eq(recipes.id, id), eq(recipes.userId, user.userId)));
+}
+
+export async function updateRecipe(id: number, recipe: UpdatedRecipe) {
+	const user = auth();
+	if (!user.userId) throw new Error("Unauthorized");
+
+	await db
+		.update(recipes)
+		.set({
+			name: recipe.name,
+			instructions: recipe.instructions,
+			ingredients: recipe.ingredients,
+		})
+		.where(eq(recipes.id, id));
 }

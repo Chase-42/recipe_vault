@@ -1,3 +1,4 @@
+// RecipesClient.tsx
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,9 +22,18 @@ const fetchRecipes = async (): Promise<Recipe[]> => {
   return data;
 };
 
+const deleteRecipe = async (id: number) => {
+  const response = await fetch(`/api/recipes?id=${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete recipe");
+  }
+};
+
 const fuseOptions = {
   keys: ["name"],
-  threshold: 0.3,
+  threshold: 0.4,
 };
 
 const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
@@ -49,15 +59,6 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
     const result = fuse.search(searchTerm);
     return result.map(({ item }) => item);
   }, [recipes, searchTerm, fuse]);
-
-  const deleteRecipe = async (id: number) => {
-    const response = await fetch(`/api/recipes?id=${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      throw new Error("Failed to delete recipe");
-    }
-  };
 
   const handleDelete = async (id: number) => {
     try {

@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import type { Recipe } from "~/types";
+import { memo } from "react";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -25,8 +26,6 @@ interface RecipeCardProps {
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onDelete }) => (
   <motion.div
     key={recipe.id}
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
     className="recipe-card group relative flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
   >
     <div className="flex w-full flex-grow flex-col items-center">
@@ -46,18 +45,23 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onDelete }) => (
         />
       </Link>
     </div>
-    <div className="mt-2 hidden w-full justify-between group-hover:flex">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="p-2"
-        onClick={() => alert("Edit action")}
-      >
-        Edit
-      </Button>
+    <div className="mt-2 flex w-full justify-between">
+      <Link href={`/edit/${recipe.id}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="p-2 opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          Edit
+        </Button>
+      </Link>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="ghost" size="sm" className="p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-2 opacity-0 transition-opacity group-hover:opacity-100"
+          >
             Delete
           </Button>
         </AlertDialogTrigger>
@@ -83,4 +87,4 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onDelete }) => (
 
 RecipeCard.displayName = "RecipeCard";
 
-export default RecipeCard;
+export default memo(RecipeCard);
