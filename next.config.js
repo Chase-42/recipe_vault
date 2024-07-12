@@ -24,18 +24,12 @@ const coreConfig = {
 						? "http://127.0.0.1:5328/api/scraper/:path*"
 						: "/api/scraper/:path*",
 			},
-			// Add more specific Flask API routes here if needed
 			{
-				source: "/api/recipes/:id",
+				source: "/api/recipes/:path*",
 				destination:
 					process.env.NODE_ENV === "development"
-						? "http://127.0.0.1:5328/api/recipes/:id"
-						: "/api/recipes/:id",
-			},
-			// Default catch-all to ensure Next.js handles other API routes
-			{
-				source: "/api/:path*",
-				destination: "/api/:path*",
+						? "http://127.0.0.1:5328/api/recipes/:path*"
+						: "/api/recipes/:path*",
 			},
 		];
 	},
