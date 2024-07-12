@@ -18,11 +18,8 @@ const coreConfig = {
 	rewrites: async () => {
 		return [
 			{
-				source: "/api/:path*",
-				destination:
-					process.env.NODE_ENV === "development"
-						? "http://127.0.0.1:5328/api/:path*"
-						: "/api/",
+				source: "/api/scraper/:path*",
+				destination: "http://127.0.0.1:5328/api/scraper/:path*",
 			},
 		];
 	},
@@ -50,7 +47,7 @@ const config = withSentryConfig(coreConfig, {
 	// This can increase your server load as well as your hosting bill.
 	// Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
 	// side errors will fail.
-	tunnelRoute: "/monitoring",
+	// tunnelRoute: "/monitoring",
 
 	// Hides source maps from generated client bundles
 	hideSourceMaps: true,
