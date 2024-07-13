@@ -8,10 +8,6 @@
 		{
 			"source": "/api/scraper/:path*",
 			"destination": "/api/scraper/app.py"
-		},
-		{
-			"source": "/api/recipes/:path*",
-			"destination": "/api/recipes/app.py"
 		}
 	]
 }
