@@ -18,11 +18,18 @@ const coreConfig = {
 	rewrites: async () => {
 		return [
 			{
-				source: "/api/:path*",
+				source: "/api/scraper/:path*",
 				destination:
 					process.env.NODE_ENV === "development"
-						? "http://127.0.0.1:5328/api/:path*"
-						: "/api/",
+						? "http://127.0.0.1:5328/api/scraper/:path*"
+						: "/api/scraper/:path*",
+			},
+			{
+				source: "/api/recipes/:path*",
+				destination:
+					process.env.NODE_ENV === "development"
+						? "http://127.0.0.1:5328/api/recipes/:path*"
+						: "/api/recipes/:path*",
 			},
 		];
 	},
