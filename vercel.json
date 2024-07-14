@@ -7,7 +7,7 @@
 	"rewrites": [
 		{
 			"source": "/api/scraper/:path*",
-			"destination": "/api/scraper/app.py"
+			"destination": "/api/index.py"
 		}
 	]
 }
