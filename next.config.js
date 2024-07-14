@@ -15,12 +15,13 @@ const coreConfig = {
 				source: "/api/scraper/:path*",
 				destination:
 					process.env.NODE_ENV === "development"
-						? "http://127.0.0.1:5328/api/:path*"
-						: "/api/scraper/:path*", // Correct path for deployed Flask API
+						? "http://127.0.0.1:5328/api/scraper/:path*"
+						: "/api/scraper/:path*",
 			},
+			// Add this to make sure your Next.js API routes are not overridden
 			{
-				source: "/api/:path*",
-				destination: "/api/:path*", // Keep Next.js API routes intact
+				source: "/api/recipes/:path*",
+				destination: "/api/recipes/:path*",
 			},
 		];
 	},
