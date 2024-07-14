@@ -1,9 +1,3 @@
-/**
- * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
- * for Docker builds.
- */
-await import("./src/env.js");
-
 /** @type {import("next").NextConfig} */
 const coreConfig = {
 	images: {
@@ -15,7 +9,7 @@ const coreConfig = {
 	eslint: {
 		ignoreDuringBuilds: true,
 	},
-	rewrites: async () => {
+	async rewrites() {
 		return [
 			{
 				source: "/api/scraper/:path*",
@@ -23,6 +17,11 @@ const coreConfig = {
 					process.env.NODE_ENV === "development"
 						? "http://127.0.0.1:5328/api/scraper/:path*"
 						: "/api/scraper/:path*",
+			},
+			// Add this to make sure your Next.js API routes are not overridden
+			{
+				source: "/api/recipes/:path*",
+				destination: "/api/recipes/:path*",
 			},
 		];
 	},

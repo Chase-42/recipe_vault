@@ -27,7 +27,7 @@ const EditRecipeForm: React.FC<EditRecipeFormProps> = ({ recipe }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const data = { name, ingredients, instructions };
+    const data = { id: recipe.id, name, ingredients, instructions };
 
     try {
       const response = await fetch(`/api/recipes/${recipe.id}`, {
