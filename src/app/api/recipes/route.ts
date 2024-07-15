@@ -3,14 +3,9 @@ import { getAuth } from "@clerk/nextjs/server";
 import { db } from "../../../server/db/index";
 import { recipes } from "../../../server/db/schema";
 import { uploadImage } from "../../../utils/uploadImage";
-import { deleteRecipe, getMyRecipes, updateRecipe } from "~/server/queries";
+import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
-import type {
-	Recipe,
-	RecipeDetails,
-	RecipeResponse,
-	UpdatedRecipe,
-} from "~/types";
+import type { RecipeDetails, RecipeResponse } from "~/types";
 import fetchRecipeImages from "~/utils/scraper";
 import getRecipeData from "@rethora/url-recipe-scraper";
 import sanitizeString from "~/utils/sanitizeString";
@@ -177,39 +172,6 @@ export async function DELETE(req: NextRequest) {
 		console.error("Failed to delete recipe:", error);
 		return new NextResponse(
 			JSON.stringify({ error: "Failed to delete recipe" }),
-			{ status: 500 },
-		);
-	}
-}
-
-export async function PATCH(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) {
-			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-			});
-		}
-
-		const { id, name, instructions, ingredients } =
-			(await req.json()) as Recipe;
-		if (!id || typeof id !== "number") {
-			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {
-				status: 400,
-			});
-		}
-
-		await updateRecipe(id, {
-			name: sanitizeString(name ?? ""),
-			instructions: sanitizeString(instructions ?? ""),
-			ingredients: Array.isArray(ingredients) ? ingredients.join("\n") : "",
-		});
-
-		return NextResponse.json({ message: "Recipe updated successfully" });
-	} catch (error) {
-		console.error("Failed to update recipe:", error);
-		return new NextResponse(
-			JSON.stringify({ error: "Failed to update recipe" }),
 			{ status: 500 },
 		);
 	}

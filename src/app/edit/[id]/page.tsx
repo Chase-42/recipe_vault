@@ -28,7 +28,7 @@ export default async function EditPage({
           <div className="border-b p-2 text-center text-lg font-bold">
             Edit Recipe
           </div>
-          <EditRecipeForm recipe={recipe} />
+          <EditRecipeForm initialRecipe={recipe} />
         </div>
         <div className="relative flex w-full items-center justify-center p-4 md:w-1/2">
           <div className="relative h-96 w-full md:h-full">
