@@ -56,3 +56,7 @@ venv/
 __pycache__/
 *.py[cod]
 *$py.class
+# Biome
+.biome.json
+# Vscode
+.vscode/

@@ -37,30 +37,23 @@ export async function POST(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-			});
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
 		const { link } = (await req.json()) as { link: string };
 		if (!link || typeof link !== "string") {
-			return new NextResponse(
-				JSON.stringify({ error: "Invalid link or name" }),
-				{ status: 400 },
-			);
+			return NextResponse.json({ error: "Invalid link" }, { status: 400 });
 		}
 
 		let data: RecipeDetails;
 		try {
 			data = await fetchDataFromFlask(link);
-			console.log("data", data);
 		} catch (error) {
 			console.error("Error fetching data from Flask API:", error);
 			throw new Error("Failed to fetch data from Flask API");
 		}
 
 		let { imageUrl, instructions, ingredients, name } = data;
-
 		if (
 			!name ||
 			!imageUrl ||
@@ -70,7 +63,6 @@ export async function POST(req: NextRequest) {
 		) {
 			console.log("Falling back to alternative scraping");
 			const fallbackData = (await getRecipeData(link)) as RecipeResponse;
-			console.log("fallbackData", fallbackData);
 
 			imageUrl = imageUrl ?? fallbackData.image?.url ?? "";
 			if (!imageUrl) {
@@ -86,7 +78,7 @@ export async function POST(req: NextRequest) {
 					.join("\n");
 
 			ingredients =
-				ingredients && ingredients.length > 0
+				ingredients.length > 0
 					? ingredients
 					: (fallbackData.recipeIngredient || []).map((i) => sanitizeString(i));
 
@@ -118,8 +110,8 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json(recipe);
 	} catch (error) {
 		console.error("Failed to save recipe:", error);
-		return new NextResponse(
-			JSON.stringify({ error: "Failed to save recipe" }),
+		return NextResponse.json(
+			{ error: "Failed to save recipe" },
 			{ status: 500 },
 		);
 	}
@@ -129,16 +121,14 @@ export async function GET(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-			});
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		const recipes = await getMyRecipes();
+		const recipes = await getMyRecipes(userId);
 		return NextResponse.json(recipes);
 	} catch (error) {
 		console.error("Failed to fetch recipes:", error);
-		return new NextResponse(
-			JSON.stringify({ error: "Failed to fetch recipes" }),
+		return NextResponse.json(
+			{ error: "Failed to fetch recipes" },
 			{ status: 500 },
 		);
 	}
@@ -148,30 +138,24 @@ export async function DELETE(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-			});
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
 		const url = new URL(req.url);
 		const id = url.searchParams.get("id");
 		if (!id) {
-			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {
-				status: 400,
-			});
+			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 		}
 
 		await deleteRecipe(Number(id));
-		return new NextResponse(
-			JSON.stringify({ message: "Recipe deleted successfully" }),
-			{
-				status: 200,
-			},
+		return NextResponse.json(
+			{ message: "Recipe deleted successfully" },
+			{ status: 200 },
 		);
 	} catch (error) {
 		console.error("Failed to delete recipe:", error);
-		return new NextResponse(
-			JSON.stringify({ error: "Failed to delete recipe" }),
+		return NextResponse.json(
+			{ error: "Failed to delete recipe" },
 			{ status: 500 },
 		);
 	}
