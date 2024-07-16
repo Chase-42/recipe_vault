@@ -1,5 +1,0 @@
-{
-	"typescript.tsdk": "node_modules/typescript/lib",
-	"biome.lspBin": "./biome-test/node_modules/@biomejs/biome/bin/biome",
-	"cSpell.words": ["topnav", "uploadcare", "Uploadthing"]
-}
