@@ -1,4 +1,3 @@
-// RecipesClient.tsx
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +7,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import { useMemo } from "react";
 import Fuse from "fuse.js";
 import RecipeCard from "./RecipeCard";
+import { toast } from "sonner";
 
 interface RecipesClientProps {
   initialRecipes: Recipe[];
@@ -64,8 +64,10 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
     try {
       await deleteRecipe(id);
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      toast.success("Recipe deleted successfully");
     } catch (error) {
       console.error("Failed to delete recipe:", error);
+      toast.error("Failed to delete recipe");
     }
   };
 

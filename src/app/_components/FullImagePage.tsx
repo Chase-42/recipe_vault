@@ -1,4 +1,3 @@
-// src/app/_components/FullImagePage.tsx
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
 import Image from "next/image";
