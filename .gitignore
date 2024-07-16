@@ -50,13 +50,11 @@ yarn-error.log*
 
 # Vscode
 .vscode/
+
 # Ignore virtual environment
 venv/
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-# Biome
-.biome.json
-# Vscode
-.vscode/
