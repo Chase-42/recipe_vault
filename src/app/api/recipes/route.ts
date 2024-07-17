@@ -117,15 +117,34 @@ export async function POST(req: NextRequest) {
 	}
 }
 
+// Handler for GET requests to fetch recipes with pagination support
 export async function GET(req: NextRequest) {
 	try {
+		// Extract user ID from the authentication context
 		const { userId } = getAuth(req);
 		if (!userId) {
+			// Respond with unauthorized status if user is not authenticated
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		const recipes = await getMyRecipes(userId);
-		return NextResponse.json(recipes);
+
+		// Parse cursor and limit from query parameters with default values
+		const url = new URL(req.url);
+		const cursor = Number(url.searchParams.get("cursor") ?? "0");
+		const limit = Number(url.searchParams.get("limit") ?? "10");
+
+		// Optimize the query to fetch only necessary columns
+		const fetchedRecipes = await getMyRecipes(userId, cursor, limit);
+
+		// Determine the next cursor for pagination
+		const nextCursor = fetchedRecipes.length === limit ? cursor + limit : null;
+
+		// Return the fetched recipes and next cursor in the response
+		return NextResponse.json({
+			recipes: fetchedRecipes,
+			nextCursor,
+		});
 	} catch (error) {
+		// Log the error and respond with server error status
 		console.error("Failed to fetch recipes:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch recipes" },

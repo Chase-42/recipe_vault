@@ -44,14 +44,14 @@ export default async function FullPageImageView({
             ))}
           </ol>
         </div>
-        <div className="p-4">
+        <div className="p-4 text-center">
           <a
             href={recipe.link}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
           >
-            {recipe.link}
+            View Full Recipe
           </a>
         </div>
       </div>
