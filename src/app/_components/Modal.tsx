@@ -30,7 +30,7 @@ export function Modal({
       } else {
         router.back();
       }
-    }, 300); // This timeout should match the duration of the exit animation
+    }, 300);
   }
 
   return createPortal(
@@ -38,7 +38,7 @@ export function Modal({
       {isOpen && (
         <motion.dialog
           ref={dialogRef}
-          className="fixed h-screen w-screen bg-black/90 text-white"
+          className="fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black/90 text-white"
           onClose={onDismiss}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -47,13 +47,15 @@ export function Modal({
         >
           <button
             onClick={onDismiss}
-            className="absolute right-4 z-50 transform text-3xl text-white transition-transform duration-200 hover:scale-110"
+            className="absolute right-4 top-4 z-50 transform text-3xl text-white transition-transform duration-200 hover:scale-110"
             aria-label="Close"
             type="button"
           >
             &times;
           </button>
-          {children}
+          <div className="flex h-full w-full overflow-y-auto p-4 pt-16">
+            {children}
+          </div>
         </motion.dialog>
       )}
     </AnimatePresence>,
