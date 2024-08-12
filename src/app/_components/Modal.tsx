@@ -38,7 +38,7 @@ export function Modal({
       {isOpen && (
         <motion.dialog
           ref={dialogRef}
-          className="fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black/90 text-white"
+          className="fixed left-0 top-0 h-screen w-screen overflow-y-auto bg-black/90 text-white"
           onClose={onDismiss}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,9 +53,7 @@ export function Modal({
           >
             &times;
           </button>
-          <div className="flex h-full w-full overflow-y-auto p-4 pt-16">
-            {children}
-          </div>
+          <div className="pt-4">{children}</div>
         </motion.dialog>
       )}
     </AnimatePresence>,
