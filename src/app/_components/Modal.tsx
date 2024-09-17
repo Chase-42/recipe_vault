@@ -38,7 +38,7 @@ export function Modal({
       {isOpen && (
         <motion.dialog
           ref={dialogRef}
-          className="fixed left-0 top-0 h-screen w-screen overflow-y-auto bg-black/90 text-white"
+          className="fixed inset-0 h-screen w-screen overflow-y-auto bg-black/90 text-white"
           onClose={onDismiss}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -47,7 +47,7 @@ export function Modal({
         >
           <button
             onClick={onDismiss}
-            className="absolute right-4 top-4 z-50 transform text-3xl text-white transition-transform duration-200 hover:scale-110"
+            className="absolute right-4 top-4 z-[9999] text-3xl text-white transition-transform duration-200 hover:scale-110 sm:right-2 sm:top-2 sm:text-2xl"
             aria-label="Close"
             type="button"
           >
