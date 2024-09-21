@@ -4,15 +4,11 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "../../providers";
 import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
-import { useMemo, useEffect, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import Fuse from "fuse.js";
 import RecipeCard from "./RecipeCard";
 import { toast } from "sonner";
 import { useInView } from "react-intersection-observer";
-
-interface RecipesClientProps {
-  initialRecipes: Recipe[];
-}
 
 // Fetch recipes with pagination support
 const fetchRecipes = async ({
@@ -26,6 +22,7 @@ const fetchRecipes = async ({
     recipes: Recipe[];
     nextCursor: number;
   };
+  console.log("fetchRecipes", data);
   return data;
 };
 
@@ -45,7 +42,7 @@ const fuseOptions = {
   threshold: 0.4,
 };
 
-const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
+const RecipesClient: React.FC = () => {
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
 
@@ -60,16 +57,12 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
     queryKey: ["recipes"],
     queryFn: fetchRecipes,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialData: {
-      pages: [{ recipes: initialRecipes, nextCursor: 0 }],
-      pageParams: [0],
-    },
     initialPageParam: 0,
   });
 
   const allRecipes = useMemo(
-    () => data?.pages.flatMap((page) => page.recipes) || initialRecipes,
-    [data, initialRecipes],
+    () => data?.pages.flatMap((page) => page.recipes) || [],
+    [data],
   );
 
   const fuse = useMemo(() => new Fuse(allRecipes, fuseOptions), [allRecipes]);
@@ -118,15 +111,19 @@ const RecipesClient: React.FC<RecipesClientProps> = ({ initialRecipes }) => {
     [queryClient],
   );
 
-  const { ref, inView } = useInView({ threshold: 0.5 });
+  // Adjusted useInView hook
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: "0px 0px 100px 0px", // Reduces unnecessary fetching until user is closer to the bottom
+  });
 
   useEffect(() => {
-    if (inView && hasNextPage) {
+    if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage().catch((error) =>
         console.error("Failed to fetch next page:", error),
       );
     }
-  }, [inView, hasNextPage, fetchNextPage]);
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
     return (

@@ -127,31 +127,30 @@ export async function GET(req: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Parse cursor and limit from query parameters with default values
-		const url = new URL(req.url);
-		const cursor = Number(url.searchParams.get("cursor") ?? "0");
-		const limit = Number(url.searchParams.get("limit") ?? "10");
+    const url = new URL(req.url);
+    let cursor = Number(url.searchParams.get("cursor")) || 0;
+    let limit = Number(url.searchParams.get("limit")) || 5;
 
-		// Optimize the query to fetch only necessary columns
-		const fetchedRecipes = await getMyRecipes(userId, cursor, limit);
+    // Ensure limit and cursor are within sensible ranges
+    limit = Math.min(Math.max(limit, 1), 100); // Limit between 1 and 100
+    cursor = Math.max(cursor, 0); // Ensure cursor is never negative
 
-		// Determine the next cursor for pagination
-		const nextCursor = fetchedRecipes.length === limit ? cursor + limit : null;
+    const fetchedRecipes = await getMyRecipes(userId, cursor, limit);
+    const nextCursor = fetchedRecipes.length === limit ? cursor + limit : null;
 
-		// Return the fetched recipes and next cursor in the response
-		return NextResponse.json({
-			recipes: fetchedRecipes,
-			nextCursor,
-		});
-	} catch (error) {
-		// Log the error and respond with server error status
-		console.error("Failed to fetch recipes:", error);
-		return NextResponse.json(
-			{ error: "Failed to fetch recipes" },
-			{ status: 500 },
-		);
-	}
+    return NextResponse.json({
+      recipes: fetchedRecipes,
+      nextCursor,
+    });
+  } catch (error) {
+    console.error("Failed to fetch recipes:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch recipes" },
+      { status: 500 }
+    );
+  }
 }
+
 
 export async function DELETE(req: NextRequest) {
 	try {
