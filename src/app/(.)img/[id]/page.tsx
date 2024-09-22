@@ -1,8 +1,7 @@
-// src/app/(.)img/[id]/page.tsx
 import FullPageImageView from "~/app/_components/FullImagePage";
 import { Modal } from "~/app/_components/Modal";
 
-export default async function PhotoModal({
+export default function PhotoModal({
   params: { id: photoId },
 }: {
   params: { id: string };
@@ -12,7 +11,7 @@ export default async function PhotoModal({
 
   return (
     <Modal>
-      <FullPageImageView id={Number(photoId)} />
+      <FullPageImageView id={idAsNumber} />
     </Modal>
   );
 }

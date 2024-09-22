@@ -9,33 +9,11 @@ import { useRouter } from "next/navigation";
 import { toast, Toaster } from "sonner";
 import LoadingSpinner from "./LoadingSpinner";
 import type { Recipe } from "~/types";
+import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
 
 interface EditRecipeClientProps {
   initialRecipe: Recipe;
 }
-
-const fetchRecipe = async (id: number): Promise<Recipe> => {
-  const response = await fetch(`/api/recipes/${id}`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch recipe");
-  }
-  const data = (await response.json()) as Recipe;
-  return data;
-};
-
-const updateRecipe = async (recipe: Recipe): Promise<void> => {
-  const response = await fetch(`/api/recipes/${recipe.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(recipe),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to update recipe");
-  }
-};
 
 const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   initialRecipe,
@@ -44,11 +22,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const {
-    data: recipe,
-    error,
-    isLoading = loading,
-  } = useQuery<Recipe>({
+  const { data: recipe, error } = useQuery<Recipe>({
     queryKey: ["recipe", initialRecipe.id],
     queryFn: () => fetchRecipe(initialRecipe.id),
     initialData: initialRecipe,

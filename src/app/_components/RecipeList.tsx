@@ -9,32 +9,7 @@ import Fuse from "fuse.js";
 import RecipeCard from "./RecipeCard";
 import { toast } from "sonner";
 import { useInView } from "react-intersection-observer";
-
-// Fetch recipes with pagination support
-const fetchRecipes = async ({
-  pageParam = 0,
-}): Promise<{ recipes: Recipe[]; nextCursor: number }> => {
-  const response = await fetch(`/api/recipes?cursor=${pageParam}`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch recipes");
-  }
-  const data = (await response.json()) as {
-    recipes: Recipe[];
-    nextCursor: number;
-  };
-  console.log("fetchRecipes", data);
-  return data;
-};
-
-// Delete a recipe by ID
-const deleteRecipe = async (id: number) => {
-  const response = await fetch(`/api/recipes?id=${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to delete recipe");
-  }
-};
+import { deleteRecipe, fetchRecipes } from "~/utils/recipeService";
 
 // Fuse.js options for fuzzy search
 const fuseOptions = {
@@ -61,7 +36,7 @@ const RecipesClient: React.FC = () => {
   });
 
   const allRecipes = useMemo(
-    () => data?.pages.flatMap((page) => page.recipes) || [],
+    () => data?.pages.flatMap((page) => page.recipes) ?? [],
     [data],
   );
 
@@ -111,10 +86,9 @@ const RecipesClient: React.FC = () => {
     [queryClient],
   );
 
-  // Adjusted useInView hook
   const { ref, inView } = useInView({
     threshold: 0.1,
-    rootMargin: "0px 0px 100px 0px", // Reduces unnecessary fetching until user is closer to the bottom
+    rootMargin: "0px 0px 100px 0px",
   });
 
   useEffect(() => {
