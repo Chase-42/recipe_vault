@@ -59,7 +59,7 @@ export function Modal({ children, onClose }: ModalProps) {
           role="dialog"
           aria-modal="true"
           tabIndex={-1}
-          className="fixed bottom-0 left-0 right-0 top-[217px] overflow-y-auto bg-black/90 text-white focus:outline-none md:top-[73px]"
+          className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-black/90 text-white focus:outline-none"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
@@ -67,7 +67,7 @@ export function Modal({ children, onClose }: ModalProps) {
         >
           <button
             onClick={handleClose}
-            className="absolute right-4 top-4 z-50 text-3xl text-white transition-transform duration-200 hover:scale-110 sm:right-2 sm:top-2 sm:text-2xl"
+            className="absolute right-4 top-8 z-50 text-3xl text-white transition-transform duration-200 hover:scale-110 sm:right-2 sm:top-2 sm:text-2xl"
             aria-label="Close"
             type="button"
           >
