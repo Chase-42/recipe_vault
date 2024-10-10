@@ -67,12 +67,13 @@ export function Modal({ children, onClose }: ModalProps) {
         >
           <button
             onClick={handleClose}
-            className="absolute right-4 top-8 z-50 text-3xl text-white transition-transform duration-200 hover:scale-110 sm:right-2 sm:top-2 sm:text-2xl"
+            className="absolute right-4 top-0 z-50 text-4xl text-white transition-transform duration-200 hover:scale-110 sm:right-2 sm:top-2 sm:text-3xl"
             aria-label="Close"
             type="button"
           >
             &times;
           </button>
+
           <div className="pt-4">{children}</div>
         </motion.div>
       )}
