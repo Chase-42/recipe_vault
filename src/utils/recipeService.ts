@@ -40,7 +40,6 @@ export const updateRecipe = async (recipe: Recipe): Promise<void> => {
   }
 };
 
-
 // Delete a recipe by ID
 export const deleteRecipe = async (id: number) => {
   const response = await fetch(`/api/recipes?id=${id}`, {

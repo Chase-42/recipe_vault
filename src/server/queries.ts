@@ -20,6 +20,7 @@ export async function getMyRecipes(
 				instructions: recipes.instructions,
 				imageUrl: recipes.imageUrl,
 				blurDataUrl: recipes.blurDataUrl,
+				favorite: recipes.favorite,
 			})
 			.from(recipes)
 			.where(eq(recipes.userId, userId))
@@ -77,6 +78,7 @@ export async function updateRecipe(id: number, recipe: UpdatedRecipe) {
 				name: recipe.name,
 				instructions: recipe.instructions,
 				ingredients: recipe.ingredients,
+				favorite: recipe.favorite,
 			})
 			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
 	} catch (error) {

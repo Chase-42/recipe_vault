@@ -10,15 +10,17 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"db:push": "drizzle-kit push:pg",
+		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^5.1.3",
 		"@radix-ui/react-alert-dialog": "^1.1.1",
 		"@radix-ui/react-slot": "^1.1.0",
+		"@radix-ui/react-tooltip": "^1.1.3",
 		"@rethora/url-recipe-scraper": "^1.1.0",
 		"@t3-oss/env-nextjs": "^0.10.1",
+		"@tabler/icons-react": "^3.19.0",
 		"@tanstack/react-query": "^5.48.0",
 		"@types/cheerio": "^0.22.35",
 		"@uploadcare/upload-client": "^6.14.1",

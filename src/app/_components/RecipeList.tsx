@@ -9,12 +9,16 @@ import Fuse from "fuse.js";
 import RecipeCard from "./RecipeCard";
 import { toast } from "sonner";
 import { useInView } from "react-intersection-observer";
-import { deleteRecipe, fetchRecipes } from "~/utils/recipeService";
+import {
+  deleteRecipe,
+  fetchRecipes,
+  updateRecipe,
+} from "~/utils/recipeService";
 
 // Fuse.js options for fuzzy search
 const fuseOptions = {
   keys: ["name"],
-  threshold: 0.4,
+  threshold: 0.5,
 };
 
 const RecipesClient: React.FC = () => {
@@ -48,6 +52,53 @@ const RecipesClient: React.FC = () => {
     }
     return fuse.search(searchTerm).map(({ item }) => item);
   }, [allRecipes, searchTerm, fuse]);
+
+  const handleFavoriteToggle = useCallback(
+    async (id: number, favorite: boolean) => {
+      const previousData = queryClient.getQueryData<{
+        pages: { recipes: Recipe[] }[];
+      }>(["recipes"]);
+
+      queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
+        ["recipes"],
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              recipes: page.recipes.map((recipe) =>
+                recipe.id === id ? { ...recipe, favorite } : recipe,
+              ),
+            })),
+          };
+        },
+      );
+
+      try {
+        const updatedRecipe = previousData?.pages
+          .flatMap((page) => page.recipes)
+          .find((recipe) => recipe.id === id);
+
+        if (updatedRecipe) {
+          // Pass the updated recipe with the favorite status
+          await updateRecipe({ ...updatedRecipe, favorite });
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+        toast.success(favorite ? "Recipe favorited!" : "Recipe unfavorited.");
+      } catch (error) {
+        queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
+          ["recipes"],
+          previousData,
+        );
+        console.error("Failed to toggle favorite:", error);
+        toast.error("Failed to update favorite status.");
+      }
+    },
+    [queryClient],
+  );
 
   const handleDelete = useCallback(
     async (id: number) => {
@@ -118,7 +169,12 @@ const RecipesClient: React.FC = () => {
   return (
     <div className="flex flex-wrap justify-center gap-4 p-4">
       {filteredRecipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} onDelete={handleDelete} />
+        <RecipeCard
+          key={recipe.id}
+          recipe={recipe}
+          onDelete={handleDelete}
+          onFavoriteToggle={handleFavoriteToggle}
+        />
       ))}
       {isFetchingNextPage && (
         <div className="flex w-full items-center justify-center py-4">

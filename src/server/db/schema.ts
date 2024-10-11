@@ -1,4 +1,5 @@
 import {
+	boolean,
 	pgTableCreator,
 	serial,
 	text,
@@ -17,5 +18,6 @@ export const recipes = createTable("recipes", {
 	blurDataUrl: text("blurDataUrl").notNull(),
 	instructions: text("instructions").notNull(),
 	ingredients: text("ingredients").notNull(),
+	favorite: boolean("favorite").default(false).notNull(),
 	createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

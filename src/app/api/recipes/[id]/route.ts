@@ -13,9 +13,9 @@ export async function PUT(req: NextRequest) {
 			});
 		}
 
-		const { id, name, instructions, ingredients } =
+		const { id, name, instructions, ingredients, favorite } =
 			(await req.json()) as Recipe;
-		console.log("Request payload:", { id, name, instructions, ingredients });
+		console.log("Request payload:", { id, name, instructions, ingredients, favorite });
 
 		if (!id || typeof id !== "number") {
 			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {
@@ -27,6 +27,7 @@ export async function PUT(req: NextRequest) {
 			name: name ?? "",
 			instructions: instructions ?? "",
 			ingredients: ingredients ?? "",
+			favorite: favorite ?? false,
 		});
 
 		return NextResponse.json({ message: "Recipe updated successfully" });

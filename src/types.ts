@@ -7,6 +7,7 @@ export interface Recipe {
 	blurDataUrl: string;
 	instructions: string;
 	ingredients: string;
+	favorite: boolean;
 	createdAt: Date;
 }
 
@@ -81,7 +82,9 @@ export interface RecipeResponse {
 }
 
 export interface UpdatedRecipe {
+	favorite: boolean;
 	name: string;
 	instructions: string;
 	ingredients: string;
+	
 }
