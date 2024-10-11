@@ -11,6 +11,14 @@ export interface Recipe {
 	createdAt: Date;
 }
 
+export interface RecipesData {
+  pages: {
+    recipes: Recipe[];
+    nextCursor?: number;
+  }[];
+};
+
+
 export interface RecipeDetails {
 	name: string;
 	imageUrl: string;

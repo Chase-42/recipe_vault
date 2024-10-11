@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "../../providers";
-import type { Recipe } from "~/types";
+import type { RecipesData } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { useMemo, useCallback, useEffect } from "react";
 import Fuse from "fuse.js";
@@ -14,6 +14,10 @@ import {
   fetchRecipes,
   updateRecipe,
 } from "~/utils/recipeService";
+import {
+  performMutationWithRollback,
+  updateRecipesInCache,
+} from "~/utils/recipeCacheUtils";
 
 // Fuse.js options for fuzzy search
 const fuseOptions = {
@@ -44,10 +48,13 @@ const RecipesClient: React.FC = () => {
     [data],
   );
 
-  const fuse = useMemo(() => new Fuse(allRecipes, fuseOptions), [allRecipes]);
+  const fuse = useMemo(() => {
+    if (!searchTerm) return null;
+    return new Fuse(allRecipes, fuseOptions);
+  }, [allRecipes, searchTerm]);
 
   const filteredRecipes = useMemo(() => {
-    if (!searchTerm) {
+    if (!searchTerm || !fuse) {
       return allRecipes;
     }
     return fuse.search(searchTerm).map(({ item }) => item);
@@ -55,84 +62,53 @@ const RecipesClient: React.FC = () => {
 
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
-      const previousData = queryClient.getQueryData<{
-        pages: { recipes: Recipe[] }[];
-      }>(["recipes"]);
+      const previousData = queryClient.getQueryData<RecipesData>(["recipes"]);
 
-      queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
-        ["recipes"],
-        (oldData) => {
-          if (!oldData) return oldData;
-
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              recipes: page.recipes.map((recipe) =>
-                recipe.id === id ? { ...recipe, favorite } : recipe,
-              ),
-            })),
-          };
-        },
+      // Optimistic update
+      updateRecipesInCache(queryClient, (recipes) =>
+        recipes.map((recipe) =>
+          recipe.id === id ? { ...recipe, favorite } : recipe,
+        ),
       );
 
-      try {
-        const updatedRecipe = previousData?.pages
-          .flatMap((page) => page.recipes)
-          .find((recipe) => recipe.id === id);
+      const updatedRecipe = previousData?.pages
+        .flatMap((page) => page.recipes)
+        .find((recipe) => recipe.id === id);
 
-        if (updatedRecipe) {
-          // Pass the updated recipe with the favorite status
-          await updateRecipe({ ...updatedRecipe, favorite });
-        }
-
-        await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-        toast.success(favorite ? "Recipe favorited!" : "Recipe unfavorited.");
-      } catch (error) {
-        queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
-          ["recipes"],
-          previousData,
-        );
-        console.error("Failed to toggle favorite:", error);
-        toast.error("Failed to update favorite status.");
+      if (!updatedRecipe) {
+        // Roll back to previous data
+        queryClient.setQueryData(["recipes"], previousData);
+        toast.error("Recipe not found");
+        return;
       }
+
+      await performMutationWithRollback(
+        () => updateRecipe({ ...updatedRecipe, favorite }),
+        queryClient,
+        previousData,
+        favorite ? "Recipe favorited!" : "Recipe unfavorited.",
+        "Failed to update favorite status.",
+      );
     },
     [queryClient],
   );
 
   const handleDelete = useCallback(
     async (id: number) => {
-      const previousData = queryClient.getQueryData<{
-        pages: { recipes: Recipe[] }[];
-      }>(["recipes"]);
+      const previousData = queryClient.getQueryData<RecipesData>(["recipes"]);
 
-      queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
-        ["recipes"],
-        (oldData) => {
-          if (!oldData) return oldData;
-
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              recipes: page.recipes.filter((recipe) => recipe.id !== id),
-            })),
-          };
-        },
+      // Optimistic update
+      updateRecipesInCache(queryClient, (recipes) =>
+        recipes.filter((recipe) => recipe.id !== id),
       );
 
-      try {
-        await deleteRecipe(id);
-        await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-        toast.success("Recipe deleted successfully");
-      } catch (error) {
-        queryClient.setQueryData<{ pages: { recipes: Recipe[] }[] }>(
-          ["recipes"],
-          previousData,
-        );
-        console.error("Failed to delete recipe:", error);
-        toast.error("Failed to delete recipe");
-      }
+      await performMutationWithRollback(
+        () => deleteRecipe(id),
+        queryClient,
+        previousData,
+        "Recipe deleted successfully",
+        "Failed to delete recipe",
+      );
     },
     [queryClient],
   );
