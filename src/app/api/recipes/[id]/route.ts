@@ -5,7 +5,6 @@ import type { Recipe } from "~/types";
 
 export async function PUT(req: NextRequest) {
 	try {
-		console.log("Request received for PUT /api/recipes/:id");
 		const { userId } = getAuth(req);
 		if (!userId) {
 			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
@@ -15,7 +14,6 @@ export async function PUT(req: NextRequest) {
 
 		const { id, name, instructions, ingredients, favorite } =
 			(await req.json()) as Recipe;
-		console.log("Request payload:", { id, name, instructions, ingredients, favorite });
 
 		if (!id || typeof id !== "number") {
 			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {

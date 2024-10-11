@@ -21,7 +21,6 @@ export const fetchRecipes = async ({
     recipes: Recipe[];
     nextCursor: number;
   };
-  console.log("fetchRecipes", data);
   return data;
 };
 

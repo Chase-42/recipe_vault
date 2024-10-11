@@ -61,7 +61,6 @@ export async function POST(req: NextRequest) {
 			!ingredients ||
 			ingredients.length === 0
 		) {
-			console.log("Falling back to alternative scraping");
 			const fallbackData = (await getRecipeData(link)) as RecipeResponse;
 
 			imageUrl = imageUrl ?? fallbackData.image?.url ?? "";

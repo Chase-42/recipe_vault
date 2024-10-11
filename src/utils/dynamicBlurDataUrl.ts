@@ -4,7 +4,6 @@ const baseUrl =
 		: process.env.NEXT_PUBLIC_DOMAIN;
 
 export async function dynamicBlurDataUrl(url: string) {
-	console.log("baseUrl", baseUrl);
 	const base64str = await fetch(
 		`${baseUrl}/_next/image?url=${url}&w=16&q=75`,
 	).then(async (res) =>

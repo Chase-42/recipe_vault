@@ -1,7 +1,6 @@
 import * as cheerio from "cheerio";
 
 const fetchRecipeImages = async (link: string): Promise<string[]> => {
-	console.log("fetchRecipeImages", link);
 	const response = await fetch(link);
 	const html = await response.text();
 	const $ = cheerio.load(html);
@@ -31,8 +30,6 @@ const fetchRecipeImages = async (link: string): Promise<string[]> => {
 			imageUrls.add(src);
 		}
 	});
-
-	console.log("imageUrls", Array.from(imageUrls));
 
 	return Array.from(imageUrls);
 };
