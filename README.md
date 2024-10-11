@@ -1,22 +1,24 @@
 
 # Recipe Vault
 
-Recipe Vault is a web application built with Next.js, a Python Flask serverless function, Clerk for authentication, PostgreSQL database, Drizzle ORM, Tailwind CSS, and Shadcn UI. The application allows users to save recipes by pasting a recipe URL. It scrapes the webpage to find the recipe name, picture, ingredients, and instructions, and saves them for easy access.
+Recipe Vault is a web application built with Next.js, a Python Flask serverless function, Clerk for authentication, PostgreSQL database, Drizzle ORM, Tailwind CSS, and Shadcn UI. The application allows users to save recipes by pasting a recipe URL. It scrapes the webpage to find the recipe name, picture, ingredients, and instructions, and saves them for easy access in a centralized location.
 
 Hosted on Vercel: https://recipe-vault-pied.vercel.app/
 
 ## Features
 
 - User authentication with Clerk
-- Save recipes by pasting a URL
+- Save recipes by pasting a URL of a recipe page
 - Web scraping to extract recipe details
-- Store recipe name, picture, ingredients, and instructions
+- Store recipe name, picture, ingredients, and instructions in PostgreSQL DB
 - Uploads image to UploadCare
 - Search functionality
 - Edit and delete recipes
 - Generates blurred placeholders for images while loading.
 - Responsive design using Tailwind CSS and Shadcn UI
 - Parallel routes for Modal Views
+- Infinite Scrolling
+- Mark recipes as favorites
 
 ## Tech Stack
 
