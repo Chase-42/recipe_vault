@@ -21,6 +21,7 @@ export async function getMyRecipes(
 				imageUrl: recipes.imageUrl,
 				blurDataUrl: recipes.blurDataUrl,
 				favorite: recipes.favorite,
+				createdAt: recipes.createdAt,
 			})
 			.from(recipes)
 			.where(eq(recipes.userId, userId))

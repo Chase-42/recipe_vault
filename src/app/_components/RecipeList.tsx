@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "../../providers";
 import type { RecipesData } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import RecipeCard from "./RecipeCard";
 import { toast } from "sonner";
@@ -18,6 +18,15 @@ import {
   performMutationWithRollback,
   updateRecipesInCache,
 } from "~/utils/recipeCacheUtils";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 // Fuse.js options for fuzzy search
 const fuseOptions = {
@@ -28,6 +37,9 @@ const fuseOptions = {
 const RecipesClient: React.FC = () => {
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
+
+  // State for sorting option
+  const [sortOption, setSortOption] = useState("newest");
 
   const {
     data,
@@ -59,6 +71,35 @@ const RecipesClient: React.FC = () => {
     }
     return fuse.search(searchTerm).map(({ item }) => item);
   }, [allRecipes, searchTerm, fuse]);
+
+  // Implement sorting
+  const sortedRecipes = useMemo(() => {
+    const recipes = [...filteredRecipes]; // Create a shallow copy
+
+    switch (sortOption) {
+      case "favorite":
+        recipes.sort((a, b) =>
+          a.favorite === b.favorite ? 0 : a.favorite ? -1 : 1,
+        );
+        break;
+      case "newest":
+        recipes.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        break;
+      case "oldest":
+        recipes.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+        break;
+      default:
+        break;
+    }
+
+    return recipes;
+  }, [filteredRecipes, sortOption]);
 
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
@@ -143,20 +184,44 @@ const RecipesClient: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-wrap justify-center gap-4 p-4">
-      {filteredRecipes.map((recipe) => (
-        <RecipeCard
-          key={recipe.id}
-          recipe={recipe}
-          onDelete={handleDelete}
-          onFavoriteToggle={handleFavoriteToggle}
-        />
-      ))}
+    <div className="p-4">
+      {/* Top bar with Select component */}
+      <div className="mb-4 flex justify-end">
+        <Select value={sortOption} onValueChange={setSortOption}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Sort Recipes By:</SelectLabel>
+              <SelectItem value="favorite">Favorite</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Recipes Grid */}
+      <div className="flex flex-wrap justify-center gap-4">
+        {sortedRecipes.map((recipe) => (
+          <RecipeCard
+            key={recipe.id}
+            recipe={recipe}
+            onDelete={handleDelete}
+            onFavoriteToggle={handleFavoriteToggle}
+          />
+        ))}
+      </div>
+
+      {/* Loading Spinner for Fetching Next Page */}
       {isFetchingNextPage && (
         <div className="flex w-full items-center justify-center py-4">
           <LoadingSpinner />
         </div>
       )}
+
+      {/* Intersection Observer Ref */}
       <div ref={ref as unknown as React.RefObject<HTMLDivElement>} />
     </div>
   );
