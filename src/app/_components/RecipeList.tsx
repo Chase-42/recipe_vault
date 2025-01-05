@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "../../providers";
-import type { RecipesData } from "~/types";
+import type { Recipe, RecipesData } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { useMemo, useCallback, useEffect, useState } from "react";
 import Fuse from "fuse.js";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useInView } from "react-intersection-observer";
 import {
   deleteRecipe,
+  fetchRecipe,
   fetchRecipes,
   updateRecipe,
 } from "~/utils/recipeService";
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { useRouter } from "next/navigation";
 
 // Fuse.js options for fuzzy search
 const fuseOptions = {
@@ -37,6 +39,7 @@ const fuseOptions = {
 const RecipesClient: React.FC = () => {
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // State for sorting option
   const [sortOption, setSortOption] = useState("newest");
@@ -58,6 +61,26 @@ const RecipesClient: React.FC = () => {
   const allRecipes = useMemo(
     () => data?.pages.flatMap((page) => page.recipes) ?? [],
     [data],
+  );
+
+  const handleRecipeHover = useCallback(
+    async (recipe: Recipe) => {
+      // Prefetch routes
+      router.prefetch(`/img/${recipe.id}`);
+      router.prefetch(`/edit/${recipe.id}`);
+
+      // Prefetch the recipe query data
+      await queryClient.prefetchQuery({
+        queryKey: ["recipe", recipe.id],
+        queryFn: () => fetchRecipe(recipe.id),
+      });
+
+      // Preload image
+      const img = new Image();
+      img.src = recipe.imageUrl;
+      console.log("Preloaded image:", img);
+    },
+    [queryClient, router],
   );
 
   const fuse = useMemo(() => {
@@ -204,13 +227,16 @@ const RecipesClient: React.FC = () => {
 
       {/* Recipes Grid */}
       <div className="flex flex-wrap justify-center gap-4">
-        {sortedRecipes.map((recipe) => (
-          <RecipeCard
-            key={recipe.id}
-            recipe={recipe}
-            onDelete={handleDelete}
-            onFavoriteToggle={handleFavoriteToggle}
-          />
+        {sortedRecipes.map((recipe, index) => (
+          <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              onDelete={handleDelete}
+              priority={index < 2}
+              onFavoriteToggle={handleFavoriteToggle}
+            />
+          </div>
         ))}
       </div>
 

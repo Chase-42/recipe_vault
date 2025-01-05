@@ -1,26 +1,33 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import type { Recipe } from "~/types";
 import Image from "next/image";
-import LoadingSpinner from "./LoadingSpinner";
 import { fetchRecipe } from "~/utils/recipeService";
+import { Button } from "~/components/ui/button";
+import { toast } from "sonner";
+import type { Recipe } from "~/types";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface FullPageImageViewProps {
   id: number;
+  shouldSuspend?: boolean;
 }
 
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
+  const router = useRouter();
+
   const {
     data: recipe,
     error,
     isLoading,
-  } = useQuery({
+  } = useQuery<Recipe>({
     queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
+    enabled: !!id,
   });
 
-  // Show loading spinner while fetching data
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -29,13 +36,18 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     );
   }
 
-  // Show error message if fetching fails or recipe is not found
-  if (error ?? !recipe) {
+  if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="text-xl text-red-800">
-          {error ? "Failed to load recipe." : "Recipe not found."}
-        </div>
+        <div className="text-xl text-red-800">Failed to load recipe.</div>
+      </div>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="text-xl text-red-800">Recipe not found.</div>
       </div>
     );
   }
@@ -47,7 +59,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   return (
     <div className="flex h-full w-full flex-col md:flex-row">
       {/* Recipe details section */}
-      <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
+      <div className="relative flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
         <div className="border-b p-2 text-center text-lg font-bold">
           {recipe.name}
         </div>
