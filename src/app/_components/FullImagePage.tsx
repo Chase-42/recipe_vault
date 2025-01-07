@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { Checkbox } from "~/components/ui/checkbox";
 import { fetchRecipe } from "~/utils/recipeService";
-import { Button } from "~/components/ui/button";
-import { toast } from "sonner";
 import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -16,8 +14,6 @@ interface FullPageImageViewProps {
 }
 
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
-  const router = useRouter();
-
   const {
     data: recipe,
     error,
@@ -27,6 +23,39 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     queryFn: () => fetchRecipe(id),
     enabled: !!id,
   });
+
+  // State for checked ingredients
+  const [checkedIngredients, setCheckedIngredients] = useState<
+    Record<string, boolean>
+  >({});
+
+  // Load checked state from localStorage on mount
+  useEffect(() => {
+    if (recipe) {
+      const storedChecked = localStorage.getItem(`recipe-${id}-ingredients`);
+      if (storedChecked) {
+        setCheckedIngredients(JSON.parse(storedChecked));
+      }
+    }
+  }, [id, recipe]);
+
+  // Save to localStorage whenever checked state changes
+  useEffect(() => {
+    if (recipe) {
+      localStorage.setItem(
+        `recipe-${id}-ingredients`,
+        JSON.stringify(checkedIngredients),
+      );
+    }
+  }, [checkedIngredients, id, recipe]);
+
+  const handleIngredientToggle = (ingredient: string, index: number) => {
+    const key = `${ingredient}-${index}`;
+    setCheckedIngredients((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   if (isLoading) {
     return (
@@ -68,10 +97,32 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
         <div className="border-b p-4">
           <h3 className="mb-2 text-base font-semibold">Ingredients:</h3>
           {ingredients.length > 0 ? (
-            <ul className="list-inside list-disc space-y-1">
-              {ingredients.map((ingredient, index) => (
-                <li key={`${ingredient}-${index}`}>{ingredient}</li>
-              ))}
+            <ul className="space-y-3">
+              {ingredients.map((ingredient, index) => {
+                const key = `${ingredient}-${index}`;
+                return (
+                  <li key={key} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={key}
+                      checked={checkedIngredients[key] || false}
+                      onCheckedChange={() =>
+                        handleIngredientToggle(ingredient, index)
+                      }
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor={key}
+                      className={`text-sm ${
+                        checkedIngredients[key]
+                          ? "text-gray-500 line-through"
+                          : ""
+                      }`}
+                    >
+                      {ingredient}
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="italic text-gray-500">No ingredients listed.</p>
