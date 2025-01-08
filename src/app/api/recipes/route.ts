@@ -10,129 +10,148 @@ import fetchRecipeImages from "~/utils/scraper";
 import getRecipeData from "@rethora/url-recipe-scraper";
 import sanitizeString from "~/utils/sanitizeString";
 
-const baseUrl =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:3000/"
-		: `${process.env.NEXT_PUBLIC_DOMAIN}/`;
+const baseUrl = process.env.NODE_ENV === "development"
+  ? "http://localhost:3000/"
+  : `${process.env.NEXT_PUBLIC_DOMAIN}/`;
 
 const flaskApiUrl = (link: string): string =>
-	`${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
+  `${baseUrl}api/scraper?url=${encodeURIComponent(link)}`;
 
-const fetchDataFromFlask = async (link: string): Promise<RecipeDetails> => {
-	try {
-		const response = await fetch(flaskApiUrl(link));
-		if (!response.ok) {
-			const errorText = await response.text();
-			console.error(`Flask API responded with an error: ${errorText}`);
-			throw new Error("Failed to fetch data from Flask API");
-		}
-		return (await response.json()) as RecipeDetails;
-	} catch (error) {
-		console.error("fetchDataFromFlask error:", error);
-		throw error;
-	}
-};
-
-export async function POST(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-
-		const { link } = (await req.json()) as { link: string };
-		if (!link || typeof link !== "string") {
-			return NextResponse.json({ error: "Invalid link" }, { status: 400 });
-		}
-
-		let data: RecipeDetails;
-		try {
-			data = await fetchDataFromFlask(link);
-		} catch (error) {
-			console.error("Error fetching data from Flask API:", error);
-			throw new Error("Failed to fetch data from Flask API");
-		}
-
-		let { imageUrl, instructions, ingredients, name } = data;
-		if (
-			!name ||
-			!imageUrl ||
-			!instructions ||
-			!ingredients ||
-			ingredients.length === 0
-		) {
-			const fallbackData = (await getRecipeData(link)) as RecipeResponse;
-
-			imageUrl = imageUrl ?? fallbackData.image?.url ?? "";
-			if (!imageUrl) {
-				const imageUrls = await fetchRecipeImages(link);
-				imageUrl = imageUrls.length > 0 ? imageUrls[0] : "";
-			}
-
-			instructions =
-				instructions ??
-				(fallbackData.recipeInstructions || [])
-					.map((instruction) => sanitizeString(instruction?.text ?? ""))
-					.filter(Boolean)
-					.join("\n");
-
-			ingredients =
-				ingredients.length > 0
-					? ingredients
-					: (fallbackData.recipeIngredient || []).map((i) => sanitizeString(i));
-
-			name = name ?? sanitizeString(fallbackData.name ?? "");
-		}
-
-		if (!imageUrl || !instructions || !ingredients.length || !name) {
-			throw new Error("Incomplete recipe data");
-		}
-
-		const [uploadedImageUrl, blurDataURL] = await Promise.all([
-			uploadImage(imageUrl),
-			dynamicBlurDataUrl(imageUrl),
-		]);
-
-		const [recipe] = await db
-			.insert(recipes)
-			.values({
-				link,
-				imageUrl: uploadedImageUrl,
-				blurDataUrl: blurDataURL,
-				instructions,
-				ingredients: ingredients.join("\n"),
-				name,
-				userId,
-			})
-			.returning();
-
-		return NextResponse.json(recipe);
-	} catch (error) {
-		console.error("Failed to save recipe:", error);
-		return NextResponse.json(
-			{ error: "Failed to save recipe" },
-			{ status: 500 },
-		);
-	}
+async function fetchDataFromFlask(link: string): Promise<RecipeDetails> {
+  const response = await fetch(flaskApiUrl(link), {
+    headers: { 'Accept': 'application/json' },
+    next: { revalidate: 0 }
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Flask API error: ${errorText}`);
+  }
+  
+  return response.json() as Promise<RecipeDetails>;
 }
 
-// Handler for GET requests to fetch recipes with pagination support
+interface ProcessedData {
+  name: string;
+  imageUrl: string;
+  instructions: string;
+  ingredients: string[];
+  blurDataURL: string;
+}
+
+interface InstructionLike {
+  text?: string;
+}
+
+function processInstructions(instructions: InstructionLike[] = []): string {
+  return instructions
+    .map(instruction => sanitizeString(instruction?.text ?? ""))
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function processRecipeData(
+  flaskData: RecipeDetails,
+  link: string
+): Promise<ProcessedData> {
+  let { imageUrl, instructions, ingredients, name } = flaskData;
+
+  const needsFallback = !name || !imageUrl || !instructions || !ingredients?.length;
+  
+  if (needsFallback) {
+    const [fallbackData, imageUrls] = await Promise.all([
+      getRecipeData(link).catch(() => null as RecipeResponse | null),
+      !imageUrl 
+        ? fetchRecipeImages(link).catch(() => [] as string[]) 
+        : Promise.resolve([] as string[])
+    ]);
+
+    name = name ?? sanitizeString(fallbackData?.name ?? "");
+    imageUrl = imageUrl ?? fallbackData?.image?.url ?? (imageUrls[0] ?? "");
+    instructions = instructions ?? processInstructions(fallbackData?.recipeInstructions as InstructionLike[]);
+    ingredients = ingredients?.length > 0
+      ? ingredients
+      : (fallbackData?.recipeIngredient ?? []).map(sanitizeString);
+  }
+
+  if (!imageUrl || !instructions || !ingredients?.length || !name) {
+    throw new Error("Failed to extract complete recipe data");
+  }
+
+  const [uploadedImageUrl, blurDataURL] = await Promise.all([
+    uploadImage(imageUrl).catch(() => {
+      throw new Error("Failed to upload image");
+    }),
+    dynamicBlurDataUrl(imageUrl).catch(() => {
+      throw new Error("Failed to generate blur URL");
+    })
+  ]);
+
+  return {
+    name,
+    imageUrl: uploadedImageUrl,
+    instructions,
+    ingredients,
+    blurDataURL
+  };
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { link } = await req.json() as { link?: string };
+    if (!link?.trim()) {
+      return NextResponse.json(
+        { error: "Valid link required" },
+        { status: 400 }
+      );
+    }
+
+    const flaskData = await fetchDataFromFlask(link);
+    const processedData = await processRecipeData(flaskData, link);
+
+    const [recipe] = await db
+      .insert(recipes)
+      .values({
+        link,
+        imageUrl: processedData.imageUrl,
+        blurDataUrl: processedData.blurDataURL,
+        instructions: processedData.instructions,
+        ingredients: processedData.ingredients.join("\n"),
+        name: processedData.name,
+        userId,
+      })
+      .returning();
+
+    return NextResponse.json(recipe);
+
+  } catch (error) {
+    console.error("Recipe processing failed:", error);
+    const message = error instanceof Error ? error.message : "Failed to save recipe";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function GET(req: NextRequest) {
-	try {
-		// Extract user ID from the authentication context
-		const { userId } = getAuth(req);
-		if (!userId) {
-			// Respond with unauthorized status if user is not authenticated
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const url = new URL(req.url);
     let cursor = Number(url.searchParams.get("cursor")) || 0;
     let limit = Number(url.searchParams.get("limit")) || 5;
 
-    // Ensure limit and cursor are within sensible ranges
-    limit = Math.min(Math.max(limit, 1), 100); // Limit between 1 and 100
-    cursor = Math.max(cursor, 0); // Ensure cursor is never negative
+    limit = Math.min(Math.max(limit, 1), 100);
+    cursor = Math.max(cursor, 0);
 
     const fetchedRecipes = await getMyRecipes(userId, cursor, limit);
     const nextCursor = fetchedRecipes.length === limit ? cursor + limit : null;
@@ -150,30 +169,29 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
 export async function DELETE(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-		const url = new URL(req.url);
-		const id = url.searchParams.get("id");
-		if (!id) {
-			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
-		}
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
-		await deleteRecipe(Number(id));
-		return NextResponse.json(
-			{ message: "Recipe deleted successfully" },
-			{ status: 200 },
-		);
-	} catch (error) {
-		console.error("Failed to delete recipe:", error);
-		return NextResponse.json(
-			{ error: "Failed to delete recipe" },
-			{ status: 500 },
-		);
-	}
+    await deleteRecipe(Number(id));
+    return NextResponse.json(
+      { message: "Recipe deleted successfully" },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Failed to delete recipe:", error);
+    return NextResponse.json(
+      { error: "Failed to delete recipe" },
+      { status: 500 },
+    );
+  }
 }
