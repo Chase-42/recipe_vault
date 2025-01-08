@@ -1,6 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { Input } from "../../components/ui/input";
 import { motion } from "framer-motion";
 import {
@@ -10,51 +10,53 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { Toaster } from "~/components/ui/sonner";
 
 interface AddRecipeProps {
   onSuccess: () => void;
 }
 
+const saveRecipe = async (link: string) => {
+  const response = await fetch("/api/recipes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ link }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+};
+
 const AddRecipe: React.FC<AddRecipeProps> = ({ onSuccess }) => {
   const [link, setLink] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!link) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/recipes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ link }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save recipe");
-      }
-
+  const { mutate, isPending } = useMutation({
+    mutationFn: (link: string) => saveRecipe(link),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-
       toast.success("Recipe saved successfully!", {
         duration: 2500,
         id: "success",
       });
       onSuccess();
-    } catch (error) {
+    },
+    onError: (error: Error) => {
+      console.error("Failed to save recipe:", error);
+      toast.error(error.message || "Failed to save recipe.");
       onSuccess();
-      console.error("An error occurred:", error);
-      toast.error("Failed to save recipe.");
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!link) return;
+    mutate(link);
   };
 
   return (
@@ -76,19 +78,15 @@ const AddRecipe: React.FC<AddRecipeProps> = ({ onSuccess }) => {
             />
             <motion.button
               type="submit"
-              disabled={!link || isLoading}
+              disabled={!link || isPending}
               className={`relative flex h-12 w-full max-w-xs items-center justify-center overflow-hidden rounded-md bg-white text-black sm:max-w-md ${
-                !link || isLoading ? "cursor-not-allowed opacity-50" : ""
+                !link || isPending ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
-              <span
-                className={
-                  "relative z-10 text-black transition-colors duration-300"
-                }
-              >
-                {isLoading ? "Saving..." : "Save Recipe"}
+              <span className="relative z-10 text-black transition-colors duration-300">
+                {isPending ? "Saving..." : "Save Recipe"}
               </span>
-              {isLoading && (
+              {isPending && (
                 <motion.div
                   className="absolute inset-0 bg-primary"
                   initial={{ width: "0%" }}
