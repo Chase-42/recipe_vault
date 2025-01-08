@@ -34,7 +34,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     if (recipe) {
       const storedChecked = localStorage.getItem(`recipe-${id}-ingredients`);
       if (storedChecked) {
-        setCheckedIngredients(JSON.parse(storedChecked));
+        setCheckedIngredients(
+          JSON.parse(storedChecked) as Record<string, boolean>,
+        );
       }
     }
   }, [id, recipe]);
@@ -104,7 +106,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                   <li key={key} className="flex items-start space-x-2">
                     <Checkbox
                       id={key}
-                      checked={checkedIngredients[key] || false}
+                      checked={checkedIngredients[key] ?? false}
                       onCheckedChange={() =>
                         handleIngredientToggle(ingredient, index)
                       }
