@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest) {
 			});
 		}
 
-		const { id, name, instructions, ingredients, favorite } =
+		const { id, name, instructions, ingredients, favorite, imageUrl } =
 			(await req.json()) as Recipe;
 
 		if (!id || typeof id !== "number") {
@@ -26,6 +26,7 @@ export async function PUT(req: NextRequest) {
 			instructions: instructions ?? "",
 			ingredients: ingredients ?? "",
 			favorite: favorite ?? false,
+			imageUrl: imageUrl ?? "",
 		});
 
 		return NextResponse.json({ message: "Recipe updated successfully" });

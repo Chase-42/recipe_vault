@@ -80,6 +80,7 @@ export async function updateRecipe(id: number, recipe: UpdatedRecipe) {
 				instructions: recipe.instructions,
 				ingredients: recipe.ingredients,
 				favorite: recipe.favorite,
+				imageUrl: recipe.imageUrl,
 			})
 			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
 	} catch (error) {

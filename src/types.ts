@@ -94,7 +94,7 @@ export interface UpdatedRecipe {
 	name: string;
 	instructions: string;
 	ingredients: string;
-	
+	imageUrl: string;
 }
 
 export interface CreateRecipeRequest {
