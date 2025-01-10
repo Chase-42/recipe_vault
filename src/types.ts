@@ -96,3 +96,16 @@ export interface UpdatedRecipe {
 	ingredients: string;
 	
 }
+
+export interface CreateRecipeRequest {
+	name: string;
+	link: string;
+	imageUrl: string;
+	ingredients: string;
+	instructions: string;
+}	
+
+export type APIResponse<T> = {
+	data?: T;
+	error?: string;
+};

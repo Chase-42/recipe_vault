@@ -61,7 +61,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -69,7 +69,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
   if (error) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center">
         <div className="text-xl text-red-800">Failed to load recipe.</div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
   if (!recipe) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center">
         <div className="text-xl text-red-800">Recipe not found.</div>
       </div>
     );
@@ -88,9 +88,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const instructions = recipe.instructions?.split("\n") ?? [];
 
   return (
-    <div className="flex h-full w-full flex-col md:flex-row">
+    <div className="flex h-screen w-full flex-col md:flex-row">
       {/* Recipe details section */}
-      <div className="relative flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
+      <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
         <div className="border-b p-2 text-center text-lg font-bold">
           {recipe.name}
         </div>
@@ -163,9 +163,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       </div>
 
       {/* Recipe image section */}
-      <div className="relative flex w-full items-center justify-center p-4 md:w-1/2">
+      <div className="relative flex-1 md:w-1/2">
         {recipe.imageUrl ? (
-          <div className="relative h-96 w-full md:h-full">
+          <div className="relative h-full w-full">
             <Image
               src={recipe.imageUrl}
               alt={`Image of ${recipe.name}`}
@@ -177,7 +177,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
             />
           </div>
         ) : (
-          <p className="italic text-gray-500">No image available.</p>
+          <div className="flex h-full items-center justify-center">
+            <p className="italic text-gray-500">No image available.</p>
+          </div>
         )}
       </div>
     </div>
