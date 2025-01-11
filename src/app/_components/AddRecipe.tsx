@@ -1,5 +1,3 @@
-"use client";
-
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -35,6 +33,18 @@ const saveRecipe = async (link: string) => {
 
   return response.json();
 };
+
+const ButtonContainer = ({ children, onClick }) => (
+  <motion.div
+    className="group relative flex flex-col items-center justify-center rounded-lg border border-input p-6 text-center transition-colors hover:border-primary/50"
+    whileHover={{ scale: 1.02 }}
+    transition={{ type: "spring", stiffness: 300 }}
+    onClick={onClick}
+  >
+    <motion.div className="absolute inset-0 rounded-lg bg-primary/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+    {children}
+  </motion.div>
+);
 
 export default function AddRecipe({ onSuccess }: AddRecipeProps) {
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -75,13 +85,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
         <CardContent>
           {!showLinkForm ? (
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <motion.button
-                onClick={() => setShowLinkForm(true)}
-                className="group relative flex flex-col items-center justify-center rounded-lg border border-input p-6 text-center transition-colors hover:border-primary/50"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <motion.div className="absolute inset-0 rounded-lg bg-primary/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+              <ButtonContainer onClick={() => setShowLinkForm(true)}>
                 <Link2 className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                 <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
                   Paste a Link
@@ -89,26 +93,23 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                 <p className="mt-2 text-sm text-muted-foreground">
                   Import from a recipe website
                 </p>
-              </motion.button>
+              </ButtonContainer>
 
               <Link
-                href={`/add`}
+                href="/add"
                 prefetch={true}
                 onClick={onSuccess}
-                className="group relative flex flex-col items-center justify-center rounded-lg border border-input p-6 text-center transition-colors hover:border-primary/50"
+                className="block"
               >
-                <motion.div
-                  className="absolute inset-0 rounded-lg bg-primary/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                />
-                <PenLine className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
-                <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
-                  Enter Manually
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Create your own recipe
-                </p>
+                <ButtonContainer onClick={() => {}}>
+                  <PenLine className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
+                  <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
+                    Enter Manually
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Create your own recipe
+                  </p>
+                </ButtonContainer>
               </Link>
             </div>
           ) : (
