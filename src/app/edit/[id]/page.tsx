@@ -1,5 +1,4 @@
 import EditRecipeForm from "~/app/_components/EditRecipeForm";
-import FullPageImageView from "~/app/_components/FullImagePage";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
 import Image from "next/image";

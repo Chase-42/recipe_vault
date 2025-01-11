@@ -9,12 +9,15 @@ Hosted on Vercel: https://recipe-vault-pied.vercel.app/
 
 - User authentication with Clerk
 - Save recipes by pasting a URL of a recipe page
+- Create your own by entering ingredients, instructions, and an image
 - Web scraping to extract recipe details
 - Store recipe name, picture, ingredients, and instructions in PostgreSQL DB
 - Uploads image to UploadCare
 - Search functionality
+- Checkbox for recipe ingredients for shopping (local storage)
 - Edit and delete recipes
 - Generates blurred placeholders for images while loading.
+- Prefetch recipes on hover
 - Responsive design using Tailwind CSS and Shadcn UI
 - Parallel routes for Modal Views
 - Infinite Scrolling
