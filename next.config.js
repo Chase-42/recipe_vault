@@ -18,7 +18,7 @@ const config = {
 						? "http://127.0.0.1:5328/api/scraper/:path*"
 						: "/api/scraper/:path*",
 			},
-			// Add this to make sure your Next.js API routes are not overridden
+
 			{
 				source: "/api/recipes/:path*",
 				destination: "/api/recipes/:path*",

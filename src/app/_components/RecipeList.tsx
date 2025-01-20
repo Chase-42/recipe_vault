@@ -1,14 +1,35 @@
 "use client";
 
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearch } from "../../providers";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "~/providers";
 import type { Recipe, RecipesData } from "~/types";
-import LoadingSpinner from "./LoadingSpinner";
 import { useMemo, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Fuse from "fuse.js";
-import RecipeCard from "./RecipeCard";
 import { toast } from "sonner";
-import { useInView } from "react-intersection-observer";
+
+// Components
+import RecipeCard from "./RecipeCard";
+import LoadingSpinner from "./LoadingSpinner";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "~/components/ui/pagination";
+
+// Utils
 import {
   deleteRecipe,
   fetchRecipe,
@@ -19,129 +40,125 @@ import {
   performMutationWithRollback,
   updateRecipesInCache,
 } from "~/utils/recipeCacheUtils";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { useRouter } from "next/navigation";
 
-// Fuse.js options for fuzzy search
-const fuseOptions = {
+// Constants & Types
+const ITEMS_PER_PAGE = 12;
+const FUSE_OPTIONS = {
   keys: ["name"],
   threshold: 0.5,
 };
 
-const RecipesClient: React.FC = () => {
+type SortOption = "favorite" | "newest" | "oldest";
+
+const RecipesClient = () => {
+  // Hooks
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // State for sorting option
-  const [sortOption, setSortOption] = useState("newest");
+  // State
+  const [showPagination, setShowPagination] = useState(false);
+  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>(
+    {},
+  );
 
-  const {
-    data,
-    error,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["recipes"],
-    queryFn: fetchRecipes,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialPageParam: 0,
+  // URL params
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const sortOption = (searchParams.get("sort") as SortOption) || "newest";
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // Data fetching
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["recipes", offset],
+    queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
+    staleTime: 30000,
   });
 
-  const allRecipes = useMemo(
-    () => data?.pages.flatMap((page) => page.recipes) ?? [],
-    [data],
-  );
+  const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
+  const totalPages = data?.total ? Math.ceil(data.total / ITEMS_PER_PAGE) : 0;
 
-  const handleRecipeHover = useCallback(
-    async (recipe: Recipe) => {
-      // Prefetch routes
-      router.prefetch(`/img/${recipe.id}`);
-      router.prefetch(`/edit/${recipe.id}`);
+  // Filtering and sorting
+  const filteredAndSortedRecipes = useMemo(() => {
+    let result = [...recipes];
 
-      // Prefetch the recipe query data
-      await queryClient.prefetchQuery({
-        queryKey: ["recipe", recipe.id],
-        queryFn: () => fetchRecipe(recipe.id),
-      });
-
-      // Preload image
-      const img = new Image();
-      img.src = recipe.imageUrl;
-      console.log("Preloaded image:", img);
-    },
-    [queryClient, router],
-  );
-
-  const fuse = useMemo(() => {
-    if (!searchTerm) return null;
-    return new Fuse(allRecipes, fuseOptions);
-  }, [allRecipes, searchTerm]);
-
-  const filteredRecipes = useMemo(() => {
-    if (!searchTerm || !fuse) {
-      return allRecipes;
+    if (searchTerm) {
+      const fuse = new Fuse(result, FUSE_OPTIONS);
+      result = fuse.search(searchTerm).map(({ item }) => item);
     }
-    return fuse.search(searchTerm).map(({ item }) => item);
-  }, [allRecipes, searchTerm, fuse]);
-
-  // Implement sorting
-  const sortedRecipes = useMemo(() => {
-    const recipes = [...filteredRecipes]; // Create a shallow copy
 
     switch (sortOption) {
       case "favorite":
-        recipes.sort((a, b) =>
+        result.sort((a, b) =>
           a.favorite === b.favorite ? 0 : a.favorite ? -1 : 1,
         );
         break;
       case "newest":
-        recipes.sort(
+        result.sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         break;
       case "oldest":
-        recipes.sort(
+        result.sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         );
         break;
-      default:
-        break;
     }
 
-    return recipes;
-  }, [filteredRecipes, sortOption]);
+    return result;
+  }, [recipes, searchTerm, sortOption]);
+
+  // Image loading handling
+  const handleImageLoad = useCallback((recipeId: number) => {
+    setLoadingStates((prev) => ({ ...prev, [recipeId]: true }));
+  }, []);
+
+  useEffect(() => {
+    const allImagesProcessed = filteredAndSortedRecipes.every(
+      (recipe) => loadingStates[recipe.id],
+    );
+    if (allImagesProcessed) {
+      setShowPagination(true);
+    }
+  }, [loadingStates, filteredAndSortedRecipes]);
+
+  useEffect(() => {
+    setLoadingStates({});
+    setShowPagination(false);
+  }, [recipes]);
+
+  // Event handlers
+  const handleRecipeHover = useCallback(
+    async (recipe: Recipe) => {
+      router.prefetch(`/img/${recipe.id}`);
+      router.prefetch(`/edit/${recipe.id}`);
+      await queryClient.prefetchQuery({
+        queryKey: ["recipe", recipe.id],
+        queryFn: () => fetchRecipe(recipe.id),
+      });
+    },
+    [queryClient, router],
+  );
 
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
-      const previousData = queryClient.getQueryData<RecipesData>(["recipes"]);
+      const previousData = queryClient.getQueryData<RecipesData>([
+        "recipes",
+        offset,
+      ]);
 
-      // Optimistic update
       updateRecipesInCache(queryClient, (recipes) =>
         recipes.map((recipe) =>
           recipe.id === id ? { ...recipe, favorite } : recipe,
         ),
       );
 
-      const updatedRecipe = previousData?.pages
-        .flatMap((page) => page.recipes)
-        .find((recipe) => recipe.id === id);
-
+      const updatedRecipe = recipes.find((recipe) => recipe.id === id);
       if (!updatedRecipe) {
-        // Roll back to previous data
-        queryClient.setQueryData(["recipes"], previousData);
+        queryClient.setQueryData(["recipes", offset], previousData);
         toast.error("Recipe not found");
         return;
       }
@@ -154,14 +171,16 @@ const RecipesClient: React.FC = () => {
         "Failed to update favorite status.",
       );
     },
-    [queryClient],
+    [queryClient, offset, recipes],
   );
 
   const handleDelete = useCallback(
     async (id: number) => {
-      const previousData = queryClient.getQueryData<RecipesData>(["recipes"]);
+      const previousData = queryClient.getQueryData<RecipesData>([
+        "recipes",
+        offset,
+      ]);
 
-      // Optimistic update
       updateRecipesInCache(queryClient, (recipes) =>
         recipes.filter((recipe) => recipe.id !== id),
       );
@@ -174,43 +193,56 @@ const RecipesClient: React.FC = () => {
         "Failed to delete recipe",
       );
     },
-    [queryClient],
+    [queryClient, offset],
   );
 
-  const { ref, inView } = useInView({
-    threshold: 0.1,
-    rootMargin: "0px 0px 100px 0px",
-  });
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set(name, value);
+      return params.toString();
+    },
+    [searchParams],
+  );
 
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage().catch((error) =>
-        console.error("Failed to fetch next page:", error),
-      );
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      const query = createQueryString("page", page.toString());
+      router.push(`${pathname}?${query}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [createQueryString, pathname, router],
+  );
 
-  if (isLoading) {
+  const handleSortChange = useCallback(
+    (value: SortOption) => {
+      const query = createQueryString("sort", value);
+      router.push(`${pathname}?${query}`);
+    },
+    [createQueryString, pathname, router],
+  );
+
+  // Error and loading states
+  if (error) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <LoadingSpinner />
+      <div className="flex h-full items-center justify-center text-xl text-red-800">
+        Error loading recipes
       </div>
     );
   }
 
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-xl text-red-800">Error loading recipes</div>
+      <div className="flex h-[80vh] items-center justify-center">
+        <LoadingSpinner />
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      {/* Top bar with Select component */}
       <div className="mb-4 flex justify-end">
-        <Select value={sortOption} onValueChange={setSortOption}>
+        <Select value={sortOption} onValueChange={handleSortChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
@@ -225,30 +257,75 @@ const RecipesClient: React.FC = () => {
         </Select>
       </div>
 
-      {/* Recipes Grid */}
       <div className="flex flex-wrap justify-center gap-4">
-        {sortedRecipes.map((recipe, index) => (
+        {filteredAndSortedRecipes.map((recipe) => (
           <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
             <RecipeCard
-              key={recipe.id}
               recipe={recipe}
               onDelete={handleDelete}
-              priority={index < 2}
               onFavoriteToggle={handleFavoriteToggle}
+              priority={currentPage === 1 && recipe.id <= 4}
+              onImageLoad={handleImageLoad}
             />
           </div>
         ))}
       </div>
 
-      {/* Loading Spinner for Fetching Next Page */}
-      {isFetchingNextPage && (
-        <div className="flex w-full items-center justify-center py-4">
-          <LoadingSpinner />
+      {totalPages > 1 && showPagination && (
+        <div className="mt-8 flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) handlePageChange(currentPage - 1);
+                  }}
+                  className={
+                    currentPage <= 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page);
+                      }}
+                      isActive={currentPage === page}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages)
+                      handlePageChange(currentPage + 1);
+                  }}
+                  className={
+                    currentPage >= totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
-
-      {/* Intersection Observer Ref */}
-      <div ref={ref as unknown as React.RefObject<HTMLDivElement>} />
     </div>
   );
 };

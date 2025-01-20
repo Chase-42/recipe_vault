@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -30,13 +30,35 @@ interface RecipeCardProps {
   onDelete: (id: number) => void;
   onFavoriteToggle: (id: number, favorite: boolean) => void;
   priority?: boolean;
+  onImageLoad?: (id: number) => void;
 }
+
+// Preload the motion component for faster subsequent loads
+const MotionDiv = dynamic(
+  () => import("framer-motion").then((mod) => mod.motion.div),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md">
+        {/* Minimal loading state that matches final layout */}
+      </div>
+    ),
+  },
+);
+
+// Define animation variants outside component to prevent recreating on each render
+const cardAnimations = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
   recipe,
   onDelete,
   onFavoriteToggle,
   priority = false,
+  onImageLoad,
 }) => {
   const [isFavorite, setIsFavorite] = useState(recipe.favorite);
   // Keep dialog mounted but hidden
@@ -52,18 +74,28 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     onFavoriteToggle(recipe.id, !isFavorite);
   };
 
+  // Optimize image loading
+  const shouldPrioritize = priority || recipe.id <= 4; // Prioritize first 4 images
+
+  const handleImageLoadComplete = () => {
+    onImageLoad?.(recipe.id);
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <MotionDiv
+      {...cardAnimations}
       key={recipe.id}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      layoutId={`recipe-${recipe.id}`} // Add layoutId for smoother transitions
       className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
     >
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              type="button"
               onClick={handleFavoriteToggle}
               className={`absolute right-2 top-2 z-10 transition-opacity duration-300 group-hover:opacity-100 ${
                 isFavorite ? "opacity-100" : "opacity-0"
@@ -104,8 +136,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             alt={recipe.name}
             placeholder="blur"
             blurDataURL={recipe.blurDataUrl}
-            priority={priority}
-            loading={priority ? undefined : "lazy"}
+            priority={shouldPrioritize}
+            loading={shouldPrioritize ? undefined : "lazy"}
+            sizes="(max-width: 768px) 100vw, 300px" // Add sizes for better resource loading
+            onLoad={handleImageLoadComplete}
+            onError={handleImageLoadComplete}
           />
         </Link>
       </div>
@@ -148,10 +183,16 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           </AlertDialog>
         )}
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
 RecipeCard.displayName = "RecipeCard";
 
-export default memo(RecipeCard);
+// Use React.memo with custom comparison
+export default memo(RecipeCard, (prevProps, nextProps) => {
+  return (
+    prevProps.recipe.id === nextProps.recipe.id &&
+    prevProps.recipe.favorite === nextProps.recipe.favorite
+  );
+});

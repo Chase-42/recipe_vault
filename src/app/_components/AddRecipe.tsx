@@ -18,6 +18,12 @@ interface AddRecipeProps {
   onSuccess: () => void;
 }
 
+interface ButtonContainerProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  cursor?: string;
+}
+
 const saveRecipe = async (link: string) => {
   const response = await fetch("/api/recipes", {
     method: "POST",
@@ -34,9 +40,13 @@ const saveRecipe = async (link: string) => {
   return response.json();
 };
 
-const ButtonContainer = ({ children, onClick }) => (
+const ButtonContainer = ({
+  children,
+  onClick,
+  cursor = "pointer",
+}: ButtonContainerProps) => (
   <motion.div
-    className="group relative flex flex-col items-center justify-center rounded-lg border border-input p-6 text-center transition-colors hover:border-primary/50"
+    className={`group relative flex flex-col items-center justify-center rounded-lg border border-input p-6 text-center transition-colors hover:border-primary/50 cursor-${cursor}`}
     whileHover={{ scale: 1.02 }}
     transition={{ type: "spring", stiffness: 300 }}
     onClick={onClick}
@@ -85,7 +95,10 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
         <CardContent>
           {!showLinkForm ? (
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <ButtonContainer onClick={() => setShowLinkForm(true)}>
+              <ButtonContainer
+                onClick={() => setShowLinkForm(true)}
+                cursor="pointer"
+              >
                 <Link2 className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                 <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
                   Paste a Link
@@ -101,7 +114,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                 onClick={onSuccess}
                 className="block"
               >
-                <ButtonContainer onClick={() => {}}>
+                <ButtonContainer onClick={() => {}} cursor="pointer">
                   <PenLine className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                   <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
                     Enter Manually

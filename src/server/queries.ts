@@ -2,17 +2,27 @@ import "server-only";
 import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import type { UpdatedRecipe } from "~/types";
 
-// Fetch user's recipes with pagination
+// Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
 	userId: string,
-	cursor: number,
+	offset: number,
 	limit: number,
 ) {
 	try {
-		return await db
+		// Get total count
+		const [countResult] = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(recipes)
+			.where(eq(recipes.userId, userId))
+			.execute();
+
+		const total = Number(countResult?.count ?? 0);
+
+		// Get paginated recipes
+		const paginatedRecipes = await db
 			.select({
 				id: recipes.id,
 				name: recipes.name,
@@ -25,16 +35,21 @@ export async function getMyRecipes(
 			})
 			.from(recipes)
 			.where(eq(recipes.userId, userId))
-			.offset(cursor)
+			.offset(offset)
 			.limit(limit)
 			.orderBy(desc(recipes.createdAt));
+
+		return {
+			recipes: paginatedRecipes,
+			total,
+		};
 	} catch (error) {
 		console.error("Failed to fetch recipes:", error);
 		throw new Error("Failed to fetch recipes");
 	}
 }
 
-// Fetch a single recipe by ID
+// Rest of the file remains the same...
 export const getRecipe = async (id: number) => {
 	const { userId } = auth();
 
@@ -50,7 +65,6 @@ export const getRecipe = async (id: number) => {
 	return recipe;
 };
 
-// Delete a recipe by ID
 export async function deleteRecipe(id: number) {
 	const { userId } = auth();
 
@@ -66,8 +80,7 @@ export async function deleteRecipe(id: number) {
 	}
 }
 
-// Update a recipe by ID
-export async function updateRecipe(id: number, recipe: UpdatedRecipe) {
+export async function updateRecipe(recipe: UpdatedRecipe & { id: number }) {
 	const { userId } = auth();
 
 	if (!userId) throw new Error("Unauthorized");
@@ -82,7 +95,7 @@ export async function updateRecipe(id: number, recipe: UpdatedRecipe) {
 				favorite: recipe.favorite,
 				imageUrl: recipe.imageUrl,
 			})
-			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
+			.where(and(eq(recipes.id, recipe.id), eq(recipes.userId, userId)));
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
 		throw new Error("Failed to update recipe");

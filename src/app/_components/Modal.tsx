@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import type React from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,9 +17,9 @@ export function Modal({ children, onClose }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElement = useRef<Element | null>(null);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsOpen(false);
-  };
+  }, []);
 
   useEffect(() => {
     previouslyFocusedElement.current = document.activeElement;
@@ -40,7 +41,7 @@ export function Modal({ children, onClose }: ModalProps) {
         previouslyFocusedElement.current.focus();
       }
     };
-  }, []);
+  }, [handleClose]);
 
   const modalRoot = document.getElementById("modal-root");
   if (!modalRoot) {

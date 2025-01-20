@@ -10,8 +10,15 @@ import { toast, Toaster } from "sonner";
 import LoadingSpinner from "./LoadingSpinner";
 import type { Recipe } from "~/types";
 import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
-import Image from "next/image";
-import { ImageIcon, X } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const ImageUpload = dynamic(() => import("./ImageUpload"), {
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center p-4 md:w-1/2">
+      <LoadingSpinner />
+    </div>
+  ),
+});
 
 interface EditRecipeClientProps {
   initialRecipe: Recipe;
@@ -23,7 +30,8 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   const queryClient = useQueryClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+
+  // Query setup
   const { data: recipe, error } = useQuery<Recipe>({
     queryKey: ["recipe", initialRecipe.id],
     queryFn: () => fetchRecipe(initialRecipe.id),
@@ -46,44 +54,6 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = (await response.json()) as
-        | { url: string }
-        | { error: string };
-
-      if (!response.ok || "error" in result) {
-        throw new Error("error" in result ? result.error : "Upload failed");
-      }
-
-      setFormData((prev) => ({ ...prev, imageUrl: result.url }));
-      toast.success("Image uploaded successfully!");
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload image",
-      );
-      setFormData((prev) => ({ ...prev, imageUrl: recipe.imageUrl }));
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   // Mutation setup
   const mutation = useMutation({
     mutationFn: updateRecipe,
@@ -99,7 +69,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
       queryClient.setQueryData(["recipe", initialRecipe.id], newRecipe);
       return { previousRecipe };
     },
-    onError: (err, _, context) => {
+    onError: (_, __, context) => {
       if (context?.previousRecipe) {
         queryClient.setQueryData(
           ["recipe", initialRecipe.id],
@@ -115,11 +85,11 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
         duration: 1500,
         id: "success",
       });
-      setTimeout(() => router.back(), 1400);
+      setTimeout(() => router.back(), 1500);
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      await queryClient.invalidateQueries({
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      void queryClient.invalidateQueries({
         queryKey: ["recipe", initialRecipe.id],
       });
     },
@@ -220,56 +190,13 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
         </form>
       </div>
 
-      {/* Image Upload Section */}
-      <div className="flex h-full w-full items-center justify-center p-4 md:w-1/2">
-        <div className="w-full">
-          {formData.imageUrl ? (
-            <div className="relative aspect-square w-full overflow-hidden rounded-lg border-2 border-gray-600">
-              <Image
-                src={formData.imageUrl}
-                alt="Recipe preview"
-                fill
-                className="rounded-lg object-cover"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, imageUrl: "" }))
-                }
-                className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-600 bg-black/20 p-8 transition-all hover:border-gray-500 hover:bg-black/30">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <ImageIcon className="h-16 w-16 text-gray-400" />
-                <div className="text-center">
-                  <p className="text-sm text-gray-400">
-                    Click or drag image to upload
-                  </p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    PNG, JPG up to 10MB
-                  </p>
-                </div>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleImageUpload}
-                accept="image/*"
-                disabled={isUploading}
-              />
-            </label>
-          )}
-          {isUploading && (
-            <div className="mt-4 text-center text-sm text-gray-400">
-              Uploading image...
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Dynamically loaded Image Upload Section */}
+      <ImageUpload
+        imageUrl={formData.imageUrl}
+        onImageChange={(url) =>
+          setFormData((prev) => ({ ...prev, imageUrl: url }))
+        }
+      />
     </div>
   );
 };
