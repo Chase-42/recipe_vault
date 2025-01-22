@@ -1,37 +1,56 @@
-
-# Recipe Vault
+# 📗 Recipe Vault
 
 Recipe Vault is a web application built with Next.js, a Python Flask serverless function, Clerk for authentication, PostgreSQL database, Drizzle ORM, Tailwind CSS, and Shadcn UI. The application allows users to save recipes by pasting a recipe URL. It scrapes the webpage to find the recipe name, picture, ingredients, and instructions, and saves them for easy access in a centralized location.
 
-Hosted on Vercel: https://recipe-vault-pied.vercel.app/
+🌐 Hosted on Vercel: https://recipe-vault-pied.vercel.app/
 
-## Features
+## ✨ Features
 
+### 🔑 Authentication & Security
 - User authentication with Clerk
+- Secure data handling
+- Protected API routes
+
+### 📝 Recipe Management
 - Save recipes by pasting a URL of a recipe page
 - Create your own by entering ingredients, instructions, and an image
+- Edit and delete recipes
+- Mark recipes as favorites
+- Print-friendly recipe views
+
+### 🤖 Automation
 - Web scraping to extract recipe details
+- Automatic image optimization
+- Generates blurred placeholders for images while loading
+
+### 💾 Data Storage
 - Store recipe name, picture, ingredients, and instructions in PostgreSQL DB
 - Uploads image to UploadCare
+- Efficient data caching
+
+### 🎯 User Experience
 - Search functionality
 - Checkbox for recipe ingredients for shopping (local storage)
-- Edit and delete recipes
-- Generates blurred placeholders for images while loading.
 - Prefetch recipes on hover
 - Responsive design using Tailwind CSS and Shadcn UI
 - Parallel routes for Modal Views
-- Infinite Scrolling
-- Mark recipes as favorites
+- Pagination with customizable page size
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Frontend:** Next.js, Tailwind CSS, Shadcn UI
-- **Backend:** Node.js & Python Flask (serverless function)
-- **Authentication:** Clerk
-- **Database:** PostgreSQL
-- **ORM:** Drizzle ORM
+### Frontend
+- **📱 Framework:** Next.js
+- **🎨 Styling:** Tailwind CSS, Shadcn UI
+- **📊 State Management:** TanStack Query
 
-## Getting Started
+### Backend
+- **⚙️ Runtime:** Node.js
+- **🐍 Scraping:** Python Flask (serverless function)
+- **🔐 Auth:** Clerk
+- **📦 Database:** PostgreSQL
+- **🗄️ ORM:** Drizzle ORM
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -85,32 +104,29 @@ Hosted on Vercel: https://recipe-vault-pied.vercel.app/
 
 To deploy the application, follow the deployment instructions for your hosting provider. Ensure that all environment variables are set up correctly on the hosting platform.
 
-## Usage
+## 💡 Usage Tips
 
-1. **Sign Up / Login:**
+### Recipe Import
+1. Find a recipe you love on any cooking website
+2. Copy the URL
+3. Paste it into Recipe Vault
+4. Review and save the automatically extracted details
 
-   Users can sign up or log in using Clerk authentication.
+### Recipe Organization
+- Use favorites for quick access to frequent recipes
+- Utilize search to find specific recipes
+- Print recipes for offline use
+- Check off ingredients while cooking
 
-2. **Save a Recipe:**
-
-   Paste the URL of the recipe you want to save, and the application will scrape the webpage to extract and save the recipe details.
-
-3. **View Saved Recipes:**
-
-   Access your saved recipes from your profile.
-
-4. **Search Recipes:**
-
-   Use the search functionality to find specific recipes.
-
-5. **Edit and Delete Recipes:**
-
-   Edit or delete recipes as needed.
+## 🔄 Recent Updates
+- Added print-friendly recipe views
+- Implemented pagination system
+- Enhanced image loading performance
+- Improved recipe editing interface
 
 ## Contributing
 
 Contributions are welcome! Please fork the repository and create a pull request with your changes.
-
 
 ## Acknowledgements
 
