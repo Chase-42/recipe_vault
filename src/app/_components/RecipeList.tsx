@@ -7,7 +7,7 @@ import { useMemo, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Fuse from "fuse.js";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { LayoutGrid, LayoutList } from "lucide-react";
 import { cn } from "~/lib/utils";

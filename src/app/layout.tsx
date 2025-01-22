@@ -5,6 +5,7 @@ import { ClientProvider } from "~/providers";
 import { SearchProvider } from "~/providers";
 import { Toaster } from "sonner";
 import { TopNav } from "~/app/_components/topnav";
+import { ErrorBoundary } from "~/components/ErrorBoundary";
 
 export const metadata = {
   title: "Recipe Vault",
@@ -25,10 +26,12 @@ export default function RootLayout({
           <html lang="en" className={`${GeistSans.variable} dark`}>
             <body>
               <Toaster position="top-center" />
-              <div className="grid h-screen grid-rows-[auto,1fr]">
-                <TopNav />
-                <main className="overflow-y-auto">{children}</main>
-              </div>
+              <ErrorBoundary>
+                <div className="grid h-screen grid-rows-[auto,1fr]">
+                  <TopNav />
+                  <main className="overflow-y-auto">{children}</main>
+                </div>
+              </ErrorBoundary>
               {modal}
               <div id="modal-root" />
             </body>

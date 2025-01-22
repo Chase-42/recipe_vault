@@ -123,10 +123,8 @@ To deploy the application, follow the deployment instructions for your hosting p
 - Implemented pagination system
 - Enhanced image loading performance
 - Improved recipe editing interface
+- Added error handling and error pages
 
-## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
 ## Acknowledgements
 
