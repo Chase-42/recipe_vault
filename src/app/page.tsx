@@ -2,9 +2,15 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Utensils, ChefHat, Clock } from "lucide-react";
 import RecipeList from "~/app/_components/RecipeList";
 
-const FloatingIcon = ({ children, className = "" }) => {
+const FloatingIcon = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
   return (
-    <div className={`animate-float absolute ${className}`}>{children}</div>
+    <div className={`absolute animate-float ${className}`}>{children}</div>
   );
 };
 
@@ -25,21 +31,21 @@ export default function HomePage() {
           </FloatingIcon>
 
           {/* Background Gradient */}
-          <div className="animate-pulse-very-slow fixed inset-x-0 top-0 h-[120vh] bg-gradient-to-b from-primary/5 via-primary/5 to-transparent opacity-50 blur-3xl" />
+          <div className="fixed inset-x-0 top-0 h-[120vh] animate-pulse-very-slow bg-gradient-to-b from-primary/5 via-primary/5 to-transparent opacity-50 blur-3xl" />
 
           <div className="relative z-10 max-w-4xl pt-20">
             <div className="pb-8">
               <h1 className="relative mb-6 text-5xl font-bold tracking-tight text-foreground">
-                <span className="animate-slide-in absolute -bottom-2 left-0 h-1 w-full bg-primary" />
-                <span className="animate-fade-in-down inline-block">
+                <span className="absolute -bottom-2 left-0 h-1 w-full animate-slide-in bg-primary" />
+                <span className="inline-block animate-fade-in-down">
                   Welcome to
                 </span>{" "}
-                <span className="animate-fade-in-down animation-delay-200 relative inline-block text-primary">
+                <span className="animation-delay-200 relative inline-block animate-fade-in-down text-primary">
                   Recipe Vault
                 </span>
               </h1>
 
-              <div className="animate-fade-in-up animation-delay-400 relative">
+              <div className="animation-delay-400 relative animate-fade-in-up">
                 <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
                   Add your favorite recipes in seconds—simply share a recipe
                   link for automatic import of ingredients, instructions, and
@@ -51,7 +57,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="animate-fade-in-up animation-delay-600 mt-12">
+            <div className="animation-delay-600 mt-12 animate-fade-in-up">
               <p className="text-lg text-muted-foreground">
                 Please sign in to start saving recipes
               </p>

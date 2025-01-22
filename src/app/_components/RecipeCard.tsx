@@ -33,7 +33,6 @@ interface RecipeCardProps {
   onImageLoad?: (id: number) => void;
 }
 
-// Preload the motion component for faster subsequent loads
 const MotionDiv = dynamic(
   () => import("framer-motion").then((mod) => mod.motion.div),
   {
@@ -46,7 +45,6 @@ const MotionDiv = dynamic(
   },
 );
 
-// Define animation variants outside component to prevent recreating on each render
 const cardAnimations = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -61,10 +59,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   onImageLoad,
 }) => {
   const [isFavorite, setIsFavorite] = useState(recipe.favorite);
-  // Keep dialog mounted but hidden
   const [isDialogMounted, setIsDialogMounted] = useState(false);
 
-  // Mount dialog immediately on component load
   useEffect(() => {
     setIsDialogMounted(true);
   }, []);
@@ -74,8 +70,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     onFavoriteToggle(recipe.id, !isFavorite);
   };
 
-  // Optimize image loading
-  const shouldPrioritize = priority || recipe.id <= 4; // Prioritize first 4 images
+  const shouldPrioritize = priority || recipe.id <= 4;
 
   const handleImageLoadComplete = () => {
     onImageLoad?.(recipe.id);
@@ -88,7 +83,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       initial="initial"
       animate="animate"
       exit="exit"
-      layoutId={`recipe-${recipe.id}`} // Add layoutId for smoother transitions
+      layoutId={`recipe-${recipe.id}`}
       className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white"
     >
       <TooltipProvider>
@@ -118,14 +113,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         </Tooltip>
       </TooltipProvider>
 
-      <div className="flex w-full flex-grow flex-col items-center">
+      <div className="flex w-full flex-col items-center">
         <h2 className="mb-2 break-words text-center text-lg font-semibold">
           {recipe.name}
         </h2>
         <Link
           prefetch={true}
           href={`/img/${recipe.id}`}
-          className="group relative"
+          className="group relative mb-4"
         >
           <Image
             src={recipe.imageUrl}
@@ -138,58 +133,66 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             blurDataURL={recipe.blurDataUrl}
             priority={shouldPrioritize}
             loading={shouldPrioritize ? undefined : "lazy"}
-            sizes="(max-width: 768px) 100vw, 300px" // Add sizes for better resource loading
+            sizes="(max-width: 768px) 100vw, 300px"
             onLoad={handleImageLoadComplete}
             onError={handleImageLoadComplete}
           />
         </Link>
-      </div>
-      <div className="mt-2 flex w-full justify-between">
-        <Link href={`/edit/${recipe.id}`} prefetch={true}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            Edit
-          </Button>
-        </Link>
-        {isDialogMounted && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  recipe.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(recipe.id)}>
+
+        {/* Action buttons container */}
+        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <Link href={`/edit/${recipe.id}`} prefetch={true}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+            >
+              Edit
+            </Button>
+          </Link>
+          <Link href={`/print/${recipe.id}`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+            >
+              Print
+            </Button>
+          </Link>
+          {isDialogMounted && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+                >
                   Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the recipe.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(recipe.id)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </MotionDiv>
   );
 };
 
-RecipeCard.displayName = "RecipeCard";
-
-// Use React.memo with custom comparison
 export default memo(RecipeCard, (prevProps, nextProps) => {
   return (
     prevProps.recipe.id === nextProps.recipe.id &&
