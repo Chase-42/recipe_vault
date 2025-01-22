@@ -41,6 +41,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   // Form state
   const [formData, setFormData] = useState({
     name: recipe.name,
+    link: recipe.link ?? "",
     ingredients: recipe.ingredients,
     instructions: recipe.instructions,
     imageUrl: recipe.imageUrl,
@@ -127,65 +128,87 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   return (
     <div className="flex h-full w-full flex-col md:flex-row">
       <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Toaster position="top-center" />
-          {/* Recipe Name Input */}
-          <div>
-            <label htmlFor="name" className="text-md m-1 block font-medium">
-              Recipe Name
-            </label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              className="mt-1 block w-full"
-            />
-          </div>
-          {/* Ingredients Input */}
-          <div>
-            <label
-              htmlFor="ingredients"
-              className="text-md m-1 block font-medium"
-            >
-              Ingredients
-            </label>
-            <Textarea
-              id="ingredients"
-              value={formData.ingredients}
-              onChange={handleInputChange}
-              required
-              className="mt-1 block w-full"
-            />
-          </div>
-          {/* Instructions Input */}
-          <div>
-            <label
-              htmlFor="instructions"
-              className="text-md m-1 block font-medium"
-            >
-              Instructions
-            </label>
-            <Textarea
-              id="instructions"
-              value={formData.instructions}
-              onChange={handleInputChange}
-              required
-              className="mt-1 block min-h-[200px] w-full"
-            />
-          </div>
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              Save
-            </Button>
+          <div className="grid gap-4">
+            <div>
+              <label htmlFor="name" className="text-sm font-medium">
+                Recipe Name
+              </label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="e.g., Classic Chocolate Chip Cookies"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="link" className="text-sm font-medium">
+                Recipe Link
+              </label>
+              <Input
+                id="link"
+                value={formData.link ?? ""}
+                onChange={handleInputChange}
+                placeholder="e.g., https://cooking.nytimes.com/recipes/..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="ingredients" className="text-sm font-medium">
+                Ingredients
+              </label>
+              <div className="mb-2 text-xs text-gray-500">
+                Enter each ingredient on a new line:
+                <pre className="mt-1 text-gray-400">
+                  2 cups all-purpose flour{"\n"}1 cup sugar{"\n"}
+                  1/2 cup butter
+                </pre>
+              </div>
+              <Textarea
+                id="ingredients"
+                value={formData.ingredients}
+                onChange={handleInputChange}
+                placeholder="Enter ingredients, one per line"
+                rows={6}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="instructions" className="text-sm font-medium">
+                Instructions
+              </label>
+              <div className="mb-2 text-xs text-gray-500">
+                Enter each step on a new line:
+                <pre className="mt-1 text-gray-400">
+                  Preheat oven to 350°F{"\n"}
+                  Mix dry ingredients{"\n"}
+                  Cream butter and sugar
+                </pre>
+              </div>
+              <Textarea
+                id="instructions"
+                value={formData.instructions}
+                onChange={handleInputChange}
+                placeholder="Enter instructions, one step per line"
+                rows={6}
+              />
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                Save
+              </Button>
+            </div>
           </div>
         </form>
       </div>

@@ -7,6 +7,10 @@ import { useMemo, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Fuse from "fuse.js";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "~/components/ui/button";
+import { LayoutGrid, LayoutList } from "lucide-react";
+import { cn } from "~/lib/utils";
 
 // Components
 import RecipeCard from "./RecipeCard";
@@ -63,6 +67,7 @@ const RecipesClient = () => {
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>(
     {},
   );
+  const [gridView, setGridView] = useState<"grid" | "list">("grid");
 
   // URL params
   const currentPage = Number(searchParams.get("page")) || 1;
@@ -176,24 +181,15 @@ const RecipesClient = () => {
 
   const handleDelete = useCallback(
     async (id: number) => {
-      const previousData = queryClient.getQueryData<RecipesData>([
-        "recipes",
-        offset,
-      ]);
-
-      updateRecipesInCache(queryClient, (recipes) =>
-        recipes.filter((recipe) => recipe.id !== id),
-      );
-
-      await performMutationWithRollback(
-        () => deleteRecipe(id),
-        queryClient,
-        previousData,
-        "Recipe deleted successfully",
-        "Failed to delete recipe",
-      );
+      try {
+        await deleteRecipe(id);
+        await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+        toast.success("Recipe deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete recipe");
+      }
     },
-    [queryClient, offset],
+    [queryClient],
   );
 
   const createQueryString = useCallback(
@@ -241,7 +237,47 @@ const RecipesClient = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex justify-end">
+      <motion.div
+        className="mb-4 flex items-center justify-between gap-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            {data?.total ? (
+              <span>
+                Showing {offset + 1}-
+                {Math.min(offset + ITEMS_PER_PAGE, data.total)} of {data.total}{" "}
+                recipes
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center rounded-lg border bg-background">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setGridView("grid")}
+              className={cn(
+                "hover:bg-accent hover:text-accent-foreground",
+                gridView === "grid" && "bg-accent text-accent-foreground",
+                "border-r",
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setGridView("list")}
+              className={cn(
+                "hover:bg-accent hover:text-accent-foreground",
+                gridView === "list" && "bg-accent text-accent-foreground",
+              )}
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         <Select value={sortOption} onValueChange={handleSortChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Sort by" />
@@ -255,9 +291,16 @@ const RecipesClient = () => {
             </SelectGroup>
           </SelectContent>
         </Select>
-      </div>
+      </motion.div>
 
-      <div className="flex flex-wrap justify-center gap-4">
+      <div
+        className={cn(
+          "flex flex-wrap gap-4",
+          gridView === "grid"
+            ? "justify-center"
+            : "mx-auto w-full max-w-3xl flex-col items-center",
+        )}
+      >
         {filteredAndSortedRecipes.map((recipe) => (
           <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
             <RecipeCard

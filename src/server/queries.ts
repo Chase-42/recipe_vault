@@ -80,22 +80,31 @@ export async function deleteRecipe(id: number) {
 	}
 }
 
-export async function updateRecipe(recipe: UpdatedRecipe & { id: number }) {
+export async function updateRecipe(
+	id: number,
+	data: Partial<typeof recipes.$inferInsert>,
+) {
 	const { userId } = auth();
 
 	if (!userId) throw new Error("Unauthorized");
 
 	try {
-		await db
+		// Ensure we have valid data to update
+		if (!data || Object.keys(data).length === 0) {
+			throw new Error("No values to set");
+		}
+
+		const result = await db
 			.update(recipes)
-			.set({
-				name: recipe.name,
-				instructions: recipe.instructions,
-				ingredients: recipe.ingredients,
-				favorite: recipe.favorite,
-				imageUrl: recipe.imageUrl,
-			})
-			.where(and(eq(recipes.id, recipe.id), eq(recipes.userId, userId)));
+			.set(data)
+			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+			.returning();
+
+		if (!result.length) {
+			throw new Error("Recipe not found");
+		}
+
+		return result[0];
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
 		throw new Error("Failed to update recipe");

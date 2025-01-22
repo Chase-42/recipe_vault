@@ -25,12 +25,25 @@ export const fetchRecipe = async (id: number): Promise<Recipe> => {
 };
 // Update a recipe by ID
 export const updateRecipe = async (recipe: Recipe): Promise<void> => {
-	const response = await fetch(`/api/recipes/${recipe.id}`, {
+	// Only send fields that can be updated
+	const { id, name, link, imageUrl, ingredients, instructions, favorite } =
+		recipe;
+
+	const updateData = {
+		name,
+		link,
+		imageUrl,
+		ingredients,
+		instructions,
+		favorite,
+	};
+
+	const response = await fetch(`/api/recipes/${id}`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify(recipe),
+		body: JSON.stringify(updateData),
 	});
 
 	if (!response.ok) {

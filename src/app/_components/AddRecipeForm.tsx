@@ -185,31 +185,50 @@ const CreateRecipeClient = () => {
           <div>
             <label
               htmlFor="ingredients"
-              className="text-md m-1 block font-medium text-white"
+              className="text-md m-1 block font-medium"
             >
               Ingredients
             </label>
+            <div className="mb-2 text-sm text-muted-foreground">
+              Enter each ingredient on a new line, starting with the amount:
+              <pre className="mt-1 rounded bg-muted p-2 text-xs">
+                {`2 tablespoons olive oil
+1 lemon, juiced
+4 cloves garlic, minced`}
+              </pre>
+            </div>
             <Textarea
               id="ingredients"
               value={ingredients}
               onChange={(e) => setIngredients(e.target.value)}
               required
-              className="mt-1 block w-full"
+              placeholder={`2 tablespoons olive oil
+1 lemon, juiced
+4 cloves garlic, minced`}
+              className="mt-1 block w-full font-mono text-sm"
+              rows={10}
             />
           </div>
           <div>
             <label
               htmlFor="instructions"
-              className="text-md m-1 block font-medium text-white"
+              className="text-md m-1 block font-medium"
             >
               Instructions
             </label>
+            <div className="mb-2 text-sm text-muted-foreground">
+              Enter each step on a new line:
+            </div>
             <Textarea
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               required
+              placeholder={`Preheat the oven to 400°F
+In a large bowl, combine ingredients
+Bake for 25-30 minutes`}
               className="mt-1 block min-h-[200px] w-full"
+              rows={10}
             />
           </div>
           <div className="flex justify-end space-x-2">
