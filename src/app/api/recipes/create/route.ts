@@ -3,9 +3,8 @@ import { getAuth } from "@clerk/nextjs/server";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
-import type { CreateRecipeRequest, Recipe, APIResponse } from "~/types";
-
-
+import type { Recipe, APIResponse } from "~/types";
+import { validateCreateRecipe, type CreateRecipeInput } from "~/lib/validation";
 
 export async function POST(
   req: NextRequest
@@ -19,31 +18,17 @@ export async function POST(
       );
     }
 
-    const body = await req.json() as CreateRecipeRequest;
+    const body = await req.json() as CreateRecipeInput;
+    const validatedData = validateCreateRecipe(body);
     
-    const { name, link, imageUrl, ingredients, instructions } = body;
-    
-    if (!name?.trim() || !link?.trim() || !imageUrl?.trim() || 
-        !ingredients?.trim() || !instructions?.trim()) {
-      return NextResponse.json(
-        { error: "All fields are required and must not be empty" },
-        { status: 400 }
-      );
-    }
-
-    const blurDataUrl = await dynamicBlurDataUrl(imageUrl);
+    const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
 
     const [recipe] = await db
       .insert(recipes)
       .values({
-        name,
-        link,
-        imageUrl,
+        ...validatedData,
         blurDataUrl,
-        instructions,
-        ingredients,
         userId,
-        favorite: false,
       })
       .returning();
 
@@ -52,6 +37,6 @@ export async function POST(
   } catch (error) {
     console.error("Recipe creation failed:", error);
     const message = error instanceof Error ? error.message : "Failed to save recipe";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

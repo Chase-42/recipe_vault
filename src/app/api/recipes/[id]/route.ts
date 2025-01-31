@@ -2,36 +2,33 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { getRecipe, updateRecipe } from "../../../../server/queries";
 import type { Recipe } from "~/types";
-import { recipes } from "~/server/schema";
-import { eq } from "drizzle-orm";
+import { validateId, validateUpdateRecipe, type UpdateRecipeInput } from "~/lib/validation";
 
 export async function PUT(
 	request: Request,
 	{ params }: { params: { id: string } },
 ) {
 	try {
-		const id = Number.parseInt(params.id);
-		if (Number.isNaN(id)) {
-			return NextResponse.json({ error: "Invalid recipe ID" }, { status: 400 });
-		}
+		const id = validateId(params.id);
+		const body = await request.json() as UpdateRecipeInput;
+		
+		// Validate and sanitize the update data
+		const validatedData = validateUpdateRecipe(body);
 
-		const body = (await request.json()) as Partial<Recipe>;
-		const updateData = sanitizeUpdateData(body);
-
-		if (Object.keys(updateData).length === 0) {
+		if (Object.keys(validatedData).length === 0) {
 			return NextResponse.json(
 				{ error: "No valid fields provided for update" },
 				{ status: 400 },
 			);
 		}
 
-		const updatedRecipe = await updateRecipe(id, updateData);
+		const updatedRecipe = await updateRecipe(id, validatedData);
 		return NextResponse.json(updatedRecipe);
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
 		const message =
 			error instanceof Error ? error.message : "Failed to update recipe";
-		return NextResponse.json({ error: message }, { status: 500 });
+		return NextResponse.json({ error: message }, { status: 400 });
 	}
 }
 
