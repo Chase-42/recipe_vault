@@ -3,12 +3,22 @@ import { getAuth } from "@clerk/nextjs/server";
 import { getRecipe, updateRecipe } from "../../../../server/queries";
 import type { Recipe } from "~/types";
 import { validateId, validateUpdateRecipe, type UpdateRecipeInput } from "~/lib/validation";
+import { AuthorizationError, NotFoundError, ValidationError, handleApiError } from "~/lib/errors";
+import { headers } from "next/headers";
+
+// Cache duration in seconds
+const CACHE_DURATION = 60; // 1 minute
 
 export async function PUT(
-	request: Request,
+	request: NextRequest,
 	{ params }: { params: { id: string } },
 ) {
 	try {
+		const { userId } = getAuth(request);
+		if (!userId) {
+			throw new AuthorizationError();
+		}
+
 		const id = validateId(params.id);
 		const body = await request.json() as UpdateRecipeInput;
 		
@@ -16,19 +26,21 @@ export async function PUT(
 		const validatedData = validateUpdateRecipe(body);
 
 		if (Object.keys(validatedData).length === 0) {
-			return NextResponse.json(
-				{ error: "No valid fields provided for update" },
-				{ status: 400 },
-			);
+			throw new ValidationError("No valid fields provided for update");
 		}
 
 		const updatedRecipe = await updateRecipe(id, validatedData);
+		
+		// Revalidate the cache for this recipe
+		const headersList = headers();
+		const host = headersList.get("host") ?? "";
+		const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+		await fetch(`${protocol}://${host}/api/revalidate?path=/recipes/${id}`);
+		
 		return NextResponse.json(updatedRecipe);
 	} catch (error) {
-		console.error("Failed to update recipe:", error);
-		const message =
-			error instanceof Error ? error.message : "Failed to update recipe";
-		return NextResponse.json({ error: message }, { status: 400 });
+		const { error: errorMessage, statusCode } = handleApiError(error);
+		return NextResponse.json({ error: errorMessage }, { status: statusCode });
 	}
 }
 
@@ -59,34 +71,31 @@ export async function GET(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-				status: 401,
-			});
+			throw new AuthorizationError();
 		}
 
 		const url = new URL(req.url);
 		const id = Number.parseInt(url.pathname.split("/").pop() ?? "");
 
 		if (Number.isNaN(id)) {
-			return new NextResponse(JSON.stringify({ error: "Invalid ID" }), {
-				status: 400,
-			});
+			throw new ValidationError("Invalid ID");
 		}
 
 		const recipe = await getRecipe(id);
-
 		if (!recipe) {
-			return new NextResponse(JSON.stringify({ error: "Recipe not found" }), {
-				status: 404,
-			});
+			throw new NotFoundError("Recipe not found");
 		}
 
-		return NextResponse.json(recipe);
-	} catch (error) {
-		console.error("Failed to fetch recipe:", error);
-		return new NextResponse(
-			JSON.stringify({ error: "Failed to fetch recipe" }),
-			{ status: 500 },
+		// Add cache headers
+		const response = NextResponse.json(recipe);
+		response.headers.set(
+			"Cache-Control",
+			`public, s-maxage=${CACHE_DURATION}, stale-while-revalidate`
 		);
+
+		return response;
+	} catch (error) {
+		const { error: errorMessage, statusCode } = handleApiError(error);
+		return NextResponse.json({ error: errorMessage }, { status: statusCode });
 	}
 }

@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
-import type { Recipe, RecipesData } from "~/types";
+import type { Recipe, PaginatedResponse } from "~/types";
 import { useMemo, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Fuse from "fuse.js";
@@ -75,14 +75,15 @@ const RecipesClient = () => {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Data fetching
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading } = useQuery<PaginatedResponse>({
     queryKey: ["recipes", offset],
     queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
     staleTime: 30000,
   });
 
   const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
-  const totalPages = data?.total ? Math.ceil(data.total / ITEMS_PER_PAGE) : 0;
+  const totalPages = data?.pagination?.totalPages ?? 0;
+  const total = data?.pagination?.total ?? 0;
 
   // Filtering and sorting
   const filteredAndSortedRecipes = useMemo(() => {
@@ -150,7 +151,7 @@ const RecipesClient = () => {
 
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
-      const previousData = queryClient.getQueryData<RecipesData>([
+      const previousData = queryClient.getQueryData<PaginatedResponse>([
         "recipes",
         offset,
       ]);
@@ -244,13 +245,12 @@ const RecipesClient = () => {
       >
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            {data?.total ? (
+            {total > 0 && (
               <span>
-                Showing {offset + 1}-
-                {Math.min(offset + ITEMS_PER_PAGE, data.total)} of {data.total}{" "}
-                recipes
+                Showing {offset + 1}-{Math.min(offset + ITEMS_PER_PAGE, total)}{" "}
+                of {total} recipes
               </span>
-            ) : null}
+            )}
           </div>
           <div className="flex items-center rounded-lg border bg-background">
             <Button

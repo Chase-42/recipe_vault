@@ -1,9 +1,4 @@
-import type { Recipe } from "~/types";
-
-interface PaginatedResponse {
-	recipes: Recipe[];
-	total: number;
-}
+import type { Recipe, PaginatedResponse } from "~/types";
 
 export const fetchRecipes = async (
 	offset = 0,
@@ -23,6 +18,7 @@ export const fetchRecipe = async (id: number): Promise<Recipe> => {
 	}
 	return response.json() as Promise<Recipe>;
 };
+
 // Update a recipe by ID
 export const updateRecipe = async (recipe: Recipe): Promise<void> => {
 	// Only send fields that can be updated

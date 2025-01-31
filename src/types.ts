@@ -1,23 +1,37 @@
 export interface Recipe {
-	link: string;
 	id: number;
 	name: string;
-	userId: string;
+	link: string;
 	imageUrl: string;
 	blurDataUrl: string;
 	instructions: string;
 	ingredients: string;
 	favorite: boolean;
-	createdAt: Date;
+	createdAt: string;
+	userId: string;
 }
 
 export interface RecipesData {
-  pages: {
-    recipes: Recipe[];
-    nextCursor?: number;
-  }[];
-};
+	pages: {
+		recipes: Recipe[];
+		nextCursor?: number;
+	}[];
+}
 
+export interface PaginationMetadata {
+	total: number;
+	offset: number;
+	limit: number;
+	hasNextPage: boolean;
+	hasPreviousPage: boolean;
+	totalPages: number;
+	currentPage: number;
+}
+
+export interface PaginatedResponse {
+	recipes: Recipe[];
+	pagination: PaginationMetadata;
+}
 
 export interface RecipeDetails {
 	name: string;
@@ -73,20 +87,12 @@ interface RecipeInstruction {
 }
 
 export interface RecipeResponse {
-	authors: Author[];
-	description: string;
-	image: Image;
-	video: Video;
-	name: string;
-	nutrition: Nutrition;
-	recipeCategory: string[];
-	recipeCuisine: string[];
-	recipeIngredient: string[];
-	recipeInstructions: RecipeInstruction[];
-	recipeYield: string[];
-	cookTime: string;
-	prepTime: string;
-	totalTime: string;
+	name?: string;
+	image?: {
+		url: string;
+	};
+	recipeInstructions?: { text?: string }[];
+	recipeIngredient?: string[];
 }
 
 export interface UpdatedRecipe {
@@ -98,12 +104,8 @@ export interface UpdatedRecipe {
 }
 
 export interface CreateRecipeRequest {
-	name: string;
 	link: string;
-	imageUrl: string;
-	ingredients: string;
-	instructions: string;
-}	
+}
 
 export type APIResponse<T> = {
 	data?: T;

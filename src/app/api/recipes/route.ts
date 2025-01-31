@@ -9,6 +9,7 @@ import type { RecipeDetails, RecipeResponse } from "~/types";
 import fetchRecipeImages from "~/utils/scraper";
 import getRecipeData from "@rethora/url-recipe-scraper";
 import sanitizeString from "~/utils/sanitizeString";
+import { AuthorizationError, NotFoundError, ValidationError, RecipeError, handleApiError, getErrorMessage } from "~/lib/errors";
 
 const baseUrl =
 	process.env.NODE_ENV === "development"
@@ -103,23 +104,82 @@ async function processRecipeData(
 	};
 }
 
+// Cache duration in seconds
+const CACHE_DURATION = 30; // 30 seconds for list view
+
+export async function GET(req: NextRequest) {
+	try {
+		const { userId } = getAuth(req);
+		if (!userId) {
+			throw new AuthorizationError();
+		}
+
+		const url = new URL(req.url);
+		const offset = Number(url.searchParams.get("offset")) || 0;
+		const limit = Number(url.searchParams.get("limit")) || 12;
+
+		// Ensure reasonable limits
+		const safeLimitedLimit = Math.min(Math.max(limit, 1), 100);
+		const safeOffset = Math.max(offset, 0);
+
+		const { recipes: recipeList, total } = await getMyRecipes(
+			userId,
+			safeOffset,
+			safeLimitedLimit,
+		);
+
+		// Calculate pagination metadata
+		const hasNextPage = total > safeOffset + safeLimitedLimit;
+		const hasPreviousPage = safeOffset > 0;
+		const totalPages = Math.ceil(total / safeLimitedLimit);
+		const currentPage = Math.floor(safeOffset / safeLimitedLimit) + 1;
+
+		const response = NextResponse.json({
+			recipes: recipeList,
+			pagination: {
+				total,
+				offset: safeOffset,
+				limit: safeLimitedLimit,
+				hasNextPage,
+				hasPreviousPage,
+				totalPages,
+				currentPage,
+			},
+		});
+
+		// Add cache headers
+		response.headers.set(
+			"Cache-Control",
+			`public, s-maxage=${CACHE_DURATION}, stale-while-revalidate`
+		);
+
+		return response;
+	} catch (error) {
+		const { error: errorMessage, statusCode } = handleApiError(error);
+		return NextResponse.json({ error: errorMessage }, { status: statusCode });
+	}
+}
+
 export async function POST(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			throw new AuthorizationError();
 		}
 
 		const { link } = (await req.json()) as { link?: string };
 		if (!link?.trim()) {
-			return NextResponse.json(
-				{ error: "Valid link required" },
-				{ status: 400 },
-			);
+			throw new ValidationError("Valid link required");
 		}
 
-		const flaskData = await fetchDataFromFlask(link);
-		const processedData = await processRecipeData(flaskData, link);
+		let recipeData: RecipeDetails;
+		try {
+			recipeData = await fetchDataFromFlask(link);
+		} catch (error: unknown) {
+			throw new RecipeError(`Failed to extract recipe data: ${getErrorMessage(error)}`, 422);
+		}
+
+		const processedData = await processRecipeData(recipeData, link);
 
 		const [recipe] = await db
 			.insert(recipes)
@@ -136,44 +196,8 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json(recipe);
 	} catch (error) {
-		console.error("Recipe processing failed:", error);
-		const message =
-			error instanceof Error ? error.message : "Failed to save recipe";
-		return NextResponse.json({ error: message }, { status: 500 });
-	}
-}
-
-export async function GET(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-
-		const url = new URL(req.url);
-		const offset = Number(url.searchParams.get("offset")) || 0;
-		const limit = Number(url.searchParams.get("limit")) || 12;
-
-		// Ensure reasonable limits
-		const safeLimitedLimit = Math.min(Math.max(limit, 1), 100);
-		const safeOffset = Math.max(offset, 0);
-
-		const { recipes, total } = await getMyRecipes(
-			userId,
-			safeOffset,
-			safeLimitedLimit,
-		);
-
-		return NextResponse.json({
-			recipes,
-			total,
-		});
-	} catch (error) {
-		console.error("Failed to fetch recipes:", error);
-		return NextResponse.json(
-			{ error: "Failed to fetch recipes" },
-			{ status: 500 },
-		);
+		const { error: errorMessage, statusCode } = handleApiError(error);
+		return NextResponse.json({ error: errorMessage }, { status: statusCode });
 	}
 }
 
@@ -181,13 +205,13 @@ export async function DELETE(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
 		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			throw new AuthorizationError();
 		}
 
 		const url = new URL(req.url);
 		const id = url.searchParams.get("id");
 		if (!id) {
-			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+			throw new ValidationError("Invalid ID");
 		}
 
 		await deleteRecipe(Number(id));
@@ -196,10 +220,7 @@ export async function DELETE(req: NextRequest) {
 			{ status: 200 },
 		);
 	} catch (error) {
-		console.error("Failed to delete recipe:", error);
-		return NextResponse.json(
-			{ error: "Failed to delete recipe" },
-			{ status: 500 },
-		);
+		const { error: errorMessage, statusCode } = handleApiError(error);
+		return NextResponse.json({ error: errorMessage }, { status: statusCode });
 	}
 }
