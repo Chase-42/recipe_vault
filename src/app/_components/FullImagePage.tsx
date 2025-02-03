@@ -7,6 +7,8 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { fetchRecipe } from "~/utils/recipeService";
 import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
+import { toast } from "sonner";
+import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 
 interface FullPageImageViewProps {
   id: number;
@@ -24,6 +26,8 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     enabled: !!id,
   });
 
+  const { toggleFavorite } = useFavoriteToggle();
+
   // State for checked ingredients
   const [checkedIngredients, setCheckedIngredients] = useState<
     Record<string, boolean>
@@ -34,9 +38,12 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     if (recipe) {
       const storedChecked = localStorage.getItem(`recipe-${id}-ingredients`);
       if (storedChecked) {
-        setCheckedIngredients(
-          JSON.parse(storedChecked) as Record<string, boolean>,
-        );
+        try {
+          const parsed = JSON.parse(storedChecked) as Record<string, boolean>;
+          setCheckedIngredients(parsed);
+        } catch (e) {
+          console.error("Failed to parse stored ingredients:", e);
+        }
       }
     }
   }, [id, recipe]);
@@ -59,6 +66,11 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     }));
   };
 
+  const handleFavoriteClick = async () => {
+    if (!recipe) return;
+    await toggleFavorite(recipe);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -67,7 +79,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     );
   }
 
-  if (error) {
+  if (error instanceof Error) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="text-xl text-red-800">Failed to load recipe.</div>
@@ -91,8 +103,14 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     <div className="flex h-screen w-full flex-col md:flex-row">
       {/* Recipe details section */}
       <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
-        <div className="border-b p-2 text-center text-lg font-bold">
-          {recipe.name}
+        <div className="flex items-center justify-between border-b p-2">
+          <div className="text-lg font-bold">{recipe.name}</div>
+          <button
+            onClick={handleFavoriteClick}
+            className="text-yellow-500 hover:text-yellow-600"
+          >
+            {recipe.favorite ? "★" : "☆"}
+          </button>
         </div>
 
         {/* Ingredients section */}
@@ -171,7 +189,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
               alt={`Image of ${recipe.name}`}
               className="object-contain"
               placeholder="blur"
-              blurDataURL={recipe.blurDataUrl}
+              blurDataURL={recipe.blurDataUrl ?? ""}
               fill
               priority
             />

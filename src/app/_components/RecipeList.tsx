@@ -34,16 +34,8 @@ import {
 } from "~/components/ui/pagination";
 
 // Utils
-import {
-  deleteRecipe,
-  fetchRecipe,
-  fetchRecipes,
-  updateRecipe,
-} from "~/utils/recipeService";
-import {
-  performMutationWithRollback,
-  updateRecipesInCache,
-} from "~/utils/recipeCacheUtils";
+import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
+import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 
 // Constants & Types
 const ITEMS_PER_PAGE = 12;
@@ -61,6 +53,7 @@ const RecipesClient = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toggleFavorite } = useFavoriteToggle();
 
   // State
   const [showPagination, setShowPagination] = useState(false);
@@ -96,9 +89,15 @@ const RecipesClient = () => {
 
     switch (sortOption) {
       case "favorite":
-        result.sort((a, b) =>
-          a.favorite === b.favorite ? 0 : a.favorite ? -1 : 1,
-        );
+        result.sort((a, b) => {
+          if (a.favorite === b.favorite) {
+            // If favorites are equal, maintain the original order based on creation date
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          }
+          return a.favorite ? -1 : 1;
+        });
         break;
       case "newest":
         result.sort(
@@ -151,33 +150,14 @@ const RecipesClient = () => {
 
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
-      const previousData = queryClient.getQueryData<PaginatedResponse>([
-        "recipes",
-        offset,
-      ]);
-
-      updateRecipesInCache(queryClient, (recipes) =>
-        recipes.map((recipe) =>
-          recipe.id === id ? { ...recipe, favorite } : recipe,
-        ),
-      );
-
-      const updatedRecipe = recipes.find((recipe) => recipe.id === id);
-      if (!updatedRecipe) {
-        queryClient.setQueryData(["recipes", offset], previousData);
+      const recipe = recipes.find((r) => r.id === id);
+      if (!recipe) {
         toast.error("Recipe not found");
         return;
       }
-
-      await performMutationWithRollback(
-        () => updateRecipe({ ...updatedRecipe, favorite }),
-        queryClient,
-        previousData,
-        favorite ? "Recipe favorited!" : "Recipe unfavorited.",
-        "Failed to update favorite status.",
-      );
+      await toggleFavorite(recipe);
     },
-    [queryClient, offset, recipes],
+    [recipes, toggleFavorite],
   );
 
   const handleDelete = useCallback(

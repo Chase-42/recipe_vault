@@ -56,3 +56,8 @@ export const deleteRecipe = async (id: number) => {
 		throw new Error("Failed to delete recipe");
 	}
 };
+
+export const toggleFavorite = async (id: number): Promise<void> => {
+	const recipe = await fetchRecipe(id);
+	await updateRecipe({ ...recipe, favorite: !recipe.favorite });
+};

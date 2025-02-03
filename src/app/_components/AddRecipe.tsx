@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Toaster } from "~/components/ui/sonner";
+import type { Recipe } from "~/types";
 
 interface AddRecipeProps {
   onSuccess: () => void;
@@ -24,7 +25,12 @@ interface ButtonContainerProps {
   cursor?: string;
 }
 
-const saveRecipe = async (link: string) => {
+interface SaveRecipeResponse {
+  data: Recipe;
+  error?: string;
+}
+
+const saveRecipe = async (link: string): Promise<Recipe> => {
   const response = await fetch("/api/recipes", {
     method: "POST",
     headers: {
@@ -33,11 +39,13 @@ const saveRecipe = async (link: string) => {
     body: JSON.stringify({ link }),
   });
 
-  if (!response.ok) {
-    throw new Error(await response.text());
+  const result = (await response.json()) as SaveRecipeResponse;
+
+  if (!response.ok || result.error) {
+    throw new Error(result.error ?? "Failed to save recipe");
   }
 
-  return response.json();
+  return result.data;
 };
 
 const ButtonContainer = ({
@@ -61,8 +69,8 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
   const [link, setLink] = useState("");
   const queryClient = useQueryClient();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: (link: string) => saveRecipe(link),
+  const { mutate, isPending } = useMutation<Recipe, Error, string>({
+    mutationFn: saveRecipe,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
       toast.success("Recipe saved successfully!", {
