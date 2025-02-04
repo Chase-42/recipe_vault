@@ -16,10 +16,10 @@ interface FullPageImageViewProps {
 
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const queryClient = useQueryClient();
-  const [imageLoading, setImageLoading] = useState(() => {
-    // Check if image was already preloaded
-    return !queryClient.getQueryData(["preloadedImages", id]);
-  });
+  const [imageLoading, setImageLoading] = useState(true);
+
+  // Get cached recipe data immediately
+  const cachedRecipe = queryClient.getQueryData<Recipe>(["recipe", id]);
 
   const {
     data: recipe,
@@ -29,6 +29,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
     enabled: !!id,
+    placeholderData: cachedRecipe, // Use cached data as placeholder
   });
 
   const { toggleFavorite } = useFavoriteToggle();
@@ -66,7 +67,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     }));
   };
 
-  if (isLoading) {
+  if (isLoading && !cachedRecipe) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <LoadingSpinner />
@@ -171,50 +172,44 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
       {/* Recipe image section */}
       <div className="relative flex-1 md:w-1/2">
-        {recipe?.imageUrl ? (
+        {(recipe?.imageUrl ?? cachedRecipe?.imageUrl) ? (
           <div className="relative h-full w-full">
-            <AnimatePresence mode="wait">
-              {imageLoading && (
-                <motion.div
-                  className="absolute inset-0 backdrop-blur-xl"
-                  initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div
-                    className="absolute inset-0 bg-background/80"
-                    style={{
-                      backgroundImage: `url(${recipe.blurDataUrl})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                      filter: "blur(10px)",
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <LoadingSpinner />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <motion.div
-              initial={{ opacity: imageLoading ? 0 : 1 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Image
-                src={recipe.imageUrl}
-                alt={`Image of ${recipe.name}`}
-                className="object-contain"
-                style={{ transform: "translateZ(0)" }}
-                placeholder="blur"
-                blurDataURL={recipe.blurDataUrl ?? ""}
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 50vw"
-                quality={90}
-                onLoadingComplete={() => setImageLoading(false)}
+            <AnimatePresence>
+              {/* Blur placeholder - always show initially */}
+              <motion.div
+                initial={{ opacity: 1 }}
+                animate={{ opacity: imageLoading ? 1 : 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${recipe?.blurDataUrl ?? cachedRecipe?.blurDataUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  filter: "blur(20px)",
+                  transform: "scale(1.1)",
+                }}
               />
-            </motion.div>
+
+              {/* Main image with transition */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: imageLoading ? 0 : 1 }}
+                transition={{ duration: 0.3 }}
+                className="relative h-full w-full"
+              >
+                <Image
+                  src={recipe?.imageUrl ?? cachedRecipe?.imageUrl ?? ""}
+                  alt={`Image of ${recipe?.name ?? cachedRecipe?.name}`}
+                  className="object-contain"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  quality={90}
+                  onLoadingComplete={() => setImageLoading(false)}
+                />
+              </motion.div>
+            </AnimatePresence>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">
