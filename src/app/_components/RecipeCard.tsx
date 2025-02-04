@@ -70,8 +70,11 @@ function RecipeCard({
         <Link href={`/img/${recipe.id}`} className="group relative mb-4">
           <Image
             src={recipe.imageUrl}
-            className="rounded-md"
-            style={{ objectFit: "cover" }}
+            className="rounded-md transition-transform duration-300 group-hover:scale-105"
+            style={{
+              objectFit: "cover",
+              transform: "translateZ(0)",
+            }}
             width={300}
             height={300}
             alt={recipe.name}
@@ -79,7 +82,7 @@ function RecipeCard({
             blurDataURL={recipe.blurDataUrl}
             priority={shouldPrioritize}
             loading={shouldPrioritize ? undefined : "lazy"}
-            sizes="(max-width: 768px) 100vw, 300px"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
             onLoad={handleImageLoadComplete}
             onError={handleImageLoadComplete}
           />

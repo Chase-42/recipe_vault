@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Checkbox } from "~/components/ui/checkbox";
 import { fetchRecipe } from "~/utils/recipeService";
@@ -8,12 +8,19 @@ import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FullPageImageViewProps {
   id: number;
 }
 
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
+  const queryClient = useQueryClient();
+  const [imageLoading, setImageLoading] = useState(() => {
+    // Check if image was already preloaded
+    return !queryClient.getQueryData(["preloadedImages", id]);
+  });
+
   const {
     data: recipe,
     error,
@@ -164,17 +171,50 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
       {/* Recipe image section */}
       <div className="relative flex-1 md:w-1/2">
-        {recipe.imageUrl ? (
+        {recipe?.imageUrl ? (
           <div className="relative h-full w-full">
-            <Image
-              src={recipe.imageUrl}
-              alt={`Image of ${recipe.name}`}
-              className="object-contain"
-              placeholder="blur"
-              blurDataURL={recipe.blurDataUrl ?? ""}
-              fill
-              priority
-            />
+            <AnimatePresence mode="wait">
+              {imageLoading && (
+                <motion.div
+                  className="absolute inset-0 backdrop-blur-xl"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div
+                    className="absolute inset-0 bg-background/80"
+                    style={{
+                      backgroundImage: `url(${recipe.blurDataUrl})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      filter: "blur(10px)",
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <LoadingSpinner />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <motion.div
+              initial={{ opacity: imageLoading ? 0 : 1 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Image
+                src={recipe.imageUrl}
+                alt={`Image of ${recipe.name}`}
+                className="object-contain"
+                style={{ transform: "translateZ(0)" }}
+                placeholder="blur"
+                blurDataURL={recipe.blurDataUrl ?? ""}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+                quality={90}
+                onLoadingComplete={() => setImageLoading(false)}
+              />
+            </motion.div>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">

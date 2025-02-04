@@ -32,7 +32,25 @@ export const useSearch = (): SearchContextProps => {
 };
 
 export const ClientProvider = ({ children }: { children: ReactNode }) => {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
+            gcTime: 1000 * 60 * 30, // Cache persists for 30 minutes
+            refetchOnWindowFocus: false, // Don't refetch on window focus
+            refetchOnReconnect: "always", // Always refetch on reconnect
+            retry: 1, // Only retry failed requests once
+            networkMode: "online", // Only make requests when online
+          },
+          mutations: {
+            networkMode: "online",
+            retry: 1,
+          },
+        },
+      }),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

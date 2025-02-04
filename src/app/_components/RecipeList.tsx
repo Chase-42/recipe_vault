@@ -3,9 +3,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
 import type { Recipe, PaginatedResponse } from "~/types";
-import { useMemo, useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import Fuse from "fuse.js";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Button } from "~/components/ui/button";
@@ -33,26 +32,20 @@ import {
   PaginationPrevious,
 } from "~/components/ui/pagination";
 
-// Utils
+// Utils & Hooks
 import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
+import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
+import { useUrlParams } from "~/hooks/useUrlParams";
 
-// Constants & Types
 const ITEMS_PER_PAGE = 12;
-const FUSE_OPTIONS = {
-  keys: ["name"],
-  threshold: 0.5,
-};
-
 type SortOption = "favorite" | "newest" | "oldest";
 
 const RecipesClient = () => {
-  // Hooks
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { updateParam, getParam } = useUrlParams();
   const { toggleFavorite } = useFavoriteToggle();
 
   // State
@@ -63,58 +56,63 @@ const RecipesClient = () => {
   const [gridView, setGridView] = useState<"grid" | "list">("grid");
 
   // URL params
-  const currentPage = Number(searchParams.get("page")) || 1;
-  const sortOption = (searchParams.get("sort") as SortOption) || "newest";
+  const currentPage = Number(getParam("page")) || 1;
+  const sortOption = (getParam("sort") as SortOption) || "newest";
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Data fetching
   const { data, error, isLoading } = useQuery<PaginatedResponse>({
     queryKey: ["recipes", offset],
     queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
-    staleTime: 30000,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: (previousData) => previousData,
   });
 
-  const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
+  const recipes = data?.recipes ?? [];
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
 
-  // Filtering and sorting
-  const filteredAndSortedRecipes = useMemo(() => {
-    let result = [...recipes];
+  // Apply filtering and sorting
+  const filteredAndSortedRecipes = useRecipeFiltering(
+    recipes,
+    searchTerm,
+    sortOption,
+  );
 
-    if (searchTerm) {
-      const fuse = new Fuse(result, FUSE_OPTIONS);
-      result = fuse.search(searchTerm).map(({ item }) => item);
-    }
+  // Smart preloading on hover
+  const handleRecipeHover = useCallback(
+    (recipe: Recipe) => {
+      if (!queryClient.getQueryData(["preloadedImages", recipe.id])) {
+        const img = new Image();
+        img.src = recipe.imageUrl;
+        img.onload = () => {
+          queryClient.setQueryData(["preloadedImages", recipe.id], true);
+        };
 
-    switch (sortOption) {
-      case "favorite":
-        result.sort((a, b) => {
-          if (a.favorite === b.favorite) {
-            // If favorites are equal, maintain the original order based on creation date
-            return (
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-          }
-          return a.favorite ? -1 : 1;
+        void queryClient.prefetchQuery({
+          queryKey: ["recipe", recipe.id],
+          queryFn: () => fetchRecipe(recipe.id),
+          staleTime: 1000 * 60 * 5,
         });
-        break;
-      case "newest":
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-        break;
-      case "oldest":
-        result.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
-        break;
-    }
+      }
 
-    return result;
-  }, [recipes, searchTerm, sortOption]);
+      void router.prefetch(`/img/${recipe.id}`);
+      void router.prefetch(`/edit/${recipe.id}`);
+    },
+    [queryClient, router],
+  );
+
+  // Prefetch next page
+  useEffect(() => {
+    if (currentPage < totalPages) {
+      const nextPageOffset = currentPage * ITEMS_PER_PAGE;
+      void queryClient.prefetchQuery({
+        queryKey: ["recipes", nextPageOffset],
+        queryFn: () => fetchRecipes(nextPageOffset, ITEMS_PER_PAGE),
+        staleTime: 1000 * 60 * 5,
+      });
+    }
+  }, [currentPage, totalPages, queryClient]);
 
   // Image loading handling
   const handleImageLoad = useCallback((recipeId: number) => {
@@ -136,18 +134,6 @@ const RecipesClient = () => {
   }, [recipes]);
 
   // Event handlers
-  const handleRecipeHover = useCallback(
-    async (recipe: Recipe) => {
-      router.prefetch(`/img/${recipe.id}`);
-      router.prefetch(`/edit/${recipe.id}`);
-      await queryClient.prefetchQuery({
-        queryKey: ["recipe", recipe.id],
-        queryFn: () => fetchRecipe(recipe.id),
-      });
-    },
-    [queryClient, router],
-  );
-
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
       const recipe = recipes.find((r) => r.id === id);
@@ -173,33 +159,21 @@ const RecipesClient = () => {
     [queryClient],
   );
 
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set(name, value);
-      return params.toString();
-    },
-    [searchParams],
-  );
-
   const handlePageChange = useCallback(
     (page: number) => {
-      const query = createQueryString("page", page.toString());
-      router.push(`${pathname}?${query}`);
+      updateParam("page", page.toString());
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [createQueryString, pathname, router],
+    [updateParam],
   );
 
   const handleSortChange = useCallback(
     (value: SortOption) => {
-      const query = createQueryString("sort", value);
-      router.push(`${pathname}?${query}`);
+      updateParam("sort", value);
     },
-    [createQueryString, pathname, router],
+    [updateParam],
   );
 
-  // Error and loading states
   if (error) {
     return (
       <div className="flex h-full items-center justify-center text-xl text-red-800">
@@ -273,25 +247,27 @@ const RecipesClient = () => {
         </Select>
       </motion.div>
 
-      <div
-        className={cn(
-          "flex flex-wrap gap-4",
-          gridView === "grid"
-            ? "justify-center"
-            : "mx-auto w-full max-w-3xl flex-col items-center",
-        )}
-      >
-        {filteredAndSortedRecipes.map((recipe) => (
-          <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
-            <RecipeCard
-              recipe={recipe}
-              onDelete={handleDelete}
-              onFavoriteToggle={handleFavoriteToggle}
-              priority={currentPage === 1 && recipe.id <= 4}
-              onImageLoad={handleImageLoad}
-            />
-          </div>
-        ))}
+      <div className="min-h-[calc(100vh-160px)]">
+        <div
+          className={cn(
+            "flex gap-4",
+            gridView === "grid"
+              ? "flex-wrap justify-center"
+              : "mx-auto w-full max-w-3xl flex-col items-center",
+          )}
+        >
+          {filteredAndSortedRecipes.map((recipe) => (
+            <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
+              <RecipeCard
+                recipe={recipe}
+                onDelete={handleDelete}
+                onFavoriteToggle={handleFavoriteToggle}
+                priority={currentPage === 1 && recipe.id <= 4}
+                onImageLoad={handleImageLoad}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {totalPages > 1 && showPagination && (
