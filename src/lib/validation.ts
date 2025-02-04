@@ -40,7 +40,10 @@ export const createRecipeSchema = z.object({
   favorite: z.boolean().optional().default(false),
 });
 
-export const updateRecipeSchema = createRecipeSchema.partial();
+// For updates, we want to make all fields optional except link which must be a string (can be empty)
+export const updateRecipeSchema = createRecipeSchema.partial().extend({
+  link: z.string(),
+});
 
 // Types
 export type CreateRecipeInput = z.input<typeof createRecipeSchema>;

@@ -35,8 +35,8 @@ export const fetchRecipe = (id: number): Promise<Recipe> =>
 
 // Update a recipe by ID
 export const updateRecipe = (recipe: Recipe): Promise<void> => {
-	const { id, name, link, imageUrl, ingredients, instructions, favorite } = recipe
-	const updateData = { name, link, imageUrl, ingredients, instructions, favorite }
+	const { id, name, imageUrl, ingredients, instructions, favorite } = recipe
+	const updateData = { name, imageUrl, ingredients, instructions, favorite }
 
 	return fetch(`/api/recipes/${id}`, {
 		method: "PUT",
@@ -55,7 +55,19 @@ export const deleteRecipe = (id: number): Promise<void> =>
 			if (!res.ok) throw new Error("Failed to delete recipe")
 		})
 
-export const toggleFavorite = async (id: number): Promise<void> => {
-	const recipe = await fetchRecipe(id)
-	await updateRecipe({ ...recipe, favorite: !recipe.favorite })
+interface FavoriteResponse {
+	favorite: boolean;
+}
+
+export const toggleFavorite = async (id: number): Promise<boolean> => {
+	const response = await fetch(`/api/recipes/${id}/favorite`, {
+		method: "PUT",
+	});
+	
+	if (!response.ok) {
+		throw new Error("Failed to toggle favorite");
+	}
+
+	const data = (await response.json()) as FavoriteResponse;
+	return data.favorite;
 }
