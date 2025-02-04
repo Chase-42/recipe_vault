@@ -2,17 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { Checkbox } from "~/components/ui/checkbox";
 import { fetchRecipe } from "~/utils/recipeService";
 import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
-import { toast } from "sonner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
+import { useState, useEffect } from "react";
 
 interface FullPageImageViewProps {
   id: number;
-  shouldSuspend?: boolean;
 }
 
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
@@ -27,48 +25,38 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   });
 
   const { toggleFavorite } = useFavoriteToggle();
-
-  // State for checked ingredients
   const [checkedIngredients, setCheckedIngredients] = useState<
-    Record<string, boolean>
+    Record<number, boolean>
   >({});
 
-  // Load checked state from localStorage on mount
+  // Load checked state from localStorage
   useEffect(() => {
-    if (recipe) {
-      const storedChecked = localStorage.getItem(`recipe-${id}-ingredients`);
-      if (storedChecked) {
-        try {
-          const parsed = JSON.parse(storedChecked) as Record<string, boolean>;
-          setCheckedIngredients(parsed);
-        } catch (e) {
-          console.error("Failed to parse stored ingredients:", e);
-        }
+    const stored = localStorage.getItem(`recipe-${id}-ingredients`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Record<number, boolean>;
+        setCheckedIngredients(parsed);
+      } catch (e) {
+        console.error("Failed to parse stored ingredients");
       }
     }
-  }, [id, recipe]);
+  }, [id]);
 
-  // Save to localStorage whenever checked state changes
+  // Save to localStorage when checked state changes
   useEffect(() => {
-    if (recipe) {
+    if (Object.keys(checkedIngredients).length > 0) {
       localStorage.setItem(
         `recipe-${id}-ingredients`,
         JSON.stringify(checkedIngredients),
       );
     }
-  }, [checkedIngredients, id, recipe]);
+  }, [checkedIngredients, id]);
 
-  const handleIngredientToggle = (ingredient: string, index: number) => {
-    const key = `${ingredient}-${index}`;
+  const handleIngredientToggle = (index: number) => {
     setCheckedIngredients((prev) => ({
       ...prev,
-      [key]: !prev[key],
+      [index]: !prev[index],
     }));
-  };
-
-  const handleFavoriteClick = async () => {
-    if (!recipe) return;
-    await toggleFavorite(recipe);
   };
 
   if (isLoading) {
@@ -95,9 +83,8 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     );
   }
 
-  // Handle ingredients and instructions safely
-  const ingredients = recipe.ingredients?.split("\n") ?? [];
-  const instructions = recipe.instructions?.split("\n") ?? [];
+  const ingredients = recipe.ingredients.split("\n");
+  const instructions = recipe.instructions.split("\n");
 
   return (
     <div className="flex h-screen w-full flex-col md:flex-row">
@@ -106,7 +93,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
         <div className="flex items-center justify-between border-b p-2">
           <div className="text-lg font-bold">{recipe.name}</div>
           <button
-            onClick={handleFavoriteClick}
+            onClick={() => toggleFavorite(recipe)}
             className="text-yellow-500 hover:text-yellow-600"
           >
             {recipe.favorite ? "★" : "☆"}
@@ -118,31 +105,26 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           <h3 className="mb-2 text-base font-semibold">Ingredients:</h3>
           {ingredients.length > 0 ? (
             <ul className="space-y-3">
-              {ingredients.map((ingredient, index) => {
-                const key = `${ingredient}-${index}`;
-                return (
-                  <li key={key} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={key}
-                      checked={checkedIngredients[key] ?? false}
-                      onCheckedChange={() =>
-                        handleIngredientToggle(ingredient, index)
-                      }
-                      className="mt-1"
-                    />
-                    <label
-                      htmlFor={key}
-                      className={`text-sm ${
-                        checkedIngredients[key]
-                          ? "text-gray-500 line-through"
-                          : ""
-                      }`}
-                    >
-                      {ingredient}
-                    </label>
-                  </li>
-                );
-              })}
+              {ingredients.map((ingredient, index) => (
+                <li key={index} className="flex items-start space-x-2">
+                  <Checkbox
+                    id={`ingredient-${index}`}
+                    className="mt-1"
+                    checked={checkedIngredients[index] ?? false}
+                    onCheckedChange={() => handleIngredientToggle(index)}
+                  />
+                  <label
+                    htmlFor={`ingredient-${index}`}
+                    className={`text-sm ${
+                      checkedIngredients[index]
+                        ? "text-gray-500 line-through"
+                        : ""
+                    }`}
+                  >
+                    {ingredient}
+                  </label>
+                </li>
+              ))}
             </ul>
           ) : (
             <p className="italic text-gray-500">No ingredients listed.</p>
@@ -155,7 +137,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           {instructions.length > 0 ? (
             <ol className="list-inside list-decimal space-y-1">
               {instructions.map((instruction, index) => (
-                <li key={`${instruction}-${index}`}>{instruction}</li>
+                <li key={index}>{instruction}</li>
               ))}
             </ol>
           ) : (

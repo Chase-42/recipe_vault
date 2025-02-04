@@ -8,7 +8,7 @@ export interface Recipe {
 	ingredients: string;
 	favorite: boolean;
 	createdAt: string;
-	userId: string;
+	userId?: string;
 }
 
 export interface RecipesData {
@@ -81,10 +81,15 @@ interface Nutrition {
 	unsaturatedFatContent: string;
 }
 
-interface RecipeInstruction {
+export type RecipeInstruction = {
 	text: string;
 	image?: Image[];
-}
+} | {
+	text?: string;
+} | {
+	"@type": "HowToSection";
+	text?: string;
+};
 
 export interface RecipeResponse {
 	name?: string;
