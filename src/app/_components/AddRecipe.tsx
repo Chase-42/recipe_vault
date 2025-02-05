@@ -122,7 +122,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                 onClick={onSuccess}
                 className="block"
               >
-                <ButtonContainer onClick={() => {}} cursor="pointer">
+                <ButtonContainer onClick={() => undefined} cursor="pointer">
                   <PenLine className="mb-2 h-8 w-8 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                   <h3 className="font-medium text-foreground transition-colors duration-200 group-hover:text-primary">
                     Enter Manually
@@ -156,18 +156,20 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                   <motion.button
                     type="submit"
                     disabled={!link || isPending}
-                    className={`relative flex h-12 w-full items-center justify-center overflow-hidden rounded-md bg-primary text-primary-foreground hover:bg-primary/90 ${
-                      !link || isPending ? "cursor-not-allowed opacity-50" : ""
+                    className={`relative flex h-12 w-full items-center justify-center overflow-hidden rounded-md border-2 border-primary bg-background text-primary hover:bg-background/90 ${
+                      !link || isPending ? "cursor-not-allowed" : ""
                     }`}
                   >
-                    <span className="relative z-10 transition-colors duration-300">
+                    <span
+                      className={`relative z-10 ${isPending ? "text-primary-foreground" : ""}`}
+                    >
                       {isPending ? "Importing..." : "Import Recipe"}
                     </span>
                     {isPending && (
                       <motion.div
-                        className="bg-primary-dark absolute inset-0"
-                        initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
+                        className="absolute inset-0 bg-primary"
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "0%" }}
                         transition={{ duration: 2, ease: "linear" }}
                       />
                     )}
