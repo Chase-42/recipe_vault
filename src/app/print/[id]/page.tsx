@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
 import { Printer } from "lucide-react";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
 
 export default function PrintRecipe({ params }: { params: { id: string } }) {
   const { data: recipe, error } = useQuery({
@@ -14,7 +15,7 @@ export default function PrintRecipe({ params }: { params: { id: string } }) {
   });
 
   if (error) return <div>Failed to load recipe</div>;
-  if (!recipe) return <div>Loading...</div>;
+  if (!recipe) return <LoadingSpinner />;
 
   return (
     <div className="mx-auto max-w-3xl p-8 print:p-4">
