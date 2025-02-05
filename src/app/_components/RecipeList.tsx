@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
 import type { Recipe, PaginatedResponse } from "~/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -49,10 +49,6 @@ const RecipesClient = () => {
   const { toggleFavorite } = useFavoriteToggle();
 
   // State
-  const [showPagination, setShowPagination] = useState(false);
-  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>(
-    {},
-  );
   const [gridView, setGridView] = useState<"grid" | "list">("grid");
 
   // URL params
@@ -66,19 +62,51 @@ const RecipesClient = () => {
     queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
   });
 
-  const deleteRecipeMutation = useMutation({
-    mutationFn: deleteRecipe,
-    onSuccess: () => {
-      toast.success("Recipe deleted successfully");
-    },
-    onError: () => {
-      toast.error("Failed to delete recipe");
-    },
-  });
-
-  const recipes = data?.recipes ?? [];
+  const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
+
+  const deleteRecipeMutation = useMutation({
+    mutationFn: deleteRecipe,
+    onMutate: (id) => {
+      // Cancel any outgoing refetches
+      void queryClient.cancelQueries({ queryKey: ["recipes"] });
+
+      // Snapshot the previous value
+      const previousRecipes = queryClient.getQueryData<PaginatedResponse>([
+        "recipes",
+      ]);
+
+      // Optimistically update recipes list
+      if (previousRecipes) {
+        queryClient.setQueryData<PaginatedResponse>(["recipes"], (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            recipes: old.recipes.filter((recipe) => recipe.id !== id),
+            pagination: {
+              ...old.pagination,
+              total: old.pagination.total - 1,
+            },
+          };
+        });
+      }
+
+      return { previousRecipes };
+    },
+    onError: (_, __, context) => {
+      // Revert optimistic updates on error
+      if (context?.previousRecipes) {
+        queryClient.setQueryData(["recipes"], context.previousRecipes);
+      }
+      toast.error("Failed to delete recipe");
+    },
+    onSuccess: () => {
+      toast.success("Recipe deleted successfully");
+      // Invalidate and refetch
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
 
   // Filter and sort recipes
   const filteredAndSortedRecipes = useRecipeFiltering(
@@ -90,11 +118,12 @@ const RecipesClient = () => {
   // Smart preloading on hover
   const handleRecipeHover = useCallback(
     (recipe: Recipe) => {
-      if (!queryClient.getQueryData(["preloadedImages", recipe.id])) {
+      const cacheKey = ["preloadedImages", recipe.id];
+      if (!queryClient.getQueryData(cacheKey)) {
         const img = new Image();
         img.src = recipe.imageUrl;
         img.onload = () => {
-          queryClient.setQueryData(["preloadedImages", recipe.id], true);
+          queryClient.setQueryData(cacheKey, true);
         };
 
         void queryClient.prefetchQuery({
@@ -102,10 +131,10 @@ const RecipesClient = () => {
           queryFn: () => fetchRecipe(recipe.id),
           staleTime: 1000 * 60 * 5,
         });
-      }
 
-      void router.prefetch(`/img/${recipe.id}`);
-      void router.prefetch(`/edit/${recipe.id}`);
+        void router.prefetch(`/img/${recipe.id}`);
+        void router.prefetch(`/edit/${recipe.id}`);
+      }
     },
     [queryClient, router],
   );
@@ -121,11 +150,6 @@ const RecipesClient = () => {
     }
   }, [currentPage, totalPages, queryClient]);
 
-  // Image loading handling
-  const handleImageLoad = useCallback((recipeId: number) => {
-    setLoadingStates((prev) => ({ ...prev, [recipeId]: true }));
-  }, []);
-
   // Event handlers
   const handleFavoriteToggle = useCallback(
     async (id: number, favorite: boolean) => {
@@ -134,14 +158,14 @@ const RecipesClient = () => {
         toast.error("Recipe not found");
         return;
       }
-      await toggleFavorite(recipe);
+      toggleFavorite(recipe);
     },
     [recipes, toggleFavorite],
   );
 
   const handleDelete = useCallback(
-    async (id: number) => {
-      await deleteRecipeMutation.mutateAsync(id);
+    (id: number) => {
+      void deleteRecipeMutation.mutateAsync(id);
     },
     [deleteRecipeMutation],
   );
@@ -160,6 +184,10 @@ const RecipesClient = () => {
     },
     [currentPage, updateParam],
   );
+
+  const toggleGridView = useCallback(() => {
+    setGridView((current) => (current === "grid" ? "list" : "grid"));
+  }, []);
 
   if (error) {
     return (
@@ -234,11 +262,7 @@ const RecipesClient = () => {
             </SelectContent>
           </Select>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setGridView(gridView === "grid" ? "list" : "grid")}
-          >
+          <Button variant="outline" size="icon" onClick={toggleGridView}>
             {gridView === "grid" ? (
               <LayoutList className="h-4 w-4" />
             ) : (
@@ -264,7 +288,6 @@ const RecipesClient = () => {
                 onDelete={handleDelete}
                 onFavoriteToggle={handleFavoriteToggle}
                 priority={currentPage === 1 && recipe.id <= 4}
-                onImageLoad={handleImageLoad}
               />
             </div>
           ))}
