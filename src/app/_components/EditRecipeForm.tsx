@@ -6,9 +6,9 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "next/navigation";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import LoadingSpinner from "./LoadingSpinner";
-import type { Recipe } from "~/types";
+import type { Recipe, PaginatedResponse } from "~/types";
 import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
 import dynamic from "next/dynamic";
 
@@ -24,53 +24,65 @@ interface EditRecipeClientProps {
   initialRecipe: Recipe;
 }
 
-const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
-  initialRecipe,
-}) => {
+interface FormData {
+  name: string;
+  link: string;
+  ingredients: string;
+  instructions: string;
+  imageUrl: string;
+}
+
+function useRecipeMutation(initialRecipe: Recipe) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Query setup
-  const { data: recipe, error } = useQuery<Recipe>({
-    queryKey: ["recipe", initialRecipe.id],
-    queryFn: () => fetchRecipe(initialRecipe.id),
-    initialData: initialRecipe,
-  });
-
-  // Form state
-  const [formData, setFormData] = useState({
-    name: recipe.name,
-    link: recipe.link ?? "",
-    ingredients: recipe.ingredients,
-    instructions: recipe.instructions,
-    imageUrl: recipe.imageUrl,
-  });
-
-  // Form handlers
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  // Mutation setup
   const mutation = useMutation({
     mutationFn: updateRecipe,
     onMutate: async (newRecipe) => {
       setIsSubmitting(true);
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
       await queryClient.cancelQueries({
         queryKey: ["recipe", initialRecipe.id],
       });
+
+      const previousRecipes = queryClient.getQueryData(["recipes"]);
       const previousRecipe = queryClient.getQueryData<Recipe>([
         "recipe",
         initialRecipe.id,
       ]);
-      queryClient.setQueryData(["recipe", initialRecipe.id], newRecipe);
-      return { previousRecipe };
+
+      // Update recipes list
+      queryClient.setQueriesData<PaginatedResponse>(
+        { queryKey: ["recipes"] },
+        (old) => {
+          if (!old?.recipes) return old;
+          return {
+            ...old,
+            recipes: old.recipes.map((recipe) =>
+              recipe.id === initialRecipe.id
+                ? { ...recipe, ...newRecipe }
+                : recipe,
+            ),
+          };
+        },
+      );
+
+      // Update single recipe
+      queryClient.setQueryData(["recipe", initialRecipe.id], {
+        ...previousRecipe,
+        ...newRecipe,
+      });
+
+      return { previousRecipes, previousRecipe };
     },
     onError: (_, __, context) => {
+      if (context?.previousRecipes) {
+        queryClient.setQueriesData(
+          { queryKey: ["recipes"] },
+          context.previousRecipes,
+        );
+      }
       if (context?.previousRecipe) {
         queryClient.setQueryData(
           ["recipe", initialRecipe.id],
@@ -80,21 +92,64 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
       toast.error("Failed to update recipe");
       setIsSubmitting(false);
     },
-    onSuccess: () => {
-      setIsSubmitting(false);
-      toast.success("Recipe updated successfully!", {
-        duration: 1500,
-        id: "success",
-      });
-      setTimeout(() => router.back(), 1500);
-    },
-    onSettled: () => {
+    onSuccess: (updatedRecipe) => {
+      // Update cache with server data
+      queryClient.setQueryData(["recipe", initialRecipe.id], updatedRecipe);
+      queryClient.setQueriesData<PaginatedResponse>(
+        { queryKey: ["recipes"] },
+        (old) => {
+          if (!old?.recipes) return old;
+          return {
+            ...old,
+            recipes: old.recipes.map((recipe) =>
+              recipe.id === initialRecipe.id ? updatedRecipe : recipe,
+            ),
+          };
+        },
+      );
+
+      // Ensure cache is fresh
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
       void queryClient.invalidateQueries({
         queryKey: ["recipe", initialRecipe.id],
       });
+
+      setIsSubmitting(false);
+      toast.success("Recipe updated successfully!");
+
+      // Navigate back after success
+      setTimeout(() => router.back(), 1500);
     },
   });
+
+  return { mutation, isSubmitting };
+}
+
+const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
+  initialRecipe,
+}) => {
+  const { data: recipe, error } = useQuery<Recipe>({
+    queryKey: ["recipe", initialRecipe.id],
+    queryFn: () => fetchRecipe(initialRecipe.id),
+    initialData: initialRecipe,
+  });
+
+  const [formData, setFormData] = useState<FormData>({
+    name: recipe.name,
+    link: recipe.link ?? "",
+    ingredients: recipe.ingredients,
+    instructions: recipe.instructions,
+    imageUrl: recipe.imageUrl,
+  });
+
+  const { mutation, isSubmitting } = useRecipeMutation(initialRecipe);
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -129,7 +184,6 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     <div className="flex h-full w-full flex-col md:flex-row">
       <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Toaster position="top-center" />
           <div className="grid gap-4">
             <div>
               <label htmlFor="name" className="text-sm font-medium">
@@ -149,7 +203,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
               </label>
               <Input
                 id="link"
-                value={formData.link ?? ""}
+                value={formData.link}
                 onChange={handleInputChange}
                 placeholder="e.g., https://cooking.nytimes.com/recipes/..."
               />
@@ -160,11 +214,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
                 Ingredients
               </label>
               <div className="mb-2 text-xs text-gray-500">
-                Enter each ingredient on a new line:
-                <pre className="mt-1 text-gray-400">
-                  2 cups all-purpose flour{"\n"}1 cup sugar{"\n"}
-                  1/2 cup butter
-                </pre>
+                Enter each ingredient on a new line
               </div>
               <Textarea
                 id="ingredients"
@@ -180,12 +230,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
                 Instructions
               </label>
               <div className="mb-2 text-xs text-gray-500">
-                Enter each step on a new line:
-                <pre className="mt-1 text-gray-400">
-                  Preheat oven to 350°F{"\n"}
-                  Mix dry ingredients{"\n"}
-                  Cream butter and sugar
-                </pre>
+                Enter each step on a new line
               </div>
               <Textarea
                 id="instructions"
@@ -196,12 +241,11 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
               />
             </div>
 
-            {/* Form Actions */}
             <div className="flex justify-end space-x-2">
               <Button
                 variant="secondary"
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => window.history.back()}
               >
                 Cancel
               </Button>
@@ -213,7 +257,6 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
         </form>
       </div>
 
-      {/* Dynamically loaded Image Upload Section */}
       <ImageUpload
         imageUrl={formData.imageUrl}
         onImageChange={(url) =>

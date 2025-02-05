@@ -121,7 +121,6 @@ export async function GET(req: NextRequest) {
 		const offset = Number(url.searchParams.get("offset")) || 0;
 		const limit = Number(url.searchParams.get("limit")) || 12;
 
-		// Ensure reasonable limits
 		const safeLimitedLimit = Math.min(Math.max(limit, 1), 100);
 		const safeOffset = Math.max(offset, 0);
 
@@ -131,7 +130,6 @@ export async function GET(req: NextRequest) {
 			safeLimitedLimit,
 		);
 
-		// Calculate pagination metadata
 		const hasNextPage = total > safeOffset + safeLimitedLimit;
 		const hasPreviousPage = safeOffset > 0;
 		const totalPages = Math.ceil(total / safeLimitedLimit);
@@ -150,11 +148,10 @@ export async function GET(req: NextRequest) {
 			},
 		});
 
-		// Add cache headers
-		response.headers.set(
-			"Cache-Control",
-			`public, s-maxage=${CACHE_DURATION}, stale-while-revalidate`
-		);
+		// Disable caching
+		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+		response.headers.set('Pragma', 'no-cache');
+		response.headers.set('Expires', '0');
 
 		return response;
 	} catch (error) {

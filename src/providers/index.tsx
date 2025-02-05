@@ -37,16 +37,14 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
-            gcTime: 1000 * 60 * 30, // Cache persists for 30 minutes
-            refetchOnWindowFocus: false, // Don't refetch on window focus
-            refetchOnReconnect: "always", // Always refetch on reconnect
-            retry: 1, // Only retry failed requests once
-            networkMode: "online", // Only make requests when online
+            staleTime: 0,
+            refetchOnWindowFocus: true,
+            retry: 1,
           },
           mutations: {
-            networkMode: "online",
-            retry: 1,
+            onSettled: async () => {
+              await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+            },
           },
         },
       }),

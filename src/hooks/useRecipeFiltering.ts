@@ -14,16 +14,19 @@ export function useRecipeFiltering(
   searchTerm: string,
   sortOption: SortOption
 ) {
+  // Memoize the Fuse instance
+  const fuse = useMemo(() => new Fuse(recipes, FUSE_OPTIONS), [recipes]);
+
+  // Memoize search results
+  const searchResults = useMemo(() => {
+    if (!searchTerm) return recipes;
+    return fuse.search(searchTerm).map(({ item }) => item);
+  }, [fuse, searchTerm, recipes]);
+
+  // Memoize sorting
   return useMemo(() => {
-    let result = [...recipes];
+    const result = [...searchResults];
 
-    // Search filtering
-    if (searchTerm) {
-      const fuse = new Fuse(result, FUSE_OPTIONS);
-      result = fuse.search(searchTerm).map(({ item }) => item);
-    }
-
-    // Sorting
     switch (sortOption) {
       case "favorite":
         result.sort((a, b) => {
@@ -46,5 +49,5 @@ export function useRecipeFiltering(
     }
 
     return result;
-  }, [recipes, searchTerm, sortOption]);
+  }, [searchResults, sortOption]);
 } 

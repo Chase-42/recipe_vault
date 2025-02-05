@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
 import type { Recipe, PaginatedResponse } from "~/types";
 import { useCallback, useEffect, useState } from "react";
@@ -64,15 +64,23 @@ const RecipesClient = () => {
   const { data, error, isLoading } = useQuery<PaginatedResponse>({
     queryKey: ["recipes", offset],
     queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
-    staleTime: 1000 * 60 * 5,
-    placeholderData: (previousData) => previousData,
+  });
+
+  const deleteRecipeMutation = useMutation({
+    mutationFn: deleteRecipe,
+    onSuccess: () => {
+      toast.success("Recipe deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete recipe");
+    },
   });
 
   const recipes = data?.recipes ?? [];
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
 
-  // Apply filtering and sorting
+  // Filter and sort recipes
   const filteredAndSortedRecipes = useRecipeFiltering(
     recipes,
     searchTerm,
@@ -109,7 +117,6 @@ const RecipesClient = () => {
       void queryClient.prefetchQuery({
         queryKey: ["recipes", nextPageOffset],
         queryFn: () => fetchRecipes(nextPageOffset, ITEMS_PER_PAGE),
-        staleTime: 1000 * 60 * 5,
       });
     }
   }, [currentPage, totalPages, queryClient]);
@@ -118,20 +125,6 @@ const RecipesClient = () => {
   const handleImageLoad = useCallback((recipeId: number) => {
     setLoadingStates((prev) => ({ ...prev, [recipeId]: true }));
   }, []);
-
-  useEffect(() => {
-    const allImagesProcessed = filteredAndSortedRecipes.every(
-      (recipe) => loadingStates[recipe.id],
-    );
-    if (allImagesProcessed) {
-      setShowPagination(true);
-    }
-  }, [loadingStates, filteredAndSortedRecipes]);
-
-  useEffect(() => {
-    setLoadingStates({});
-    setShowPagination(false);
-  }, [recipes]);
 
   // Event handlers
   const handleFavoriteToggle = useCallback(
@@ -148,30 +141,24 @@ const RecipesClient = () => {
 
   const handleDelete = useCallback(
     async (id: number) => {
-      try {
-        await deleteRecipe(id);
-        await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-        toast.success("Recipe deleted successfully");
-      } catch (error) {
-        toast.error("Failed to delete recipe");
-      }
+      await deleteRecipeMutation.mutateAsync(id);
     },
-    [queryClient],
+    [deleteRecipeMutation],
   );
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      updateParam("page", page.toString());
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [updateParam],
-  );
+  const handlePageChange = (page: number) => {
+    updateParam("page", page.toString());
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleSortChange = useCallback(
     (value: SortOption) => {
       updateParam("sort", value);
+      if (currentPage !== 1) {
+        updateParam("page", "1");
+      }
     },
-    [updateParam],
+    [currentPage, updateParam],
   );
 
   if (error) {
@@ -232,19 +219,33 @@ const RecipesClient = () => {
             </Button>
           </div>
         </div>
-        <Select value={sortOption} onValueChange={handleSortChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Sort Recipes By:</SelectLabel>
-              <SelectItem value="favorite">Favorite</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={sortOption} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Sort by</SelectLabel>
+                <SelectItem value="favorite">Favorites</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setGridView(gridView === "grid" ? "list" : "grid")}
+          >
+            {gridView === "grid" ? (
+              <LayoutList className="h-4 w-4" />
+            ) : (
+              <LayoutGrid className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </motion.div>
 
       <div className="min-h-[calc(100vh-160px)]">
@@ -270,7 +271,7 @@ const RecipesClient = () => {
         </div>
       </div>
 
-      {totalPages > 1 && showPagination && (
+      {totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <Pagination>
             <PaginationContent>

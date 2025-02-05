@@ -34,18 +34,20 @@ export const fetchRecipe = (id: number): Promise<Recipe> =>
 		})
 
 // Update a recipe by ID
-export const updateRecipe = (recipe: Recipe): Promise<void> => {
-	const { id, name, imageUrl, ingredients, instructions, favorite } = recipe
-	const updateData = { name, imageUrl, ingredients, instructions, favorite }
+export const updateRecipe = (recipe: Recipe): Promise<Recipe> => {
+	const { id, name, imageUrl, ingredients, instructions, favorite, link } = recipe;
+	const updateData = { name, imageUrl, ingredients, instructions, favorite, link };
 
 	return fetch(`/api/recipes/${id}`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(updateData)
 	})
-		.then(res => {
-			if (!res.ok) throw new Error("Failed to update recipe")
+		.then(async (res) => {
+			if (!res.ok) throw new Error("Failed to update recipe");
+			return res.json();
 		})
+		.then(data => schemas.recipe.parse(data));
 }
 
 // Delete a recipe by ID

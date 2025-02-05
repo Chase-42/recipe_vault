@@ -31,13 +31,13 @@ export async function PUT(
 
 		const updatedRecipe = await updateRecipe(id, validatedData);
 		
-		// Revalidate the cache for this recipe
-		const headersList = headers();
-		const host = headersList.get("host") ?? "";
-		const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-		await fetch(`${protocol}://${host}/api/revalidate?path=/recipes/${id}`);
+		const response = NextResponse.json(updatedRecipe);
+		// Ensure no caching for update responses
+		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+		response.headers.set('Pragma', 'no-cache');
+		response.headers.set('Expires', '0');
 		
-		return NextResponse.json(updatedRecipe);
+		return response;
 	} catch (error) {
 		const { error: errorMessage, statusCode } = handleApiError(error);
 		return NextResponse.json({ error: errorMessage }, { status: statusCode });
@@ -86,12 +86,11 @@ export async function GET(req: NextRequest) {
 			throw new NotFoundError("Recipe not found");
 		}
 
-		// Add cache headers
 		const response = NextResponse.json(recipe);
-		response.headers.set(
-			"Cache-Control",
-			`public, s-maxage=${CACHE_DURATION}, stale-while-revalidate`
-		);
+		// Ensure no caching for GET responses
+		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+		response.headers.set('Pragma', 'no-cache');
+		response.headers.set('Expires', '0');
 
 		return response;
 	} catch (error) {

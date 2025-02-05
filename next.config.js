@@ -1,5 +1,3 @@
-
-
 /** @type {import("next").NextConfig} */
 const config = {
 	images: {
@@ -21,7 +19,17 @@ const config = {
 				headers: [
 					{
 						key: 'Cache-Control',
-						value: 'public, max-age=30, stale-while-revalidate=59',
+						value: 'no-cache, no-store, must-revalidate',
+					},
+				],
+			},
+			{
+				// Specific route for GET requests
+				source: '/api/recipes/:path*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'no-cache, no-store, must-revalidate',
 					},
 				],
 			},
