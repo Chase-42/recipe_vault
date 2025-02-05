@@ -261,14 +261,6 @@ const RecipesClient = () => {
               </SelectGroup>
             </SelectContent>
           </Select>
-
-          <Button variant="outline" size="icon" onClick={toggleGridView}>
-            {gridView === "grid" ? (
-              <LayoutList className="h-4 w-4" />
-            ) : (
-              <LayoutGrid className="h-4 w-4" />
-            )}
-          </Button>
         </div>
       </motion.div>
 
