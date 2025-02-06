@@ -1,6 +1,10 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Utensils, ChefHat, Clock } from "lucide-react";
+import { Suspense } from "react";
+import { getMyRecipes } from "~/server/queries";
+import { auth } from "@clerk/nextjs/server";
 import RecipeList from "~/app/_components/RecipeList";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
 
 const FloatingIcon = ({
   children,
@@ -13,6 +17,25 @@ const FloatingIcon = ({
     <div className={`absolute animate-float ${className}`}>{children}</div>
   );
 };
+
+async function RecipeListContainer() {
+  const { userId } = auth();
+  if (!userId) return null;
+
+  try {
+    const { recipes, total } = await getMyRecipes(userId, 0, 12);
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <RecipeList initialData={{ recipes, total }} />
+      </Suspense>
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Failed to fetch recipes:", error.message);
+    }
+    return <div>Failed to load recipes</div>;
+  }
+}
 
 export default function HomePage() {
   return (
@@ -67,7 +90,7 @@ export default function HomePage() {
       </SignedOut>
 
       <SignedIn>
-        <RecipeList />
+        <RecipeListContainer />
       </SignedIn>
     </main>
   );

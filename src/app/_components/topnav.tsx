@@ -1,13 +1,26 @@
 "use client";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useState } from "react";
-import AddRecipe from "./AddRecipe";
-import { Modal } from "./Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useSearch } from "../../providers";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
+  ssr: false,
+  loading: () => null,
+});
+
+const AddRecipe = dynamic(() => import("./AddRecipe"), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="h-32 w-32 animate-spin rounded-full border-b-4 border-t-4 border-red-800" />
+    </div>
+  ),
+});
 
 export const TopNav = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

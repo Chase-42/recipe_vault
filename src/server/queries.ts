@@ -40,7 +40,10 @@ export async function getMyRecipes(
 			.orderBy(desc(recipes.createdAt));
 
 		return {
-			recipes: paginatedRecipes,
+			recipes: paginatedRecipes.map(recipe => ({
+				...recipe,
+				createdAt: recipe.createdAt.toISOString()
+			})),
 			total,
 		};
 	} catch (error) {

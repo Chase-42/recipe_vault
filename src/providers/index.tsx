@@ -1,6 +1,12 @@
 "use client";
 import type React from "react";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 import {
   QueryClient,
   QueryClientProvider,
@@ -12,6 +18,7 @@ import { AnimatePresence } from "framer-motion";
 interface SearchContextProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  debouncedSearchTerm: string;
 }
 
 type MutationContext = {
@@ -24,9 +31,20 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   return (
-    <SearchContext.Provider value={{ searchTerm, setSearchTerm }}>
+    <SearchContext.Provider
+      value={{ searchTerm, setSearchTerm, debouncedSearchTerm }}
+    >
       {children}
     </SearchContext.Provider>
   );

@@ -1,8 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "~/components/ui/button";
+import { IconHeart } from "@tabler/icons-react";
+import type { Recipe } from "~/types";
+import { memo, useState, useCallback, useEffect, useRef } from "react";
+import { cn } from "~/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,9 +19,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { IconHeart } from "@tabler/icons-react";
-import type { Recipe } from "~/types";
-import { memo } from "react";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -33,63 +35,116 @@ function RecipeCard({
   priority = false,
   onImageLoad,
 }: RecipeCardProps) {
-  const handleFavoriteToggle = () => {
-    onFavoriteToggle(recipe.id, !recipe.favorite);
-  };
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const router = useRouter();
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  const handleImageLoadComplete = () => {
+  const handleFavoriteToggle = useCallback(() => {
+    onFavoriteToggle(recipe.id, !recipe.favorite);
+  }, [recipe.id, recipe.favorite, onFavoriteToggle]);
+
+  const handleImageLoadComplete = useCallback(() => {
+    setIsImageLoaded(true);
     onImageLoad?.(recipe.id);
-  };
+  }, [recipe.id, onImageLoad]);
+
+  // Check if image is already cached on mount
+  useEffect(() => {
+    if (imageRef.current?.complete) {
+      handleImageLoadComplete();
+    }
+  }, [handleImageLoadComplete]);
+
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      router.push(`/img/${recipe.id}?modal=true`);
+    },
+    [recipe.id, router],
+  );
 
   const shouldPrioritize = priority || recipe.id <= 4;
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
-      <button
-        type="button"
-        onClick={handleFavoriteToggle}
-        className={`absolute right-2 top-2 z-10 transition-opacity duration-300 group-hover:opacity-100 ${
-          recipe.favorite ? "opacity-100" : "opacity-0"
-        }`}
-        aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
-      >
-        <IconHeart
-          size={24}
-          className={`transition-colors duration-300 ${
-            recipe.favorite ? "text-red-500" : "text-white"
-          }`}
-          strokeWidth={2}
-          fill={recipe.favorite ? "currentColor" : "none"}
-        />
-      </button>
+      {recipe.favorite && (
+        <button
+          type="button"
+          onClick={handleFavoriteToggle}
+          className="absolute right-2 top-2 z-10 transition-opacity duration-300 group-hover:opacity-100"
+          aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+        >
+          <IconHeart
+            size={24}
+            className="text-red-500 transition-colors duration-300"
+            strokeWidth={2}
+            fill="currentColor"
+          />
+        </button>
+      )}
+      {!recipe.favorite && (
+        <button
+          type="button"
+          onClick={handleFavoriteToggle}
+          className="absolute right-2 top-2 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          aria-label="Favorite"
+        >
+          <IconHeart
+            size={24}
+            className="text-white transition-colors duration-300"
+            strokeWidth={2}
+          />
+        </button>
+      )}
 
       <div className="flex w-full flex-col items-center">
         <h2 className="mb-2 break-words text-center text-lg font-semibold">
           {recipe.name}
         </h2>
-        <Link href={`/img/${recipe.id}`} className="group relative mb-4">
-          <Image
-            src={recipe.imageUrl}
-            className="rounded-md transition-transform duration-300 group-hover:scale-105"
-            style={{
-              objectFit: "cover",
-              transform: "translateZ(0)",
-            }}
-            width={300}
-            height={300}
-            alt={recipe.name}
-            placeholder="blur"
-            blurDataURL={recipe.blurDataUrl}
-            priority={shouldPrioritize}
-            loading={shouldPrioritize ? undefined : "lazy"}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
-            onLoad={handleImageLoadComplete}
-            onError={handleImageLoadComplete}
-          />
+        <Link
+          href={`/img/${recipe.id}?modal=true`}
+          onClick={handleCardClick}
+          className="group relative mb-4"
+          prefetch={false}
+        >
+          <div className="relative">
+            <Image
+              ref={imageRef}
+              src={recipe.imageUrl}
+              className={cn(
+                "rounded-md transition-all duration-300",
+                !isImageLoaded && "blur-sm",
+                "group-hover:scale-105",
+              )}
+              style={{
+                objectFit: "cover",
+                transform: "translateZ(0)",
+                willChange: "transform",
+              }}
+              width={300}
+              height={300}
+              alt={recipe.name}
+              placeholder="blur"
+              blurDataURL={recipe.blurDataUrl}
+              priority={shouldPrioritize}
+              loading={shouldPrioritize ? "eager" : "lazy"}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+              onLoad={handleImageLoadComplete}
+              onError={handleImageLoadComplete}
+              quality={75}
+              fetchPriority={shouldPrioritize ? "high" : "auto"}
+            />
+            {!isImageLoaded && (
+              <div
+                className="absolute inset-0 bg-gray-700/20 blur-sm"
+                aria-hidden="true"
+              />
+            )}
+          </div>
         </Link>
 
         <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <Link href={`/edit/${recipe.id}`}>
+          <Link href={`/edit/${recipe.id}`} prefetch={false}>
             <Button
               variant="secondary"
               size="sm"
@@ -98,7 +153,7 @@ function RecipeCard({
               Edit
             </Button>
           </Link>
-          <Link href={`/print/${recipe.id}`}>
+          <Link href={`/print/${recipe.id}`} prefetch={false}>
             <Button
               variant="secondary"
               size="sm"

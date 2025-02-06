@@ -11,14 +11,43 @@ import getRecipeData from "@rethora/url-recipe-scraper";
 import sanitizeString from "~/utils/sanitizeString";
 import { AuthorizationError, ValidationError, RecipeError, handleApiError, getErrorMessage } from "~/lib/errors";
 
-const baseUrl =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:3000/"
-		: `${process.env.NEXT_PUBLIC_DOMAIN}/`;
+// Constants
+const baseUrl = process.env.NODE_ENV === "development" 
+	? "http://localhost:3000/" 
+	: `${process.env.NEXT_PUBLIC_DOMAIN}/`;
 
+
+// Types
+interface RecipeStep {
+	text?: string;
+	'@type'?: string;
+	name?: string;
+	itemListElement?: RecipeStep[];
+}
+
+// Utility Functions
 const flaskApiUrl = (link: string): URL => 
 	new URL(`api/scraper?url=${encodeURIComponent(link)}`, baseUrl);
 
+function processInstructions(instructions: RecipeStep[] = []): string {
+	if (!instructions?.length) return '';
+
+	const allSteps: string[] = [];
+
+	function extractSteps(step: RecipeStep) {
+		if (step.text) {
+			allSteps.push(sanitizeString(step.text));
+		}
+		if (step.itemListElement?.length) {
+			step.itemListElement.forEach(extractSteps);
+		}
+	}
+
+	instructions.forEach(extractSteps);
+	return allSteps.filter(Boolean).join('\n');
+}
+
+// Data Processing Functions
 async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
 	try {
 		const response: Response = await fetch(flaskApiUrl(link).toString(), {
@@ -26,61 +55,73 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
 			next: { revalidate: 0 },
 		});
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new RecipeError(`Flask API error: ${errorText}`, response.status);
+		const data = await response.json() as Record<string, unknown>;
+
+		if (response.status === 422) {
+			return {
+				name: undefined,
+				imageUrl: undefined,
+				instructions: undefined,
+				ingredients: undefined
+			};
 		}
 
-		return schemas.flaskApiResponse.parse(await response.json());
+		if (!response.ok) {
+			throw new RecipeError(`Flask API error: ${JSON.stringify(data)}`, response.status);
+		}
+
+		return schemas.flaskApiResponse.parse(data);
 	} catch (error) {
 		if (error instanceof RecipeError) throw error;
 		throw new RecipeError(`Failed to fetch recipe data: ${getErrorMessage(error)}`, 500);
 	}
 }
 
-function processInstructions(instructions: { text?: string }[] = []): string {
-	if (!instructions?.length) return '';
-	return instructions
-		.map(instruction => sanitizeString(instruction?.text ?? ''))
-		.filter(Boolean)
-		.join("\n");
-}
-
 async function processRecipeData(
 	flaskData: FlaskApiResponse,
 	link: string,
 ): Promise<ProcessedData> {
-	const { name, imageUrl, instructions, ingredients = [] } = flaskData;
+	let { imageUrl, instructions, ingredients = [], name } = flaskData;
+	const needsFallback = !name || !imageUrl || !instructions || !ingredients.length;
 
-	// Early validation of required fields
-	if (name && imageUrl && instructions && ingredients.length > 0) {
-		const processed = { name, imageUrl, instructions, ingredients };
-		return processValidData(processed);
+
+
+	if (needsFallback) {
+		const [fallbackData, imageUrls] = await Promise.all([
+			getRecipeData(link).catch(() => null as FallbackApiResponse | null),
+			!imageUrl
+				? fetchRecipeImages(link).catch(() => [] as string[])
+				: Promise.resolve([] as string[]),
+		]);
+
+
+
+		name = name ?? sanitizeString(fallbackData?.name ?? "");
+		imageUrl = imageUrl ?? fallbackData?.image?.url ?? imageUrls[0] ?? "";
+		instructions = instructions ?? processInstructions(fallbackData?.recipeInstructions as RecipeStep[]);
+		ingredients = ingredients.length > 0
+			? ingredients
+			: (fallbackData?.recipeIngredient ?? []).map(sanitizeString);
+
+
 	}
 
-	// Fetch fallback data
-	const [fallbackData, imageUrls] = await Promise.all([
-		getRecipeData(link)
-			.then(data => schemas.fallbackApiResponse.parse(data))
-			.catch(() => null),
-		!imageUrl ? fetchRecipeImages(link).catch(() => []) : Promise.resolve([]),
-	]);
-
-	const processedData = {
-		name: name ?? sanitizeString(fallbackData?.name ?? ""),
-		imageUrl: imageUrl ?? fallbackData?.image?.url ?? imageUrls[0] ?? "",
-		instructions: instructions ?? processInstructions(fallbackData?.recipeInstructions ?? []),
-		ingredients: ingredients.length > 0
-			? ingredients
-			: (fallbackData?.recipeIngredient ?? []).map(sanitizeString),
-	};
-
-	if (!processedData.imageUrl || !processedData.instructions || 
-		!processedData.ingredients.length || !processedData.name) {
+	if (!imageUrl || !instructions || !ingredients.length || !name) {
+		console.log('Validation failed:', {
+			hasImage: !!imageUrl,
+			hasInstructions: !!instructions,
+			ingredientsLength: ingredients.length,
+			hasName: !!name
+		});
 		throw new RecipeError("Failed to extract complete recipe data", 422);
 	}
 
-	return processValidData(processedData);
+	return processValidData({
+		name,
+		imageUrl,
+		instructions,
+		ingredients,
+	});
 }
 
 async function processValidData(data: {
@@ -107,9 +148,7 @@ async function processValidData(data: {
 	return schemas.processedData.parse(processed);
 }
 
-// Cache duration in seconds
-const CACHE_DURATION = 30; // 30 seconds for list view
-
+// API Route Handlers
 export async function GET(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -148,7 +187,6 @@ export async function GET(req: NextRequest) {
 			},
 		});
 
-		// Disable caching
 		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
 		response.headers.set('Pragma', 'no-cache');
 		response.headers.set('Expires', '0');

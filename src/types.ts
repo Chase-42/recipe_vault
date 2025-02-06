@@ -1,7 +1,7 @@
 export interface Recipe {
 	id: number;
 	name: string;
-	link: string;
+	link?: string;
 	imageUrl: string;
 	blurDataUrl: string;
 	instructions: string;

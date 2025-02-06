@@ -206,7 +206,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                   priority
                   sizes="(max-width: 768px) 100vw, 50vw"
                   quality={90}
-                  onLoadingComplete={() => setImageLoading(false)}
+                  onLoad={() => setImageLoading(false)}
                 />
               </motion.div>
             </AnimatePresence>

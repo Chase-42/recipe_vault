@@ -1,15 +1,14 @@
-import FullPageImageView from "~/app/_components/FullImagePage";
+import dynamic from "next/dynamic";
 
-export default function RecipePage({
-	params: { id: photoId },
-}: {
-	params: { id: string };
-}) {
-	const idAsNumber = Number(photoId);
-	if (Number.isNaN(idAsNumber)) throw new Error("Invalid photo id");
-	return (
-		<div className="flex h-full min-h-0 w-full min-w-0">
-			<FullPageImageView id={idAsNumber} />
-		</div>
-	);
+const FullImagePage = dynamic(() => import("~/app/_components/FullImagePage"), {
+  loading: () => (
+    <div className="flex h-screen w-full items-center justify-center">
+      <div className="mt-10 h-32 w-32 animate-spin rounded-full border-b-4 border-t-4 border-red-800 sm:h-48 sm:w-48 md:h-64 md:w-64" />
+    </div>
+  ),
+  ssr: false,
+});
+
+export default function ImagePage({ params }: { params: { id: string } }) {
+  return <FullImagePage id={Number(params.id)} />;
 }
