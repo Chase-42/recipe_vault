@@ -143,9 +143,11 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
         <div className="border-b p-4">
           <h3 className="mb-2 text-base font-semibold">Instructions:</h3>
           {instructions.length > 0 ? (
-            <ol className="list-inside list-decimal space-y-1">
+            <ol className="list-decimal space-y-2 pl-5">
               {instructions.map((instruction, index) => (
-                <li key={index}>{instruction}</li>
+                <li key={index} className="pl-2">
+                  {instruction}
+                </li>
               ))}
             </ol>
           ) : (
