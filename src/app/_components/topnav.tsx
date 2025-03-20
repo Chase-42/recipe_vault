@@ -7,6 +7,7 @@ import { useSearch } from "../../providers";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { ShoppingCart } from "lucide-react";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -60,6 +61,15 @@ export const TopNav = () => {
           >
             Add Recipe
           </Button>
+          <Link href="/shopping-lists">
+            <Button
+              variant="ghost"
+              className="flex w-full items-center gap-2 md:w-auto"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Shopping Lists
+            </Button>
+          </Link>
           <Input
             type="text"
             value={searchTerm}

@@ -7,16 +7,70 @@ import { fetchRecipe } from "~/utils/recipeService";
 import type { Recipe } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "~/components/ui/button";
+import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
+import { ShoppingCart } from "lucide-react";
 
 interface FullPageImageViewProps {
   id: number;
 }
 
+function RecipeImage({
+  recipe,
+  imageLoading,
+  setImageLoading,
+}: {
+  recipe: Recipe;
+  imageLoading: boolean;
+  setImageLoading: (loading: boolean) => void;
+}) {
+  return (
+    <div className="relative h-full w-full">
+      <AnimatePresence>
+        {/* Blur placeholder */}
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: imageLoading ? 1 : 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${recipe.blurDataUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(20px)",
+            transform: "scale(1.1)",
+          }}
+        />
+        {/* Main image */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: imageLoading ? 0 : 1 }}
+          transition={{ duration: 0.3 }}
+          className="relative h-full w-full"
+        >
+          <Image
+            src={recipe.imageUrl}
+            alt={`Image of ${recipe.name}`}
+            className="object-contain"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+            quality={90}
+            onLoad={() => setImageLoading(false)}
+          />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const queryClient = useQueryClient();
   const [imageLoading, setImageLoading] = useState(true);
+  const [showAddToList, setShowAddToList] = useState(false);
 
   // Get cached recipe data immediately
   const cachedRecipe = queryClient.getQueryData<Recipe>(["recipe", id]);
@@ -29,7 +83,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
     enabled: !!id,
-    placeholderData: cachedRecipe, // Use cached data as placeholder
+    placeholderData: cachedRecipe,
   });
 
   const { toggleFavorite } = useFavoriteToggle();
@@ -67,14 +121,12 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     }));
   };
 
+  // Loading state
   if (isLoading && !cachedRecipe) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
+    return <LoadingSpinner size="lg" />;
   }
 
+  // Error state
   if (error instanceof Error) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -83,6 +135,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     );
   }
 
+  // Not found state
   if (!recipe) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -100,12 +153,22 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
         <div className="flex items-center justify-between border-b p-2">
           <div className="text-lg font-bold">{recipe.name}</div>
-          <button
-            onClick={() => toggleFavorite(recipe)}
-            className="text-yellow-500 hover:text-yellow-600"
-          >
-            {recipe.favorite ? "★" : "☆"}
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAddToList(true)}
+              title="Add to shopping list"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+            <button
+              onClick={() => toggleFavorite(recipe)}
+              className="text-yellow-500 hover:text-yellow-600"
+            >
+              {recipe.favorite ? "★" : "☆"}
+            </button>
+          </div>
         </div>
 
         {/* Ingredients section */}
@@ -172,51 +235,32 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
       {/* Recipe image section */}
       <div className="relative flex-1 md:w-1/2">
-        {(recipe?.imageUrl ?? cachedRecipe?.imageUrl) ? (
-          <div className="relative h-full w-full">
-            <AnimatePresence>
-              {/* Blur placeholder - always show initially */}
-              <motion.div
-                initial={{ opacity: 1 }}
-                animate={{ opacity: imageLoading ? 1 : 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url(${recipe?.blurDataUrl ?? cachedRecipe?.blurDataUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  filter: "blur(20px)",
-                  transform: "scale(1.1)",
-                }}
-              />
-
-              {/* Main image with transition */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: imageLoading ? 0 : 1 }}
-                transition={{ duration: 0.3 }}
-                className="relative h-full w-full"
-              >
-                <Image
-                  src={recipe?.imageUrl ?? cachedRecipe?.imageUrl ?? ""}
-                  alt={`Image of ${recipe?.name ?? cachedRecipe?.name}`}
-                  className="object-contain"
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  quality={90}
-                  onLoad={() => setImageLoading(false)}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="italic text-gray-500">No image available.</p>
-          </div>
-        )}
+        <Suspense
+          fallback={
+            <LoadingSpinner size="md" fullHeight={false} className="p-8" />
+          }
+        >
+          {recipe.imageUrl ? (
+            <RecipeImage
+              recipe={recipe}
+              imageLoading={imageLoading}
+              setImageLoading={setImageLoading}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="italic text-gray-500">No image available.</p>
+            </div>
+          )}
+        </Suspense>
       </div>
+
+      <AddToListModal
+        isOpen={showAddToList}
+        onClose={() => setShowAddToList(false)}
+        ingredients={ingredients}
+        recipeId={recipe.id}
+        recipeName={recipe.name}
+      />
     </div>
   );
 }

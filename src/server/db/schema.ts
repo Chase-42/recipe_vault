@@ -30,3 +30,21 @@ export const recipes = createTable(
 		favoriteIdx: index("favorite_idx").on(table.favorite),
 	}),
 );
+
+// Simple shopping list items table - one list per user
+export const shoppingItems = createTable(
+	"shopping_items",
+	{
+		id: serial("id").primaryKey(),
+		userId: varchar("userId", { length: 256 }).notNull(),
+		name: text("name").notNull(),
+		checked: boolean("checked").default(false).notNull(),
+		recipeId: serial("recipe_id").references(() => recipes.id, { onDelete: "set null" }),
+		createdAt: timestamp("createdAt").defaultNow().notNull(),
+	},
+	(table) => ({
+		userIdIdx: index("shopping_items_user_id_idx").on(table.userId),
+		recipeIdIdx: index("shopping_items_recipe_id_idx").on(table.recipeId),
+		createdAtIdx: index("shopping_items_created_at_idx").on(table.createdAt),
+	}),
+);
