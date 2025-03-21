@@ -9,15 +9,5 @@
 			"source": "/api/scraper/:path*",
 			"destination": "/api/index.py"
 		}
-	],
-	"routes": [
-		{
-			"src": "/api/shopping-lists/items/[^/]+",
-			"dest": "/api/shopping-lists/items/$1"
-		},
-		{
-			"src": "/api/(.*)",
-			"dest": "/api/$1"
-		}
 	]
 }
