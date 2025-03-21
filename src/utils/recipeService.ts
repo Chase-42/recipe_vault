@@ -1,4 +1,4 @@
-import { schemas, type Recipe, type PaginatedRecipes } from "~/lib/schemas"
+import { schemas, type Recipe, type PaginatedRecipes, type UpdatedRecipe } from "~/lib/schemas"
 import type { z } from "zod";
 
 export const fetchRecipes = (offset = 0, limit = 12): Promise<PaginatedRecipes> => 
@@ -34,9 +34,8 @@ export const fetchRecipe = (id: number): Promise<Recipe> =>
 		})
 
 // Update a recipe by ID
-export const updateRecipe = (recipe: Recipe): Promise<Recipe> => {
-	const { id, name, imageUrl, ingredients, instructions, favorite, link } = recipe;
-	const updateData = { name, imageUrl, ingredients, instructions, favorite, link };
+export const updateRecipe = (recipe: UpdatedRecipe & { id: number }): Promise<Recipe> => {
+	const { id, ...updateData } = recipe;
 
 	return fetch(`/api/recipes/${id}`, {
 		method: "PUT",

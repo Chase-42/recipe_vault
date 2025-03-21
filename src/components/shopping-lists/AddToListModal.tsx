@@ -10,6 +10,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface AddToListModalProps {
   isOpen: boolean;
@@ -99,9 +100,17 @@ export function AddToListModal({
         throw new Error("Failed to add items to shopping list");
       }
 
+      toast.success("Items added to shopping list", {
+        action: {
+          label: "View List",
+          onClick: () => (window.location.href = "/shopping-lists"),
+        },
+      });
+
       onClose();
     } catch (error) {
       console.error("Error adding items to list:", error);
+      toast.error("Failed to add items to shopping list");
     }
   };
 

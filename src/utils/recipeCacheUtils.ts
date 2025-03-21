@@ -30,7 +30,7 @@ export async function performMutationWithRollback(
 ) {
   try {
     await mutationFn();
-    toast.success(successMessage);
+    toast(successMessage);
   } catch (error) {
     queryClient.setQueryData(["recipes"], previousData);
     console.error(errorMessage, error);

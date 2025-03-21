@@ -6,7 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "next/navigation";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import LoadingSpinner from "./LoadingSpinner";
 import type { Recipe, APIResponse } from "~/types";
 import Image from "next/image";
@@ -64,10 +64,7 @@ const CreateRecipeClient = () => {
     onSuccess: () => {
       setLoading(false);
       setTimeout(() => {
-        toast.success("Recipe created successfully!", {
-          duration: 1500,
-          id: "success",
-        });
+        toast("Recipe created successfully!");
       }, 200);
 
       setTimeout(() => {
@@ -105,12 +102,10 @@ const CreateRecipeClient = () => {
       }
 
       setImageUrl(result.url);
-      toast.success("Image uploaded successfully!");
+      toast("Image uploaded successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload image",
-      );
+      toast.error("Error uploading image");
       setImageUrl("");
     } finally {
       setUploadLoading(false);
@@ -120,7 +115,7 @@ const CreateRecipeClient = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!imageUrl) {
-      toast.error("Please upload an image first");
+      toast("Please upload an image first");
       return;
     }
     const newRecipe: CreateRecipeInput = {
@@ -150,7 +145,6 @@ const CreateRecipeClient = () => {
     <div className="flex h-full w-full flex-col md:flex-row">
       <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Toaster position="top-center" />
           <div>
             <label
               htmlFor="name"

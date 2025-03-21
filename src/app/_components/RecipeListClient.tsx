@@ -127,7 +127,7 @@ export default function RecipeListClient({
       toast.error("Failed to delete recipe");
     },
     onSuccess: () => {
-      toast.success("Recipe deleted successfully");
+      toast("Recipe deleted successfully");
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
   });

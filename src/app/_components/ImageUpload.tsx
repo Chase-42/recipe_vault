@@ -40,7 +40,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       }
 
       onImageChange(result.url);
-      toast.success("Image uploaded successfully!");
+      toast("Image uploaded successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
       toast.error(

@@ -115,7 +115,7 @@ function useRecipeMutation(initialRecipe: Recipe) {
       });
 
       setIsSubmitting(false);
-      toast.success("Recipe updated successfully!");
+      toast("Recipe updated successfully!");
 
       // Navigate back after success
       setTimeout(() => router.back(), 1500);

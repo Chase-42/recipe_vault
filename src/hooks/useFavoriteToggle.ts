@@ -4,11 +4,14 @@ import type { Recipe } from "~/types";
 import type { PaginatedRecipes } from "~/lib/schemas";
 import { toggleFavorite as toggleFavoriteApi } from "~/utils/recipeService";
 
+// Ensure Recipe type has required fields
+type RequiredRecipe = Required<Omit<Recipe, 'userId'>> & { userId?: string };
+
 export function useFavoriteToggle() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (recipe: Recipe) => toggleFavoriteApi(recipe.id),
+    mutationFn: (recipe: RequiredRecipe) => toggleFavoriteApi(recipe.id),
     onMutate: async (recipe) => {
       const newFavoriteState = !recipe.favorite;
 
@@ -17,7 +20,7 @@ export function useFavoriteToggle() {
       await queryClient.cancelQueries({ queryKey: ["recipe", recipe.id] });
 
       // Snapshot the previous value
-      const previousRecipe = queryClient.getQueryData<Recipe>(["recipe", recipe.id]);
+      const previousRecipe = queryClient.getQueryData<RequiredRecipe>(["recipe", recipe.id]);
 
       // Optimistically update recipe
       queryClient.setQueryData(["recipe", recipe.id], {
@@ -32,7 +35,7 @@ export function useFavoriteToggle() {
           if (!old) return old;
           return {
             ...old,
-            recipes: old.recipes.map((r: Recipe) =>
+            recipes: old.recipes.map((r) =>
               r.id === recipe.id ? { ...r, favorite: newFavoriteState } : r
             ),
           };
@@ -57,14 +60,12 @@ export function useFavoriteToggle() {
     },
     onSuccess: (_, recipe) => {
       const newFavoriteState = !recipe.favorite;
-      toast.success(
-        newFavoriteState ? "Recipe favorited!" : "Recipe unfavorited."
-      );
+      toast(newFavoriteState ? "Recipe favorited" : "Recipe unfavorited");
     },
   });
 
   return {
-    toggleFavorite: (recipe: Recipe) => mutation.mutate(recipe),
+    toggleFavorite: (recipe: RequiredRecipe) => mutation.mutate(recipe),
     isLoading: mutation.isPending,
   };
 } 

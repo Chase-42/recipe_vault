@@ -73,10 +73,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
     mutationFn: saveRecipe,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      toast.success("Recipe saved successfully!", {
-        duration: 2500,
-        id: "success",
-      });
+      toast("Recipe saved successfully!");
       onSuccess();
     },
     onError: (error: Error) => {
