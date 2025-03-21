@@ -13,7 +13,7 @@ import { AuthorizationError, ValidationError, RecipeError, handleApiError, getEr
 
 // Constants
 const baseUrl = process.env.NODE_ENV === "development" 
-	? "http://localhost:3000/" 
+	? "http://localhost:5328/" 
 	: `${process.env.NEXT_PUBLIC_DOMAIN}/`;
 
 
@@ -27,7 +27,7 @@ interface RecipeStep {
 
 // Utility Functions
 const flaskApiUrl = (link: string): URL => 
-	new URL(`api/scraper?url=${encodeURIComponent(link)}`, baseUrl);
+	new URL(`/api/scraper?url=${encodeURIComponent(link)}`, baseUrl);
 
 function processInstructions(instructions: RecipeStep[] = []): string {
 	if (!instructions?.length) return '';
@@ -50,14 +50,14 @@ function processInstructions(instructions: RecipeStep[] = []): string {
 // Data Processing Functions
 async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
 	try {
+		console.log('Trying Python scraper...');
 		const response: Response = await fetch(flaskApiUrl(link).toString(), {
 			headers: { Accept: "application/json" },
 			next: { revalidate: 0 },
 		});
 
-		const data = await response.json() as Record<string, unknown>;
-
-		if (response.status === 422) {
+		if (!response.ok) {
+			console.log('Python scraper failed with status:', response.status);
 			return {
 				name: undefined,
 				imageUrl: undefined,
@@ -66,14 +66,108 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
 			};
 		}
 
-		if (!response.ok) {
-			throw new RecipeError(`Flask API error: ${JSON.stringify(data)}`, response.status);
+		const rawData = await response.json();
+		console.log('Python scraper raw response:', rawData);
+
+		// Handle potential null/undefined values
+		const data = {
+			name: rawData.name || undefined,
+			imageUrl: rawData.image || rawData.imageUrl || undefined,
+			instructions: rawData.instructions || undefined,
+			ingredients: Array.isArray(rawData.ingredients) ? rawData.ingredients : undefined
+		};
+
+		// Only return data if we have ALL required fields
+		if (data.name && data.instructions && data.ingredients?.length) {
+			console.log('Python scraper succeeded with data');
+			return data;
 		}
 
-		return schemas.flaskApiResponse.parse(data);
+		console.log('Python scraper returned incomplete data:', data);
+		return {
+			name: undefined,
+			imageUrl: undefined,
+			instructions: undefined,
+			ingredients: undefined
+		};
 	} catch (error) {
-		if (error instanceof RecipeError) throw error;
-		throw new RecipeError(`Failed to fetch recipe data: ${getErrorMessage(error)}`, 500);
+		console.log('Python scraper error:', error);
+		return {
+			name: undefined,
+			imageUrl: undefined,
+			instructions: undefined,
+			ingredients: undefined
+		};
+	}
+}
+
+async function tryJsPackageScraper(link: string): Promise<FallbackApiResponse | null> {
+	try {
+		console.log('Trying JS package scraper...');
+		const data = await getRecipeData(link);
+
+		// Validate all required fields exist
+		if (!data?.name || !data?.recipeInstructions?.length || !data?.recipeIngredient?.length) {
+			console.log('JS package returned incomplete data');
+			return null;
+		}
+
+		// Transform instructions to match our schema, safely handling potential errors
+		const transformedInstructions = data.recipeInstructions
+			.map(instruction => {
+				if (typeof instruction === 'string') {
+					return {
+						"@type": "HowToStep" as const,
+						text: instruction
+					};
+				}
+				if (typeof instruction === 'object' && instruction && 'text' in instruction) {
+					return {
+						"@type": "HowToStep" as const,
+						text: String(instruction.text || '')
+					};
+				}
+				return null;
+			})
+			.filter((i): i is { "@type": "HowToStep"; text: string } => i !== null && !!i.text);
+
+		// Filter out any undefined ingredients and convert to strings
+		const validIngredients = (data.recipeIngredient || [])
+			.map(ing => typeof ing === 'string' ? ing : String(ing))
+			.filter(Boolean);
+
+		if (!transformedInstructions.length || !validIngredients.length) {
+			console.log('JS package data validation failed');
+			return null;
+		}
+
+		// Get image URL from data
+		const imageUrl = data.image?.url || '';
+
+		const validatedData: FallbackApiResponse = {
+			name: data.name,
+			image: { url: imageUrl },
+			recipeInstructions: transformedInstructions,
+			recipeIngredient: validIngredients
+		};
+
+		console.log('JS package scraper succeeded');
+		return validatedData;
+	} catch (error) {
+		console.log('JS package scraper error:', error);
+		return null;
+	}
+}
+
+async function tryCustomScraper(link: string): Promise<string[]> {
+	try {
+		console.log('Trying custom image scraper...');
+		const imageUrls = await fetchRecipeImages(link);
+		console.log('Custom scraper found images:', imageUrls.length);
+		return imageUrls;
+	} catch (error) {
+		console.log('Custom scraper error:', error);
+		return [];
 	}
 }
 
@@ -81,33 +175,38 @@ async function processRecipeData(
 	flaskData: FlaskApiResponse,
 	link: string,
 ): Promise<ProcessedData> {
+	// Try Python scraper data first
 	let { imageUrl, instructions, ingredients = [], name } = flaskData;
-	const needsFallback = !name || !imageUrl || !instructions || !ingredients.length;
+	let needsFallback = !name || !imageUrl || !instructions || !ingredients.length;
 
-
-
+	// If Python scraper failed, try JS package
 	if (needsFallback) {
-		const [fallbackData, imageUrls] = await Promise.all([
-			getRecipeData(link).catch(() => null as FallbackApiResponse | null),
-			!imageUrl
-				? fetchRecipeImages(link).catch(() => [] as string[])
-				: Promise.resolve([] as string[]),
-		]);
+		console.log('Python data incomplete, trying JS package...');
+		const fallbackData = await tryJsPackageScraper(link);
+		if (fallbackData?.name && fallbackData?.recipeInstructions?.length && fallbackData?.recipeIngredient?.length) {
+			name = sanitizeString(fallbackData.name);
+			instructions = processInstructions(fallbackData.recipeInstructions);
+			ingredients = fallbackData.recipeIngredient;
+			
+			// If JS package found an image, use it
+			if (fallbackData.image?.url) {
+				imageUrl = fallbackData.image.url;
+				needsFallback = false;
+			}
+		}
+	}
 
-
-
-		name = name ?? sanitizeString(fallbackData?.name ?? "");
-		imageUrl = imageUrl ?? fallbackData?.image?.url ?? imageUrls[0] ?? "";
-		instructions = instructions ?? processInstructions(fallbackData?.recipeInstructions as RecipeStep[]);
-		ingredients = ingredients.length > 0
-			? ingredients
-			: (fallbackData?.recipeIngredient ?? []).map(sanitizeString);
-
-
+	// If we still need an image, try custom image scraper
+	if (!imageUrl) {
+		console.log('No image found, trying custom image scraper...');
+		const imageUrls = await tryCustomScraper(link);
+		if (imageUrls.length > 0) {
+			imageUrl = imageUrls[0];
+		}
 	}
 
 	if (!imageUrl || !instructions || !ingredients.length || !name) {
-		console.log('Validation failed:', {
+		console.log('All scrapers failed. Validation errors:', {
 			hasImage: !!imageUrl,
 			hasInstructions: !!instructions,
 			ingredientsLength: ingredients.length,
