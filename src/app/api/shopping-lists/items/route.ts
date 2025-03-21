@@ -1,9 +1,7 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
-import { db } from "~/server/db";
-import { shoppingItems } from "~/server/db/schema";
+import { addShoppingItems } from "~/server/queries/shopping-list";
 
 const addItemsSchema = z.object({
   items: z.array(
@@ -26,16 +24,9 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as AddItemsRequest;
     const { items } = addItemsSchema.parse(body);
 
-    const itemsToInsert = items.map((item) => ({
-      userId,
-      name: item.name,
-      recipeId: item.recipeId,
-      checked: false,
-    }));
+    const newItems = await addShoppingItems(userId, items);
 
-    await db.insert(shoppingItems).values(itemsToInsert);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, items: newItems });
   } catch (error) {
     console.error("Error adding items to shopping list:", error);
     if (error instanceof z.ZodError) {

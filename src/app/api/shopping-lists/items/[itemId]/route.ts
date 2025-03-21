@@ -1,9 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
-import { db } from "~/server/db";
-import { shoppingItems } from "~/server/db/schema";
 import { z } from "zod";
+import { updateShoppingItem, deleteShoppingItem } from "~/server/queries/shopping-list";
 
 const updateItemSchema = z.object({
   checked: z.boolean(),
@@ -27,29 +25,13 @@ export async function PATCH(
       return new NextResponse("Invalid item ID", { status: 400 });
     }
 
-    // Verify the item belongs to the user
-    const item = await db.query.shoppingItems.findFirst({
-      where: and(
-        eq(shoppingItems.id, itemId),
-        eq(shoppingItems.userId, userId)
-      ),
-    });
-
-    if (!item) {
-      return new NextResponse("Item not found", { status: 404 });
-    }
-
     const body = (await req.json()) as UpdateItemRequest;
     const { checked } = updateItemSchema.parse(body);
 
-    const [updatedItem] = await db
-      .update(shoppingItems)
-      .set({ checked })
-      .where(and(
-        eq(shoppingItems.id, itemId),
-        eq(shoppingItems.userId, userId)
-      ))
-      .returning();
+    const updatedItem = await updateShoppingItem(userId, itemId, checked);
+    if (!updatedItem) {
+      return new NextResponse("Item not found", { status: 404 });
+    }
 
     return NextResponse.json(updatedItem);
   } catch (error) {
@@ -77,16 +59,8 @@ export async function DELETE(
       return new NextResponse("Invalid item ID", { status: 400 });
     }
 
-    // Verify the item belongs to the user before deleting
-    const result = await db
-      .delete(shoppingItems)
-      .where(and(
-        eq(shoppingItems.id, itemId),
-        eq(shoppingItems.userId, userId)
-      ))
-      .returning();
-
-    if (result.length === 0) {
+    const deletedItem = await deleteShoppingItem(userId, itemId);
+    if (!deletedItem) {
       return new NextResponse("Item not found", { status: 404 });
     }
 

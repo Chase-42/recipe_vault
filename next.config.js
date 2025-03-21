@@ -15,17 +15,7 @@ const config = {
 	async headers() {
 		return [
 			{
-				source: '/api/recipes',
-				headers: [
-					{
-						key: 'Cache-Control',
-						value: 'no-cache, no-store, must-revalidate',
-					},
-				],
-			},
-			{
-				// Specific route for GET requests
-				source: '/api/recipes/:path*',
+				source: '/api/:path*',
 				headers: [
 					{
 						key: 'Cache-Control',
@@ -45,8 +35,8 @@ const config = {
 						: "/api/scraper/:path*",
 			},
 			{
-				source: "/api/recipes/:path*",
-				destination: "/api/recipes/:path*",
+				source: "/api/:path*",
+				destination: "/api/:path*",
 			},
 		];
 	},

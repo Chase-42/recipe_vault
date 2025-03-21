@@ -46,5 +46,7 @@ export const shoppingItems = createTable(
 		userIdIdx: index("shopping_items_user_id_idx").on(table.userId),
 		recipeIdIdx: index("shopping_items_recipe_id_idx").on(table.recipeId),
 		createdAtIdx: index("shopping_items_created_at_idx").on(table.createdAt),
+		userCheckedIdx: index("shopping_items_user_checked_idx").on(table.userId, table.checked),
+		userCreatedAtIdx: index("shopping_items_user_created_at_idx").on(table.userId, table.createdAt),
 	}),
 );
