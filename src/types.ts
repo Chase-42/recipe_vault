@@ -47,38 +47,10 @@ export interface RecipeData {
 	recipeIngredient: string[];
 }
 
-interface Author {
-	"@id": string | undefined;
-	name: string;
-	url: string | undefined;
-}
-
 interface Image {
 	url: string;
 	height: number;
 	width: number;
-}
-
-interface Video {
-	contentUrl: string;
-	description: string;
-	duration: string;
-	name: string;
-	thumbnailUrl: string;
-	uploadDate: string;
-}
-
-interface Nutrition {
-	calories: string;
-	carbohydrateContent: string;
-	cholesterolContent: string | undefined;
-	fiberContent: string;
-	proteinContent: string;
-	saturatedFatContent: string;
-	sodiumContent: string;
-	sugarContent: string;
-	fatContent: string;
-	unsaturatedFatContent: string;
 }
 
 export type RecipeInstruction = {

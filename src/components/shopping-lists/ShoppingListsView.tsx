@@ -140,10 +140,6 @@ export function ShoppingListsView() {
 
   const toggleSelectAll = () => {
     const newCheckedState = !areAllFilteredItemsChecked;
-    const itemsToUpdate = filteredItems.map((item) => ({
-      ...item,
-      checked: newCheckedState,
-    }));
 
     // Update local state optimistically
     setItems((prev) => {

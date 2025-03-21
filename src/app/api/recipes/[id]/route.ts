@@ -1,13 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { getRecipe, updateRecipe } from "../../../../server/queries";
-import type { Recipe } from "~/types";
+import { getRecipe, updateRecipe } from "~/server/queries";
 import { validateId, validateUpdateRecipe, type UpdateRecipeInput } from "~/lib/validation";
 import { AuthorizationError, NotFoundError, ValidationError, handleApiError } from "~/lib/errors";
-import { headers } from "next/headers";
 
-// Cache duration in seconds
-const CACHE_DURATION = 60; // 1 minute
 
 export async function PUT(
 	request: NextRequest,
@@ -44,29 +40,6 @@ export async function PUT(
 	}
 }
 
-function sanitizeUpdateData(body: Partial<Recipe>): Partial<Recipe> {
-	const updateData: Partial<Recipe> = {};
-
-	const stringFields = [
-		"name",
-		"link",
-		"imageUrl",
-		"ingredients",
-		"instructions",
-	] as const;
-	for (const field of stringFields) {
-		if (body[field] !== undefined) {
-			updateData[field] = body[field]?.trim();
-		}
-	}
-
-	if (body.favorite !== undefined) {
-		updateData.favorite = !!body.favorite;
-	}
-
-	return updateData;
-}
-
 export async function GET(req: NextRequest) {
 	try {
 		const { userId } = getAuth(req);
@@ -75,7 +48,9 @@ export async function GET(req: NextRequest) {
 		}
 
 		const url = new URL(req.url);
-		const id = Number.parseInt(url.pathname.split("/").pop() ?? "");
+		const pathParts = url.pathname.split("/");
+		const idStr = pathParts[pathParts.length - 1] ?? "";
+		const id = Number.parseInt(idStr);
 
 		if (Number.isNaN(id)) {
 			throw new ValidationError("Invalid ID");

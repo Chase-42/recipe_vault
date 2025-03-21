@@ -1,5 +1,4 @@
 import { schemas, type Recipe, type PaginatedRecipes, type UpdatedRecipe } from "~/lib/schemas"
-import type { z } from "zod";
 
 export const fetchRecipes = (offset = 0, limit = 12): Promise<PaginatedRecipes> => 
 	fetch(`/api/recipes?offset=${offset}&limit=${limit}`)

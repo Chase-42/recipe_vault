@@ -57,9 +57,8 @@ const CreateRecipeClient = () => {
     onMutate: () => {
       setLoading(true);
     },
-    onError: (error) => {
-      toast.error("Failed to create recipe.");
-      setLoading(false);
+    onError: (_error) => {
+      toast.error("Failed to create recipe");
     },
     onSuccess: () => {
       setLoading(false);

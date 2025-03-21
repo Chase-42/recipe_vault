@@ -23,9 +23,8 @@ import {
 interface RecipeCardProps {
   recipe: Recipe;
   onDelete: (id: number) => void;
-  onFavoriteToggle: (id: number, favorite: boolean) => void;
+  onFavoriteToggle: (id: number) => void;
   priority?: boolean;
-  onImageLoad?: (id: number) => void;
 }
 
 function RecipeCard({
@@ -33,20 +32,18 @@ function RecipeCard({
   onDelete,
   onFavoriteToggle,
   priority = false,
-  onImageLoad,
 }: RecipeCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const router = useRouter();
   const imageRef = useRef<HTMLImageElement>(null);
 
   const handleFavoriteToggle = useCallback(() => {
-    onFavoriteToggle(recipe.id, !recipe.favorite);
-  }, [recipe.id, recipe.favorite, onFavoriteToggle]);
+    onFavoriteToggle(recipe.id);
+  }, [recipe.id, onFavoriteToggle]);
 
   const handleImageLoadComplete = useCallback(() => {
     setIsImageLoaded(true);
-    onImageLoad?.(recipe.id);
-  }, [recipe.id, onImageLoad]);
+  }, []);
 
   // Check if image is already cached on mount
   useEffect(() => {
@@ -67,12 +64,12 @@ function RecipeCard({
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
-      {recipe.favorite && (
+      {recipe.favorite ? (
         <button
           type="button"
           onClick={handleFavoriteToggle}
           className="absolute right-2 top-2 z-10 transition-opacity duration-300 group-hover:opacity-100"
-          aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+          aria-label="Unfavorite"
         >
           <IconHeart
             size={24}
@@ -81,8 +78,7 @@ function RecipeCard({
             fill="currentColor"
           />
         </button>
-      )}
-      {!recipe.favorite && (
+      ) : (
         <button
           type="button"
           onClick={handleFavoriteToggle}
@@ -197,6 +193,7 @@ function RecipeCard({
 export default memo(RecipeCard, (prevProps, nextProps) => {
   return (
     prevProps.recipe.id === nextProps.recipe.id &&
-    prevProps.recipe.favorite === nextProps.recipe.favorite
+    prevProps.recipe.favorite === nextProps.recipe.favorite &&
+    prevProps.priority === nextProps.priority
   );
 });

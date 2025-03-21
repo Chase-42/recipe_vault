@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { LayoutGrid, LayoutList } from "lucide-react";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
   Select,
   SelectContent,
@@ -57,7 +58,6 @@ export default function RecipeListClient({
 
   // State
   const [gridView, setGridView] = useState<"grid" | "list">("grid");
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
@@ -65,35 +65,27 @@ export default function RecipeListClient({
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Data fetching with initial data
-  const { data, error } = useQuery<PaginatedResponse>({
+  const { data, isLoading } = useQuery<PaginatedResponse>({
     queryKey: ["recipes", offset],
     queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
-    initialData:
-      offset === 0
-        ? {
-            recipes: initialData.recipes,
-            pagination: {
-              total: initialData.total,
-              offset: 0,
-              limit: ITEMS_PER_PAGE,
-              hasNextPage: initialData.total > ITEMS_PER_PAGE,
-              hasPreviousPage: false,
-              totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
-              currentPage: 1,
-            },
-          }
-        : undefined,
+    initialData: {
+      recipes: initialData.recipes,
+      pagination: {
+        total: initialData.total,
+        offset,
+        limit: ITEMS_PER_PAGE,
+        hasNextPage: initialData.total > offset + ITEMS_PER_PAGE,
+        hasPreviousPage: offset > 0,
+        totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
+        currentPage,
+      },
+    },
     staleTime: 1000 * 30,
   });
 
   const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
-
-  // Track loaded images
-  const handleImageLoad = useCallback((id: number) => {
-    setLoadedImages((prev) => new Set([...prev, id]));
-  }, []);
 
   // Delete mutation
   const deleteRecipeMutation = useMutation({
@@ -126,9 +118,8 @@ export default function RecipeListClient({
       }
       toast.error("Failed to delete recipe");
     },
-    onSuccess: () => {
-      toast("Recipe deleted successfully");
-      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
   });
 
@@ -209,21 +200,18 @@ export default function RecipeListClient({
 
   // Event handlers
   const handleFavoriteToggle = useCallback(
-    async (id: number, favorite: boolean) => {
+    (id: number) => {
       const recipe = recipes.find((r) => r.id === id);
-      if (!recipe) {
-        toast.error("Recipe not found");
-        return;
-      }
+      if (!recipe) return;
       toggleFavorite(recipe);
     },
     [recipes, toggleFavorite],
   );
 
-  if (error) {
+  if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center text-xl text-red-800">
-        Error loading recipes
+        Loading recipes...
       </div>
     );
   }
@@ -292,21 +280,28 @@ export default function RecipeListClient({
               : "mx-auto w-full max-w-3xl flex-col items-center",
           )}
         >
-          {filteredAndSortedRecipes.map((recipe) => (
-            <div key={recipe.id} onMouseEnter={() => handleRecipeHover(recipe)}>
-              <RecipeCard
-                recipe={recipe}
-                onDelete={handleDelete}
-                onFavoriteToggle={handleFavoriteToggle}
-                priority={currentPage === 1 && recipe.id <= 4}
-                onImageLoad={handleImageLoad}
-              />
+          {isLoading ? (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+              <LoadingSpinner size="lg" />
             </div>
-          ))}
-          {filteredAndSortedRecipes.length === 0 && (
+          ) : filteredAndSortedRecipes.length === 0 ? (
             <div className="flex h-[50vh] w-full items-center justify-center text-lg text-muted-foreground">
               No recipes found
             </div>
+          ) : (
+            filteredAndSortedRecipes.map((recipe) => (
+              <div
+                key={recipe.id}
+                onMouseEnter={() => handleRecipeHover(recipe)}
+              >
+                <RecipeCard
+                  recipe={recipe}
+                  onDelete={handleDelete}
+                  onFavoriteToggle={handleFavoriteToggle}
+                  priority={currentPage === 1 && recipe.id <= 4}
+                />
+              </div>
+            ))
           )}
         </div>
       </div>

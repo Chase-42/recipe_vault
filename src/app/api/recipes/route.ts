@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { db } from "../../../server/db/index";
-import { recipes } from "../../../server/db/schema";
-import { uploadImage } from "../../../utils/uploadImage";
+import { db } from "~/server/db";
+import { recipes } from "~/server/db/schema";
+import { uploadImage } from "~/utils/uploadImage";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 import { schemas, type ProcessedData, type FlaskApiResponse, type FallbackApiResponse } from "~/lib/schemas";
@@ -25,6 +25,14 @@ interface RecipeStep {
 	'@type'?: string;
 	name?: string;
 	itemListElement?: RecipeStep[];
+}
+
+interface RawFlaskResponse {
+	name?: string;
+	image?: string;
+	imageUrl?: string;
+	instructions?: string;
+	ingredients?: string[];
 }
 
 // Utility Functions
@@ -57,12 +65,12 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
 			return {} as FlaskApiResponse;
 		}
 
-		const rawData = await response.json();
+		const rawData = (await response.json()) as RawFlaskResponse;
 
 		const data = {
-			name: rawData.name || undefined,
-			imageUrl: rawData.image || rawData.imageUrl || undefined,
-			instructions: rawData.instructions || undefined,
+			name: rawData.name ?? undefined,
+			imageUrl: rawData.image ?? rawData.imageUrl ?? undefined,
+			instructions: rawData.instructions ?? undefined,
 			ingredients: Array.isArray(rawData.ingredients) ? rawData.ingredients : undefined
 		};
 
@@ -88,7 +96,7 @@ async function tryJsPackageScraper(link: string): Promise<FallbackApiResponse | 
 					return { "@type": "HowToStep" as const, text: instruction };
 				}
 				if (typeof instruction === 'object' && instruction && 'text' in instruction) {
-					return { "@type": "HowToStep" as const, text: String(instruction.text || '') };
+					return { "@type": "HowToStep" as const, text: String(instruction.text ?? '') };
 				}
 				return null;
 			})
@@ -104,7 +112,7 @@ async function tryJsPackageScraper(link: string): Promise<FallbackApiResponse | 
 
 		return {
 			name: data.name,
-			image: { url: data.image?.url || '' },
+			image: { url: data.image?.url ?? '' },
 			recipeInstructions: transformedInstructions,
 			recipeIngredient: validIngredients
 		};
@@ -125,7 +133,7 @@ async function processRecipeData(
 			name = sanitizeString(fallbackData.name);
 			instructions = processInstructions(fallbackData.recipeInstructions);
 			ingredients = fallbackData.recipeIngredient;
-			imageUrl = fallbackData.image?.url || imageUrl;
+			imageUrl = fallbackData.image?.url ?? imageUrl;
 		}
 	}
 
@@ -161,8 +169,8 @@ export async function GET(req: NextRequest) {
 		if (!userId) throw new AuthorizationError();
 
 		const url = new URL(req.url);
-		const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
-		const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+		const offset = Math.max(Number(url.searchParams.get("offset")) ?? 0, 0);
+		const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
 
 		const { recipes: recipeList, total } = await getMyRecipes(userId, offset, limit);
 

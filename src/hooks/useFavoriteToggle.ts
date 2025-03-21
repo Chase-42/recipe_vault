@@ -4,68 +4,67 @@ import type { Recipe } from "~/types";
 import type { PaginatedRecipes } from "~/lib/schemas";
 import { toggleFavorite as toggleFavoriteApi } from "~/utils/recipeService";
 
-// Ensure Recipe type has required fields
-type RequiredRecipe = Required<Omit<Recipe, 'userId'>> & { userId?: string };
-
 export function useFavoriteToggle() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (recipe: RequiredRecipe) => toggleFavoriteApi(recipe.id),
+    mutationFn: async (recipe: Recipe) => {
+      const response = await toggleFavoriteApi(recipe.id);
+      return { id: recipe.id, favorite: response };
+    },
     onMutate: async (recipe) => {
-      const newFavoriteState = !recipe.favorite;
-
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       await queryClient.cancelQueries({ queryKey: ["recipe", recipe.id] });
+      
+      // Update both the list and individual recipe cache
+      const newFavoriteState = !recipe.favorite;
+      
+      // Update recipes list if it exists
+      queryClient.setQueriesData<PaginatedRecipes>({ queryKey: ["recipes"] }, (old) => {
+        if (!old?.recipes) return old;
+        return {
+          ...old,
+          recipes: old.recipes.map((r) =>
+            r.id === recipe.id ? { ...r, favorite: newFavoriteState } : r
+          ),
+        };
+      });
 
-      // Snapshot the previous value
-      const previousRecipe = queryClient.getQueryData<RequiredRecipe>(["recipe", recipe.id]);
-
-      // Optimistically update recipe
-      queryClient.setQueryData(["recipe", recipe.id], {
+      // Update individual recipe if it exists
+      queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
         ...recipe,
         favorite: newFavoriteState,
       });
-
-      // Optimistically update recipes list
-      queryClient.setQueriesData<PaginatedRecipes>(
-        { queryKey: ["recipes"] },
-        (old: PaginatedRecipes | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            recipes: old.recipes.map((r) =>
-              r.id === recipe.id ? { ...r, favorite: newFavoriteState } : r
-            ),
-          };
-        }
-      );
-
-      return {
-        previousRecipe,
-        invalidateQueries: [
-          { queryKey: ["recipes"] },
-          { queryKey: ["recipe", recipe.id] },
-        ],
-      };
     },
-    onError: (_, recipe, context) => {
-      // Revert optimistic updates on error
-      if (context?.previousRecipe) {
-        queryClient.setQueryData(["recipe", recipe.id], context.previousRecipe);
-        queryClient.setQueriesData({ queryKey: ["recipes"] }, (old) => old);
-      }
+    onError: (_, recipe) => {
+      // Revert both caches on error
+      const oldFavoriteState = recipe.favorite;
+      
+      queryClient.setQueriesData<PaginatedRecipes>({ queryKey: ["recipes"] }, (old) => {
+        if (!old?.recipes) return old;
+        return {
+          ...old,
+          recipes: old.recipes.map((r) =>
+            r.id === recipe.id ? { ...r, favorite: oldFavoriteState } : r
+          ),
+        };
+      });
+
+      queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
+        ...recipe,
+        favorite: oldFavoriteState,
+      });
+
       toast.error("Failed to update favorite status");
     },
-    onSuccess: (_, recipe) => {
-      const newFavoriteState = !recipe.favorite;
-      toast(newFavoriteState ? "Recipe favorited" : "Recipe unfavorited");
+    onSuccess: (data) => {
+      toast.success(data.favorite ? "Added to favorites" : "Removed from favorites");
     },
   });
 
   return {
-    toggleFavorite: (recipe: RequiredRecipe) => mutation.mutate(recipe),
+    toggleFavorite: mutation.mutate,
     isLoading: mutation.isPending,
   };
 } 

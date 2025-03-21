@@ -3,7 +3,6 @@ import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
-import type { UpdatedRecipe } from "~/types";
 
 // Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
