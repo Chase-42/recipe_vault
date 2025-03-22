@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
-import { LayoutGrid, LayoutList } from "lucide-react";
+import { LayoutGrid, LayoutList, ChevronUp } from "lucide-react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
   Select,
@@ -58,11 +58,38 @@ export default function RecipeListClient({
 
   // State
   const [gridView, setGridView] = useState<"grid" | "list">("grid");
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
   const sortOption = (getParam("sort") as SortOption) || "newest";
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // Scroll handler
+  useEffect(() => {
+    const scrollContainer = document.querySelector("main");
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      setShowScrollTop(scrollContainer.scrollTop > 300);
+    };
+
+    // Check initial scroll position
+    handleScroll();
+
+    scrollContainer.addEventListener("scroll", handleScroll);
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    const scrollContainer = document.querySelector("main");
+    if (!scrollContainer) return;
+
+    scrollContainer.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, []);
 
   // Data fetching with initial data
   const { data, isLoading } = useQuery<PaginatedResponse>({
@@ -274,7 +301,7 @@ export default function RecipeListClient({
       <div className="min-h-[calc(100vh-160px)]">
         <div
           className={cn(
-            "flex gap-4",
+            "flex gap-4 pb-8",
             gridView === "grid"
               ? "flex-wrap justify-center"
               : "mx-auto w-full max-w-3xl flex-col items-center",
@@ -305,6 +332,21 @@ export default function RecipeListClient({
           )}
         </div>
       </div>
+
+      <Button
+        variant="outline"
+        size="icon"
+        className={cn(
+          "fixed bottom-8 right-8 z-[100] h-10 w-10 rounded-full bg-black text-white transition-all duration-300",
+          showScrollTop
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0",
+        )}
+        onClick={scrollToTop}
+        aria-label="Scroll to top"
+      >
+        <ChevronUp className="h-5 w-5" />
+      </Button>
 
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center">

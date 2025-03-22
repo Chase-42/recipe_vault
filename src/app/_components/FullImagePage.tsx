@@ -156,7 +156,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const instructions = recipe.instructions.split("\n");
 
   return (
-    <div className="flex h-screen w-full flex-col md:flex-row">
+    <div className="flex h-screen max-w-full flex-col overflow-hidden md:flex-row">
       {/* Recipe details section */}
       <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
         <div className="relative z-10 flex items-center justify-between border-b p-2">
@@ -281,11 +281,17 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           }
         >
           {recipe.imageUrl ? (
-            <RecipeImage
-              recipe={recipe}
-              imageLoading={imageLoading}
-              setImageLoading={setImageLoading}
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src={recipe.imageUrl}
+                alt={recipe.name}
+                className="object-contain"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority={true}
+                onLoadingComplete={() => setImageLoading(false)}
+              />
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center">
               <p className="italic text-gray-500">No image available.</p>
