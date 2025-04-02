@@ -63,7 +63,7 @@ function RecipeCard({
   const shouldPrioritize = priority || recipe.id <= 4;
 
   return (
-    <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
+    <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-3 text-white shadow-md transition hover:border-white sm:p-4">
       {recipe.favorite ? (
         <button
           type="button"
@@ -94,13 +94,13 @@ function RecipeCard({
       )}
 
       <div className="flex w-full flex-col items-center">
-        <h2 className="mb-2 break-words text-center text-lg font-semibold">
+        <h2 className="mb-2 break-words text-center text-base font-semibold sm:text-lg">
           {recipe.name}
         </h2>
         <Link
           href={`/img/${recipe.id}?modal=true`}
           onClick={handleCardClick}
-          className="group relative mb-4"
+          className="group relative mb-3 sm:mb-4"
           prefetch={false}
         >
           <div className="relative">
@@ -139,21 +139,29 @@ function RecipeCard({
           </div>
         </Link>
 
-        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <Link href={`/edit/${recipe.id}`} prefetch={false}>
+        <div className="flex w-full justify-center gap-2 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:gap-3">
+          <Link
+            href={`/edit/${recipe.id}`}
+            prefetch={false}
+            className="flex-1 sm:flex-none"
+          >
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+              className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
             >
               Edit
             </Button>
           </Link>
-          <Link href={`/print/${recipe.id}`} prefetch={false}>
+          <Link
+            href={`/print/${recipe.id}`}
+            prefetch={false}
+            className="flex-1 sm:flex-none"
+          >
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+              className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
             >
               Print
             </Button>
@@ -163,22 +171,27 @@ function RecipeCard({
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+                className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
               >
                 Delete
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="sm:max-w-[425px]">
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescription className="text-sm sm:text-base">
                   This action cannot be undone. This will permanently delete the
                   recipe.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(recipe.id)}>
+              <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+                <AlertDialogCancel className="w-full sm:w-auto">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(recipe.id)}
+                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
+                >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

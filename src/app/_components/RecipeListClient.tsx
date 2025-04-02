@@ -244,9 +244,9 @@ export default function RecipeListClient({
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+    <div className="p-2 sm:p-4">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <div className="text-sm text-muted-foreground">
             {total > 0 && (
               <span>
@@ -283,70 +283,39 @@ export default function RecipeListClient({
         </div>
         <div className="flex items-center gap-2">
           <Select value={sortOption} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Sort by</SelectLabel>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
                 <SelectItem value="favorite">Favorites</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="min-h-[calc(100vh-160px)]">
-        <div
-          className={cn(
-            "flex gap-4 pb-8",
-            gridView === "grid"
-              ? "flex-wrap justify-center"
-              : "mx-auto w-full max-w-3xl flex-col items-center",
-          )}
-        >
-          {isLoading ? (
-            <div className="flex h-[50vh] w-full items-center justify-center">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : filteredAndSortedRecipes.length === 0 ? (
-            <div className="flex h-[50vh] w-full items-center justify-center text-lg text-muted-foreground">
-              No recipes found
-            </div>
-          ) : (
-            filteredAndSortedRecipes.map((recipe) => (
-              <div
-                key={recipe.id}
-                onMouseEnter={() => handleRecipeHover(recipe)}
-              >
-                <RecipeCard
-                  recipe={recipe}
-                  onDelete={handleDelete}
-                  onFavoriteToggle={handleFavoriteToggle}
-                  priority={currentPage === 1 && recipe.id <= 4}
-                />
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <Button
-        variant="outline"
-        size="icon"
+      <div
         className={cn(
-          "fixed bottom-8 right-8 z-[100] h-10 w-10 rounded-full bg-black text-white transition-all duration-300",
-          showScrollTop
-            ? "translate-y-0 opacity-100"
-            : "pointer-events-none translate-y-4 opacity-0",
+          "grid gap-4",
+          gridView === "grid"
+            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+            : "grid-cols-1",
         )}
-        onClick={scrollToTop}
-        aria-label="Scroll to top"
       >
-        <ChevronUp className="h-5 w-5" />
-      </Button>
+        {filteredAndSortedRecipes.map((recipe) => (
+          <RecipeCard
+            key={recipe.id}
+            recipe={recipe}
+            onDelete={handleDelete}
+            onFavoriteToggle={handleFavoriteToggle}
+            priority={recipe.id <= 4}
+          />
+        ))}
+      </div>
 
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center">
@@ -360,13 +329,10 @@ export default function RecipeListClient({
                     if (currentPage > 1) handlePageChange(currentPage - 1);
                   }}
                   className={
-                    currentPage <= 1
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                    currentPage <= 1 ? "pointer-events-none opacity-50" : ""
                   }
                 />
               </PaginationItem>
-
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (page) => (
                   <PaginationItem key={page}>
@@ -383,7 +349,6 @@ export default function RecipeListClient({
                   </PaginationItem>
                 ),
               )}
-
               <PaginationItem>
                 <PaginationNext
                   href="#"
@@ -395,13 +360,24 @@ export default function RecipeListClient({
                   className={
                     currentPage >= totalPages
                       ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                      : ""
                   }
                 />
               </PaginationItem>
             </PaginationContent>
           </Pagination>
         </div>
+      )}
+
+      {showScrollTop && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-4 right-4 z-50 h-10 w-10 rounded-full shadow-md"
+          onClick={scrollToTop}
+        >
+          <ChevronUp className="h-4 w-4" />
+        </Button>
       )}
     </div>
   );

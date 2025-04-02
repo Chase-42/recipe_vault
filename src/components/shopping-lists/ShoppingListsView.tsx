@@ -67,9 +67,9 @@ export function ShoppingListsView() {
   // Show loading spinner while items is null
   if (items === null) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-4 px-4 sm:space-y-6 sm:px-0">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Shopping List</h2>
+          <h2 className="text-xl font-semibold sm:text-2xl">Shopping List</h2>
         </div>
         <div className="flex h-[calc(100vh-200px)] items-center justify-center rounded-md border p-4">
           <LoadingSpinner size="md" />
@@ -167,10 +167,10 @@ export function ShoppingListsView() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Shopping List</h2>
-        <div className="flex items-center space-x-4">
+    <div className="mx-auto max-w-4xl space-y-4 px-4 sm:space-y-6 sm:px-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-semibold sm:text-2xl">Shopping List</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <Input
@@ -178,71 +178,86 @@ export function ShoppingListsView() {
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[200px] pl-9"
+              className="w-full pl-9 sm:w-[200px]"
             />
           </div>
           {filteredItems.length > 0 && (
-            <Button variant="outline" size="sm" onClick={toggleSelectAll}>
-              {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
-            </Button>
-          )}
-          {filteredItems.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={isDeleting}>
-                  {isDeleting ? "Deleting..." : "Delete All"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete All Items</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete {filteredItems.length}{" "}
-                    items?
-                    {searchQuery &&
-                      " (Only items matching your search will be deleted)"}{" "}
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={deleteAllItems}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex gap-2 sm:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+                className="flex-1 sm:flex-none"
+              >
+                {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isDeleting}
+                    className="flex-1 sm:flex-none"
                   >
-                    Delete All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    {isDeleting ? "Deleting..." : "Delete All"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="sm:max-w-[425px]">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete All Items</AlertDialogTitle>
+                    <AlertDialogDescription className="text-sm sm:text-base">
+                      Are you sure you want to delete {filteredItems.length}{" "}
+                      items?
+                      {searchQuery &&
+                        " (Only items matching your search will be deleted)"}{" "}
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+                    <AlertDialogCancel className="w-full sm:w-auto">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={deleteAllItems}
+                      className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
         </div>
       </div>
-      <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
+      <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-2 sm:p-4">
         <div className="space-y-2">
           {filteredItems.length === 0 ? (
-            <p className="text-center text-muted-foreground">
-              {searchQuery
-                ? "No items match your search."
-                : "Your shopping list is empty. Add ingredients from recipes to get started."}
-            </p>
+            <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+              <p className="text-sm text-muted-foreground sm:text-base">
+                {searchQuery
+                  ? "No items match your search."
+                  : "Your shopping list is empty. Add ingredients from recipes to get started."}
+              </p>
+            </div>
           ) : (
             filteredItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-lg p-2 hover:bg-accent"
+                className="group flex items-center justify-between rounded-lg p-3 hover:bg-accent"
               >
-                <div className="flex flex-1 items-center space-x-2">
+                <div className="flex flex-1 items-center space-x-3">
                   <Checkbox
                     id={`item-${item.id}`}
                     checked={item.checked}
                     onCheckedChange={(checked) =>
                       void toggleItem(item.id, checked as boolean)
                     }
+                    className="h-5 w-5 sm:h-4 sm:w-4"
                   />
                   <label
                     htmlFor={`item-${item.id}`}
-                    className={`flex-1 cursor-pointer ${
+                    className={`flex-1 cursor-pointer text-sm sm:text-base ${
                       item.checked ? "text-muted-foreground line-through" : ""
                     }`}
                   >
@@ -253,6 +268,7 @@ export function ShoppingListsView() {
                   variant="ghost"
                   size="icon"
                   onClick={() => void deleteItem(item.id)}
+                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100 sm:h-10 sm:w-10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
