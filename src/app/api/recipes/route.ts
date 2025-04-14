@@ -10,6 +10,7 @@ import fetchRecipeImages from "~/utils/scraper";
 import getRecipeData from "@rethora/url-recipe-scraper";
 import sanitizeString from "~/utils/sanitizeString";
 import { AuthorizationError, ValidationError, RecipeError, handleApiError, getErrorMessage } from "~/lib/errors";
+import { withRateLimit } from "~/lib/rateLimit";
 
 // Constants
 const baseUrl = process.env.NODE_ENV === "development" 
@@ -162,85 +163,94 @@ async function processRecipeData(
 	});
 }
 
+// Create a shared rate limiter instance for the recipes endpoint
+const recipesRateLimiter = { maxRequests: 100, windowMs: 60 * 1000, path: "/api/recipes" };
+
 // API Route Handlers
-export async function GET(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) throw new AuthorizationError();
+export async function GET(req: NextRequest): Promise<NextResponse> {
+	return withRateLimit(req, async (req: NextRequest): Promise<NextResponse> => {
+		try {
+			const { userId } = getAuth(req);
+			if (!userId) throw new AuthorizationError();
 
-		const url = new URL(req.url);
-		const offset = Math.max(Number(url.searchParams.get("offset")) ?? 0, 0);
-		const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+			const url = new URL(req.url);
+			const offset = Math.max(Number(url.searchParams.get("offset")) ?? 0, 0);
+			const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
 
-		const { recipes: recipeList, total } = await getMyRecipes(userId, offset, limit);
+			const { recipes: recipeList, total } = await getMyRecipes(userId, offset, limit);
 
-		const response = NextResponse.json({
-			recipes: recipeList,
-			pagination: {
-				total,
-				offset,
-				limit,
-				hasNextPage: total > offset + limit,
-				hasPreviousPage: offset > 0,
-				totalPages: Math.ceil(total / limit),
-				currentPage: Math.floor(offset / limit) + 1,
-			},
-		});
+			const response = NextResponse.json({
+				recipes: recipeList,
+				pagination: {
+					total,
+					offset,
+					limit,
+					hasNextPage: total > offset + limit,
+					hasPreviousPage: offset > 0,
+					totalPages: Math.ceil(total / limit),
+					currentPage: Math.floor(offset / limit) + 1,
+				},
+			});
 
-		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-		return response;
-	} catch (error) {
-		const { error: errorMessage, statusCode } = handleApiError(error);
-		return NextResponse.json({ error: errorMessage }, { status: statusCode });
-	}
+			response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+			return response;
+		} catch (error) {
+			const { error: errorMessage, statusCode } = handleApiError(error);
+			return NextResponse.json({ error: errorMessage }, { status: statusCode });
+		}
+	}, recipesRateLimiter);
 }
 
-export async function POST(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) throw new AuthorizationError();
+export async function POST(req: NextRequest): Promise<NextResponse> {
+	return withRateLimit(req, async (req: NextRequest): Promise<NextResponse> => {
+		try {
+			const { userId } = getAuth(req);
+			if (!userId) throw new AuthorizationError();
 
-		const { link } = (await req.json()) as { link?: string };
-		if (!link?.trim()) throw new ValidationError("Valid link required");
+			const { link } = (await req.json()) as { link?: string };
+			if (!link?.trim()) throw new ValidationError("Valid link required");
 
-		const recipeData = await fetchDataFromFlask(link).catch((error) => {
-			throw new RecipeError(`Failed to extract recipe data: ${getErrorMessage(error)}`, 422);
-		});
+			const recipeData = await fetchDataFromFlask(link).catch((error) => {
+				throw new RecipeError(`Failed to extract recipe data: ${getErrorMessage(error)}`, 422);
+			});
 
-		const processedData = await processRecipeData(recipeData, link);
+			const processedData = await processRecipeData(recipeData, link);
 
-		const [recipe] = await db
-			.insert(recipes)
-			.values({
-				link,
-				imageUrl: processedData.imageUrl,
-				blurDataUrl: processedData.blurDataURL,
-				instructions: processedData.instructions,
-				ingredients: processedData.ingredients.join("\n"),
-				name: processedData.name,
-				userId,
-			})
-			.returning();
+			const [recipe] = await db
+				.insert(recipes)
+				.values({
+					link,
+					imageUrl: processedData.imageUrl,
+					blurDataUrl: processedData.blurDataURL,
+					instructions: processedData.instructions,
+					ingredients: processedData.ingredients.join("\n"),
+					name: processedData.name,
+					userId,
+				})
+				.returning();
 
-		return NextResponse.json(recipe);
-	} catch (error) {
-		const { error: errorMessage, statusCode } = handleApiError(error);
-		return NextResponse.json({ error: errorMessage }, { status: statusCode });
-	}
+			return NextResponse.json(recipe);
+		} catch (error) {
+			const { error: errorMessage, statusCode } = handleApiError(error);
+			return NextResponse.json({ error: errorMessage }, { status: statusCode });
+		}
+	}, recipesRateLimiter);
 }
 
-export async function DELETE(req: NextRequest) {
-	try {
-		const { userId } = getAuth(req);
-		if (!userId) throw new AuthorizationError();
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
+	return withRateLimit(req, async (req: NextRequest): Promise<NextResponse> => {
+		try {
+			const { userId } = getAuth(req);
+			if (!userId) throw new AuthorizationError();
 
-		const id = new URL(req.url).searchParams.get("id");
-		if (!id) throw new ValidationError("Invalid ID");
+			const id = new URL(req.url).searchParams.get("id");
+			if (!id) throw new ValidationError("Invalid ID");
 
-		await deleteRecipe(Number(id));
-		return NextResponse.json({ message: "Recipe deleted successfully" });
-	} catch (error) {
-		const { error: errorMessage, statusCode } = handleApiError(error);
-		return NextResponse.json({ error: errorMessage }, { status: statusCode });
-	}
+			await deleteRecipe(Number(id));
+			return NextResponse.json({ message: "Recipe deleted successfully" });
+		} catch (error) {
+			const { error: errorMessage, statusCode } = handleApiError(error);
+			return NextResponse.json({ error: errorMessage }, { status: statusCode });
+		}
+	}, recipesRateLimiter);
 }
