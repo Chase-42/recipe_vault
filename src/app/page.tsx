@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <main>
       <SignedOut>
-        <div className="flex min-h-screen flex-col items-center overflow-hidden bg-background px-4 py-8 text-center sm:p-8">
+        <div className="flex min-h-screen flex-col items-center overflow-hidden bg-background p-8 text-center">
           {/* Floating Icons */}
           <FloatingIcon className="animation-delay-0 left-1/4 top-32 text-muted-foreground opacity-20">
             <ChefHat size={48} />
@@ -56,9 +56,9 @@ export default function HomePage() {
           {/* Background Gradient */}
           <div className="fixed inset-x-0 top-0 h-[120vh] animate-pulse-very-slow bg-gradient-to-b from-primary/5 via-primary/5 to-transparent opacity-50 blur-3xl" />
 
-          <div className="relative z-10 max-w-4xl pt-12 sm:pt-20">
-            <div className="pb-6 sm:pb-8">
-              <h1 className="relative mb-4 text-4xl font-bold tracking-tight text-foreground sm:mb-6 sm:text-5xl">
+          <div className="relative z-10 max-w-4xl pt-20">
+            <div className="pb-8">
+              <h1 className="relative mb-6 text-5xl font-bold tracking-tight text-foreground">
                 <span className="absolute -bottom-2 left-0 h-1 w-full animate-slide-in bg-primary" />
                 <span className="inline-block animate-fade-in-down">
                   Welcome to
@@ -69,7 +69,7 @@ export default function HomePage() {
               </h1>
 
               <div className="animation-delay-400 relative animate-fade-in-up">
-                <p className="mx-auto max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+                <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
                   Add your favorite recipes in seconds—simply share a recipe
                   link for automatic import of ingredients, instructions, and
                   photos, or manually enter your own. Keep all your recipes in
@@ -80,8 +80,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="animation-delay-600 mt-8 animate-fade-in-up sm:mt-12">
-              <p className="text-base text-muted-foreground sm:text-lg">
+            <div className="animation-delay-600 mt-12 animate-fade-in-up">
+              <p className="text-lg text-muted-foreground">
                 Please sign in to start saving recipes
               </p>
             </div>

@@ -11,7 +11,7 @@ import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Pencil } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +20,7 @@ import {
 } from "~/components/ui/tooltip";
 import { IconHeart } from "@tabler/icons-react";
 import { cn } from "~/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface FullPageImageViewProps {
   id: number;
@@ -79,6 +80,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const queryClient = useQueryClient();
   const [imageLoading, setImageLoading] = useState(true);
   const [showAddToList, setShowAddToList] = useState(false);
+  const router = useRouter();
 
   // Get cached recipe data immediately
   const cachedRecipe = queryClient.getQueryData<Recipe>(["recipe", id]);
@@ -156,76 +158,91 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const instructions = recipe.instructions.split("\n");
 
   return (
-    <div className="flex h-screen max-w-full flex-col overflow-hidden md:flex-row">
+    <div className="flex h-[calc(100vh-2rem)] max-w-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
       {/* Recipe details section */}
       <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
-        <div className="relative z-10 flex items-center justify-between border-b p-2">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background p-2">
           <div className="text-lg font-bold">{recipe.name}</div>
           <div className="flex items-center gap-2">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setShowAddToList(true)}
                     title="Add to shopping list"
+                    className="h-10 w-10"
                   >
-                    <ShoppingCart className="h-4 w-4" />
+                    <ShoppingCart className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Add to shopping list</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
-            {recipe.favorite ? (
-              <button
-                type="button"
-                onClick={() => toggleFavorite(recipe)}
-                className="transition-opacity duration-300"
-                aria-label="Unfavorite"
-              >
-                <IconHeart
-                  size={24}
-                  className="text-red-500 transition-colors duration-300"
-                  strokeWidth={2}
-                  fill="currentColor"
-                />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => toggleFavorite(recipe)}
-                className="transition-opacity duration-300"
-                aria-label="Favorite"
-              >
-                <IconHeart
-                  size={24}
-                  className="text-white transition-colors duration-300"
-                  strokeWidth={2}
-                />
-              </button>
-            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/edit/${recipe.id}`)}
+                    title="Edit recipe"
+                    className="h-10 w-10"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit recipe</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleFavorite(recipe)}
+                    title="Toggle favorite"
+                    className={cn(
+                      "h-10 w-10",
+                      recipe.favorite && "text-red-500",
+                    )}
+                  >
+                    <IconHeart
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        recipe.favorite && "fill-current",
+                      )}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {recipe.favorite
+                    ? "Remove from favorites"
+                    : "Add to favorites"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
-        {/* Ingredients section */}
-        <div className="relative z-10 flex-1">
+        <div className="relative z-10 flex-1 overflow-y-auto">
           <div className="border-b p-4">
-            <h3 className="mb-2 text-base font-semibold">Ingredients:</h3>
+            <h3 className="mb-3 text-base font-semibold">Ingredients:</h3>
             {ingredients.length > 0 ? (
               <ul className="space-y-3">
                 {ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start space-x-2">
+                  <li key={index} className="flex items-start space-x-3">
                     <Checkbox
                       id={`ingredient-${index}`}
-                      className="mt-1"
+                      className="mt-1 h-5 w-5"
                       checked={checkedIngredients[index] ?? false}
                       onCheckedChange={() => handleIngredientToggle(index)}
                     />
                     <label
                       htmlFor={`ingredient-${index}`}
-                      className={`text-sm ${
+                      className={`flex-1 text-sm ${
                         checkedIngredients[index]
                           ? "text-gray-500 line-through"
                           : ""
@@ -243,11 +260,13 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
           {/* Instructions section */}
           <div className="border-b p-4">
-            <h3 className="mb-2 text-base font-semibold">Instructions:</h3>
+            <h3 className="mb-3 text-base font-semibold">Instructions:</h3>
             {instructions.length > 0 ? (
-              <ol className="list-inside list-decimal space-y-1">
+              <ol className="list-inside list-decimal space-y-2">
                 {instructions.map((instruction, index) => (
-                  <li key={index}>{instruction}</li>
+                  <li key={index} className="text-sm">
+                    {instruction}
+                  </li>
                 ))}
               </ol>
             ) : (
@@ -262,7 +281,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                 href={recipe.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
+                className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 View Full Recipe
               </a>
@@ -274,7 +293,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       </div>
 
       {/* Recipe image section */}
-      <div className="relative flex-1 md:w-1/2">
+      <div className="relative flex-1 overflow-hidden md:w-1/2">
         <Suspense
           fallback={
             <LoadingSpinner size="md" fullHeight={false} className="p-8" />

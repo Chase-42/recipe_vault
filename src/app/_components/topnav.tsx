@@ -49,7 +49,7 @@ export const TopNav = () => {
         </Link>
       </div>
 
-      <div className="flex w-full flex-col items-center gap-3 md:w-auto md:flex-row md:gap-4">
+      <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
         <SignedOut>
           <SignInButton />
         </SignedOut>
@@ -61,13 +61,13 @@ export const TopNav = () => {
           >
             Add Recipe
           </Button>
-          <Link href="/shopping-lists" className="w-full md:w-auto">
+          <Link href="/shopping-lists">
             <Button
               variant="ghost"
-              className="flex w-full items-center justify-center gap-2 md:w-auto"
+              className="flex w-full items-center gap-2 md:w-auto"
             >
               <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">Shopping Lists</span>
+              Shopping Lists
             </Button>
           </Link>
           <Input
@@ -75,7 +75,7 @@ export const TopNav = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search recipes..."
-            className="w-full md:w-[200px]"
+            className="w-full md:w-auto"
           />
           <UserButton />
         </SignedIn>
