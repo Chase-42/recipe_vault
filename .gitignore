@@ -58,3 +58,6 @@ venv/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Audit
+AUDIT.md
