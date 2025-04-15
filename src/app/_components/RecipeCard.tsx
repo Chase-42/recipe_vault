@@ -63,7 +63,7 @@ function RecipeCard({
   const shouldPrioritize = priority || recipe.id <= 4;
 
   return (
-    <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-3 text-white shadow-md transition hover:border-white sm:p-4">
+    <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
       {recipe.favorite ? (
         <button
           type="button"
@@ -94,37 +94,36 @@ function RecipeCard({
       )}
 
       <div className="flex w-full flex-col items-center">
-        <h2 className="mb-2 break-words text-center text-base font-semibold sm:text-lg">
+        <h2 className="mb-2 break-words text-center text-lg font-semibold">
           {recipe.name}
         </h2>
         <Link
           href={`/img/${recipe.id}?modal=true`}
           onClick={handleCardClick}
-          className="group relative mb-3 sm:mb-4"
+          className="group relative mb-4 w-full"
           prefetch={false}
         >
-          <div className="relative">
+          <div className="relative aspect-square w-full overflow-hidden rounded-md">
             <Image
               ref={imageRef}
               src={recipe.imageUrl}
               className={cn(
-                "rounded-md transition-all duration-300",
+                "h-full w-full object-cover transition-all duration-300",
                 !isImageLoaded && "blur-sm",
-                "group-hover:scale-105",
+                "group-hover:scale-105 group-active:scale-100",
               )}
               style={{
-                objectFit: "cover",
                 transform: "translateZ(0)",
                 willChange: "transform",
               }}
-              width={300}
-              height={300}
+              width={400}
+              height={400}
               alt={recipe.name}
               placeholder="blur"
               blurDataURL={recipe.blurDataUrl}
               priority={shouldPrioritize}
               loading={shouldPrioritize ? "eager" : "lazy"}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
               onLoad={handleImageLoadComplete}
               onError={handleImageLoadComplete}
               quality={75}
@@ -139,29 +138,21 @@ function RecipeCard({
           </div>
         </Link>
 
-        <div className="flex w-full justify-center gap-2 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:gap-3">
-          <Link
-            href={`/edit/${recipe.id}`}
-            prefetch={false}
-            className="flex-1 sm:flex-none"
-          >
+        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <Link href={`/edit/${recipe.id}`} prefetch={false}>
             <Button
               variant="secondary"
               size="sm"
-              className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
+              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
             >
               Edit
             </Button>
           </Link>
-          <Link
-            href={`/print/${recipe.id}`}
-            prefetch={false}
-            className="flex-1 sm:flex-none"
-          >
+          <Link href={`/print/${recipe.id}`} prefetch={false}>
             <Button
               variant="secondary"
               size="sm"
-              className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
+              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
             >
               Print
             </Button>
@@ -171,27 +162,22 @@ function RecipeCard({
               <Button
                 variant="secondary"
                 size="sm"
-                className="w-full bg-white/10 transition-colors duration-200 hover:bg-white/20 sm:w-auto"
+                className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
               >
                 Delete
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="sm:max-w-[425px]">
+            <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription className="text-sm sm:text-base">
+                <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete the
                   recipe.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
-                <AlertDialogCancel className="w-full sm:w-auto">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDelete(recipe.id)}
-                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
-                >
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(recipe.id)}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
