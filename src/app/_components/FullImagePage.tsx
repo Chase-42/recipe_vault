@@ -3,15 +3,16 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Checkbox } from "~/components/ui/checkbox";
-import { fetchRecipe } from "~/utils/recipeService";
+import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
 import type { Recipe } from "~/types";
+import { Category, MAIN_MEAL_CATEGORIES } from "~/types/category";
 import LoadingSpinner from "./LoadingSpinner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { ShoppingCart, Pencil } from "lucide-react";
+import { ShoppingCart, Pencil, Heart, Edit, ExternalLink } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -21,8 +22,10 @@ import {
 import { IconHeart } from "@tabler/icons-react";
 import { cn } from "~/lib/utils";
 import { useRouter } from "next/navigation";
+import { Badge } from "../../components/ui/badge";
+import { toast } from "sonner";
 
-interface FullPageImageViewProps {
+interface FullImagePageProps {
   id: number;
 }
 
@@ -76,22 +79,21 @@ function RecipeImage({
   );
 }
 
-export default function FullPageImageView({ id }: FullPageImageViewProps) {
+export default function FullImagePage({ id }: FullImagePageProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [imageLoading, setImageLoading] = useState(true);
   const [showAddToList, setShowAddToList] = useState(false);
-  const router = useRouter();
 
   // Get cached recipe data immediately
   const cachedRecipe = queryClient.getQueryData<Recipe>(["recipe", id]);
 
-  const {
-    data: recipe,
-    error,
-    isLoading,
-  } = useQuery<Recipe>({
+  const { data: recipe } = useQuery<Recipe>({
     queryKey: ["recipe", id],
-    queryFn: () => fetchRecipe(id),
+    queryFn: async () => {
+      const data = await fetchRecipe(id);
+      return data;
+    },
     enabled: !!id,
     placeholderData: cachedRecipe,
   });
@@ -132,191 +134,142 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   };
 
   // Loading state
-  if (isLoading && !cachedRecipe) {
-    return <LoadingSpinner size="lg" />;
-  }
-
-  // Error state
-  if (error instanceof Error) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-xl text-red-800">Failed to load recipe.</div>
-      </div>
-    );
-  }
-
-  // Not found state
   if (!recipe) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-xl text-red-800">Recipe not found.</div>
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Error</h2>
+          <p className="text-gray-500">Failed to load recipe</p>
+        </div>
       </div>
     );
   }
+
+  // Debug log for recipe object
+  console.log("FullImagePage recipe:", recipe);
 
   const ingredients = recipe.ingredients.split("\n");
   const instructions = recipe.instructions.split("\n");
 
+  const toggleFavoriteHandler = async (recipe: Recipe) => {
+    try {
+      await updateRecipe({
+        ...recipe,
+        favorite: !recipe.favorite,
+      });
+      toast.success(
+        recipe.favorite ? "Removed from favorites" : "Added to favorites",
+      );
+    } catch (error) {
+      toast.error("Failed to update favorite status");
+    }
+  };
+
   return (
-    <div className="flex h-[calc(100vh-2rem)] max-w-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-      {/* Recipe details section */}
-      <div className="flex flex-col border-b p-4 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background p-2">
-          <div className="text-lg font-bold">{recipe.name}</div>
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowAddToList(true)}
-                    title="Add to shopping list"
-                    className="h-10 w-10"
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-bold">{recipe.name}</div>
+        <div className="flex space-x-2">
+          {recipe.categories && (
+            <div className="flex space-x-2">
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm">
+                {recipe.categories}
+              </span>
+            </div>
+          )}
+          {recipe.tags && (
+            <div className="flex space-x-2">
+              {recipe.tags
+                .split(",")
+                .filter(Boolean)
+                .map((tag: string, i: number) => (
+                  <span
+                    key={i}
+                    className="rounded-full bg-gray-100 px-3 py-1 text-sm"
                   >
-                    <ShoppingCart className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Add to shopping list</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.push(`/edit/${recipe.id}`)}
-                    title="Edit recipe"
-                    className="h-10 w-10"
-                  >
-                    <Pencil className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Edit recipe</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleFavorite(recipe)}
-                    title="Toggle favorite"
-                    className={cn(
-                      "h-10 w-10",
-                      recipe.favorite && "text-red-500",
-                    )}
-                  >
-                    <IconHeart
-                      className={cn(
-                        "h-5 w-5 transition-colors",
-                        recipe.favorite && "fill-current",
-                      )}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {recipe.favorite
-                    ? "Remove from favorites"
-                    : "Add to favorites"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-
-        <div className="relative z-10 flex-1 overflow-y-auto">
-          <div className="border-b p-4">
-            <h3 className="mb-3 text-base font-semibold">Ingredients:</h3>
-            {ingredients.length > 0 ? (
-              <ul className="space-y-3">
-                {ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start space-x-3">
-                    <Checkbox
-                      id={`ingredient-${index}`}
-                      className="mt-1 h-5 w-5"
-                      checked={checkedIngredients[index] ?? false}
-                      onCheckedChange={() => handleIngredientToggle(index)}
-                    />
-                    <label
-                      htmlFor={`ingredient-${index}`}
-                      className={`flex-1 text-sm ${
-                        checkedIngredients[index]
-                          ? "text-gray-500 line-through"
-                          : ""
-                      }`}
-                    >
-                      {ingredient}
-                    </label>
-                  </li>
+                    {tag.trim()}
+                  </span>
                 ))}
-              </ul>
-            ) : (
-              <p className="italic text-gray-500">No ingredients listed.</p>
-            )}
-          </div>
-
-          {/* Instructions section */}
-          <div className="border-b p-4">
-            <h3 className="mb-3 text-base font-semibold">Instructions:</h3>
-            {instructions.length > 0 ? (
-              <ol className="list-inside list-decimal space-y-2">
-                {instructions.map((instruction, index) => (
-                  <li key={index} className="text-sm">
-                    {instruction}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="italic text-gray-500">No instructions provided.</p>
-            )}
-          </div>
-
-          {/* View Full Recipe link */}
-          <div className="p-4 text-center">
-            {recipe.link ? (
-              <a
-                href={recipe.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                View Full Recipe
-              </a>
-            ) : (
-              <p className="italic text-gray-500">No link available.</p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Recipe image section */}
-      <div className="relative flex-1 overflow-hidden md:w-1/2">
-        <Suspense
-          fallback={
-            <LoadingSpinner size="md" fullHeight={false} className="p-8" />
-          }
+      <div className="flex space-x-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => router.push(`/edit/${recipe.id}`)}
         >
-          {recipe.imageUrl ? (
-            <div className="relative h-full w-full">
-              <Image
-                src={recipe.imageUrl}
-                alt={recipe.name}
-                className="object-contain"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority={true}
-                onLoadingComplete={() => setImageLoading(false)}
-              />
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <p className="italic text-gray-500">No image available.</p>
-            </div>
-          )}
-        </Suspense>
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => toggleFavoriteHandler(recipe)}
+        >
+          <Heart
+            className={`h-4 w-4 ${recipe.favorite && "text-red-500"}`}
+            fill={recipe.favorite ? "currentColor" : "none"}
+          />
+        </Button>
+        {recipe.favorite && (
+          <span className="text-sm text-gray-500">
+            {recipe.favorite ? "Favorite" : ""}
+          </span>
+        )}
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <h3 className="mb-4 text-lg font-semibold">Ingredients</h3>
+          <ul className="space-y-2">
+            {ingredients.map((ingredient: string, index: number) => (
+              <li key={index} className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>{ingredient.trim()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="mb-4 text-lg font-semibold">Instructions</h3>
+          <ol className="space-y-4">
+            {instructions.map((instruction: string, index: number) => (
+              <li key={index} className="flex">
+                <span className="mr-2 font-bold">{index + 1}.</span>
+                <span>{instruction.trim()}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {recipe.link ? (
+        <div className="mt-6">
+          <a
+            href={recipe.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-blue-500 hover:underline"
+          >
+            View Original Recipe
+            <ExternalLink className="ml-1 h-4 w-4" />
+          </a>
+        </div>
+      ) : null}
+
+      {recipe.imageUrl ? (
+        <div className="mt-6">
+          <img src={recipe.imageUrl} alt={recipe.name} className="rounded-lg" />
+        </div>
+      ) : null}
+
+      <div className="mt-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          Back
+        </Button>
       </div>
 
       <AddToListModal
