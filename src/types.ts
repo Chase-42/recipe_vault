@@ -1,14 +1,18 @@
+import type { Category } from "./types/category";
+
 export interface Recipe {
 	id: number;
 	name: string;
-	link?: string;
+	link: string;
 	imageUrl: string;
 	blurDataUrl: string;
 	instructions: string;
 	ingredients: string;
 	favorite: boolean;
 	createdAt: string;
-	userId?: string;
+	userId: string;
+	categories: string;
+	tags: string;
 }
 
 export interface RecipesData {

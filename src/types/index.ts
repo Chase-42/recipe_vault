@@ -1,3 +1,5 @@
+import type { Category } from "./category";
+
 export interface Recipe {
   id: number;
   name: string;
@@ -9,6 +11,8 @@ export interface Recipe {
   favorite: boolean;
   createdAt: string;
   userId: string;
+  categories: string;
+  tags: string;
 }
 
 export interface PaginationMetadata {

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { Category } from "~/types/category"
 
 const image = z.object({
   url: z.string(),
@@ -9,14 +10,16 @@ const image = z.object({
 const recipe = z.object({
   id: z.number(),
   name: z.string(),
-  link: z.string().default(""),
+  link: z.string(),
   imageUrl: z.string(),
   blurDataUrl: z.string(),
   instructions: z.string(),
   ingredients: z.string(),
   favorite: z.boolean(),
   createdAt: z.string(),
-  userId: z.string().optional()
+  userId: z.string().optional(),
+  categories: z.string().optional(),
+  tags: z.string().optional(),
 })
 
 const paginationMetadata = z.object({
