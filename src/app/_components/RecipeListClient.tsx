@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
-import type { Recipe, PaginatedResponse } from "~/types";
+import type { Recipe } from "~/types";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -13,9 +13,7 @@ import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
@@ -36,6 +34,7 @@ import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
 import { useUrlParams } from "~/hooks/useUrlParams";
+import { MAIN_MEAL_CATEGORIES, type Category } from "~/types/category";
 
 const ITEMS_PER_PAGE = 12;
 type SortOption = "favorite" | "newest" | "oldest";
@@ -46,6 +45,41 @@ interface RecipeListClientProps {
     total: number;
   };
 }
+
+// Update type definitions
+type RecipeWithCategories = Recipe & {
+  categories?: Category | undefined;
+  tags?: string | undefined;
+};
+
+type PaginatedRecipeResponse = {
+  recipes: RecipeWithCategories[];
+  pagination: {
+    total: number;
+    totalPages: number;
+    currentPage: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
+// Update the fetchRecipes function type
+const fetchRecipesWithTypes = async (
+  offset: number,
+  limit: number,
+): Promise<PaginatedRecipeResponse> => {
+  const response = await fetchRecipes(offset, limit);
+  return {
+    recipes: response.recipes as RecipeWithCategories[],
+    pagination: {
+      total: response.pagination.total,
+      totalPages: Math.ceil(response.pagination.total / limit),
+      currentPage: Math.floor(offset / limit) + 1,
+      hasNextPage: offset + limit < response.pagination.total,
+      hasPreviousPage: offset > 0,
+    },
+  };
+};
 
 export default function RecipeListClient({
   initialData,
@@ -59,6 +93,7 @@ export default function RecipeListClient({
   // State
   const [gridView, setGridView] = useState<"grid" | "list">("grid");
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category>("all");
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
@@ -92,49 +127,61 @@ export default function RecipeListClient({
   }, []);
 
   // Data fetching with initial data
-  const { data, isLoading } = useQuery<PaginatedResponse>({
+  const { data, isLoading } = useQuery<PaginatedRecipeResponse>({
     queryKey: ["recipes", offset],
-    queryFn: () => fetchRecipes(offset, ITEMS_PER_PAGE),
+    queryFn: () => fetchRecipesWithTypes(offset, ITEMS_PER_PAGE),
     initialData: {
-      recipes: initialData.recipes,
+      recipes: initialData.recipes as RecipeWithCategories[],
       pagination: {
         total: initialData.total,
-        offset,
-        limit: ITEMS_PER_PAGE,
-        hasNextPage: initialData.total > offset + ITEMS_PER_PAGE,
-        hasPreviousPage: offset > 0,
         totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
-        currentPage,
+        currentPage: currentPage,
+        hasNextPage:
+          currentPage < Math.ceil(initialData.total / ITEMS_PER_PAGE),
+        hasPreviousPage: currentPage > 1,
       },
     },
     staleTime: 1000 * 30,
   });
 
+  // Update the recipes type
   const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
+
+  // Update the category filter
+  const categoryFilteredRecipes = useMemo(
+    () =>
+      selectedCategory && selectedCategory !== "all"
+        ? recipes.filter((r) => r.categories === selectedCategory)
+        : recipes,
+    [recipes, selectedCategory],
+  );
 
   // Delete mutation
   const deleteRecipeMutation = useMutation({
     mutationFn: deleteRecipe,
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
-      const previousRecipes = queryClient.getQueryData<PaginatedResponse>([
-        "recipes",
-      ]);
+      const previousRecipes = queryClient.getQueryData<PaginatedRecipeResponse>(
+        ["recipes"],
+      );
 
       if (previousRecipes) {
-        queryClient.setQueryData<PaginatedResponse>(["recipes"], (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            recipes: old.recipes.filter((recipe) => recipe.id !== id),
-            pagination: {
-              ...old.pagination,
-              total: old.pagination.total - 1,
-            },
-          };
-        });
+        queryClient.setQueryData<PaginatedRecipeResponse>(
+          ["recipes"],
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              recipes: old.recipes.filter((recipe) => recipe.id !== id),
+              pagination: {
+                ...old.pagination,
+                total: old.pagination.total - 1,
+              },
+            };
+          },
+        );
       }
 
       return { previousRecipes };
@@ -175,14 +222,14 @@ export default function RecipeListClient({
 
   // Filter and sort recipes
   const filteredAndSortedRecipes = useRecipeFiltering(
-    recipes,
+    categoryFilteredRecipes,
     searchTerm,
     sortOption,
   );
 
   // Smart preloading on hover with rate limiting
   const handleRecipeHover = useCallback(
-    (recipe: Recipe) => {
+    (recipe: RecipeWithCategories) => {
       const cacheKey = ["preloadedImages", recipe.id];
       if (!queryClient.getQueryData(cacheKey)) {
         // Load image
@@ -207,7 +254,7 @@ export default function RecipeListClient({
     [queryClient, router],
   );
 
-  // Prefetch next page with rate limiting
+  // Update prefetching to use typed function
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
@@ -216,7 +263,7 @@ export default function RecipeListClient({
         const nextPageOffset = currentPage * ITEMS_PER_PAGE;
         void queryClient.prefetchQuery({
           queryKey: ["recipes", nextPageOffset],
-          queryFn: () => fetchRecipes(nextPageOffset, ITEMS_PER_PAGE),
+          queryFn: () => fetchRecipesWithTypes(nextPageOffset, ITEMS_PER_PAGE),
           staleTime: 1000 * 30, // Consider data fresh for 30 seconds
         });
       }, 1000); // Delay prefetching by 1 second
@@ -225,7 +272,7 @@ export default function RecipeListClient({
     return () => clearTimeout(timeoutId);
   }, [currentPage, totalPages, queryClient]);
 
-  // Event handlers
+  // Update the favorite toggle
   const handleFavoriteToggle = useCallback(
     (id: number) => {
       const recipe = recipes.find((r) => r.id === id);
@@ -282,17 +329,31 @@ export default function RecipeListClient({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Select
+            value={selectedCategory}
+            onValueChange={(value: Category) => setSelectedCategory(value)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {MAIN_MEAL_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={sortOption} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-48">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Sort by</SelectLabel>
-                <SelectItem value="favorite">Favorites</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-              </SelectGroup>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="favorite">Favorites First</SelectItem>
             </SelectContent>
           </Select>
         </div>
