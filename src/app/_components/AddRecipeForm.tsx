@@ -11,6 +11,14 @@ import LoadingSpinner from "./LoadingSpinner";
 import type { Recipe, APIResponse } from "~/types";
 import Image from "next/image";
 import { ImageIcon, X } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "../../components/ui/select";
+import { Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
 
 type CreateRecipeInput = Omit<
   Recipe,
@@ -51,6 +59,8 @@ const CreateRecipeClient = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [ingredients, setIngredients] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [categories, setCategories] = useState<Category | undefined>(undefined);
+  const [tags, setTags] = useState<string>("");
 
   const mutation = useMutation({
     mutationFn: createRecipe,
@@ -124,6 +134,8 @@ const CreateRecipeClient = () => {
       ingredients,
       instructions,
       favorite: false,
+      categories,
+      tags,
     };
     mutation.mutate(newRecipe);
   };
@@ -222,6 +234,34 @@ In a large bowl, combine ingredients
 Bake for 25-30 minutes`}
               className="mt-1 block min-h-[200px] w-full"
               rows={10}
+            />
+          </div>
+          <div>
+            <label className="text-md m-1 block font-medium">Category</label>
+            <Select
+              value={categories}
+              onValueChange={(v) => setCategories(v as Category)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {MAIN_MEAL_CATEGORIES.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-md m-1 block font-medium">Tag(s)</label>
+            <Input
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="e.g. spicy, quick, gluten-free"
+              className="mt-1 block w-full"
             />
           </div>
           <div className="flex justify-end space-x-2">

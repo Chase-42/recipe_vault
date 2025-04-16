@@ -23,6 +23,8 @@ export const recipes = createTable(
 		ingredients: text("ingredients").notNull(),
 		favorite: boolean("favorite").default(false).notNull(),
 		createdAt: timestamp("createdAt").defaultNow().notNull(),
+		categories: text("categories").notNull().default(""),
+		tags: text("tags").notNull().default(""),
 	},
 	(table) => ({
 		userIdIdx: index("user_id_idx").on(table.userId),
