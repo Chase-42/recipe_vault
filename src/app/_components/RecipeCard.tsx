@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import { Badge } from "../../components/ui/badge";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -97,6 +98,26 @@ function RecipeCard({
         <h2 className="mb-2 break-words text-center text-lg font-semibold">
           {recipe.name}
         </h2>
+        {(recipe.categories ?? recipe.tags) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {recipe.categories
+              ?.split(",")
+              .filter(Boolean)
+              .map((cat, i) => (
+                <Badge key={"cat-" + i} variant="secondary">
+                  {cat.trim()}
+                </Badge>
+              ))}
+            {recipe.tags
+              ?.split(",")
+              .filter(Boolean)
+              .map((tag, i) => (
+                <Badge key={"tag-" + i} variant="outline">
+                  {tag.trim()}
+                </Badge>
+              ))}
+          </div>
+        )}
         <Link
           href={`/img/${recipe.id}?modal=true`}
           onClick={handleCardClick}

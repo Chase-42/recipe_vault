@@ -3,6 +3,7 @@ import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
+import { MAIN_MEAL_CATEGORIES } from "../types/category";
 
 // Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
@@ -31,6 +32,8 @@ export async function getMyRecipes(
 				blurDataUrl: recipes.blurDataUrl,
 				favorite: recipes.favorite,
 				createdAt: recipes.createdAt,
+				categories: recipes.categories,
+				tags: recipes.tags,
 			})
 			.from(recipes)
 			.where(eq(recipes.userId, userId))
@@ -41,7 +44,9 @@ export async function getMyRecipes(
 		return {
 			recipes: paginatedRecipes.map(recipe => ({
 				...recipe,
-				createdAt: recipe.createdAt.toISOString()
+				createdAt: recipe.createdAt.toISOString(),
+				categories: toCategoryOrUndefined(recipe.categories),
+				tags: recipe.tags,
 			})),
 			total,
 		};
@@ -64,7 +69,12 @@ export const getRecipe = async (id: number) => {
 	if (!recipe) throw new Error("Recipe not found");
 	if (recipe.userId !== userId) throw new Error("Unauthorized");
 
-	return recipe;
+	return {
+		...recipe,
+		createdAt: recipe.createdAt.toISOString(),
+		categories: toCategoryOrUndefined(recipe.categories),
+		tags: recipe.tags,
+	};
 };
 
 export async function deleteRecipe(id: number) {
@@ -106,9 +116,17 @@ export async function updateRecipe(
 			throw new Error("Recipe not found");
 		}
 
-		return result[0];
+		return {
+			...result[0],
+			categories: toCategoryOrUndefined(result[0].categories),
+			tags: result[0].tags,
+		};
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
 		throw new Error("Failed to update recipe");
 	}
+}
+
+function toCategoryOrUndefined(val: string | undefined): typeof MAIN_MEAL_CATEGORIES[number] | undefined {
+	return val && MAIN_MEAL_CATEGORIES.includes(val as typeof MAIN_MEAL_CATEGORIES[number]) ? (val as typeof MAIN_MEAL_CATEGORIES[number]) : undefined;
 }

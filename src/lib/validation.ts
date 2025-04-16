@@ -38,6 +38,8 @@ export const createRecipeSchema = z.object({
   instructions: createSanitizedString(10000, "Instructions")
     .transform(processMultilineText),
   favorite: z.boolean().optional().default(false),
+  categories: z.string().optional(),
+  tags: z.string().optional(),
 });
 
 // For updates, we want to make all fields optional except link which must be a string (can be empty)

@@ -8,9 +8,17 @@ import { Button } from "~/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import LoadingSpinner from "./LoadingSpinner";
-import type { Recipe, PaginatedResponse } from "~/types";
+import type { Recipe } from "~/types";
 import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
 import dynamic from "next/dynamic";
+import { Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "../../components/ui/select";
 
 const ImageUpload = dynamic(() => import("./ImageUpload"), {
   loading: () => (
@@ -30,6 +38,8 @@ interface FormData {
   ingredients: string;
   instructions: string;
   imageUrl: string;
+  categories: Category | undefined;
+  tags: string;
 }
 
 function useRecipeMutation(initialRecipe: Recipe) {
@@ -53,7 +63,7 @@ function useRecipeMutation(initialRecipe: Recipe) {
       ]);
 
       // Update recipes list
-      queryClient.setQueriesData<PaginatedResponse>(
+      queryClient.setQueriesData<{ recipes: Recipe[] }>(
         { queryKey: ["recipes"] },
         (old) => {
           if (!old?.recipes) return old;
@@ -95,7 +105,7 @@ function useRecipeMutation(initialRecipe: Recipe) {
     onSuccess: (updatedRecipe) => {
       // Update cache with server data
       queryClient.setQueryData(["recipe", initialRecipe.id], updatedRecipe);
-      queryClient.setQueriesData<PaginatedResponse>(
+      queryClient.setQueriesData<{ recipes: Recipe[] }>(
         { queryKey: ["recipes"] },
         (old) => {
           if (!old?.recipes) return old;
@@ -128,18 +138,23 @@ function useRecipeMutation(initialRecipe: Recipe) {
 const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   initialRecipe,
 }) => {
-  const { data: recipe, error } = useQuery<Recipe>({
+  const { data: recipe } = useQuery({
     queryKey: ["recipe", initialRecipe.id],
-    queryFn: () => fetchRecipe(initialRecipe.id),
+    queryFn: async () => {
+      const data = await fetchRecipe(initialRecipe.id);
+      return data;
+    },
     initialData: initialRecipe,
   });
 
   const [formData, setFormData] = useState<FormData>({
-    name: recipe.name,
-    link: recipe.link ?? "",
-    ingredients: recipe.ingredients,
-    instructions: recipe.instructions,
-    imageUrl: recipe.imageUrl,
+    name: recipe?.name ?? "",
+    link: recipe?.link ?? "",
+    ingredients: recipe?.ingredients ?? "",
+    instructions: recipe?.instructions ?? "",
+    imageUrl: recipe?.imageUrl ?? "",
+    categories: recipe?.categories,
+    tags: recipe?.tags ?? "",
   });
 
   const { mutation, isSubmitting } = useRecipeMutation(initialRecipe);
@@ -149,6 +164,14 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   ) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, categories: value as Category }));
+  };
+
+  const handleTagChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, tags: e.target.value }));
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -164,7 +187,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     });
   };
 
-  if (error) {
+  if (recipe === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-xl text-red-800">Error loading recipe</div>
@@ -238,6 +261,36 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
                 onChange={handleInputChange}
                 placeholder="Enter instructions, one step per line"
                 rows={6}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <Select
+                value={formData.categories}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MAIN_MEAL_CATEGORIES.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Tag(s)</label>
+              <Input
+                id="tags"
+                value={formData.tags}
+                onChange={handleTagChange}
+                placeholder="e.g. spicy, quick, gluten-free"
+                className="mt-1 block w-full"
               />
             </div>
 
