@@ -34,7 +34,7 @@ import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
 import { useUrlParams } from "~/hooks/useUrlParams";
-import { MAIN_MEAL_CATEGORIES } from "../../types/category";
+import { MAIN_MEAL_CATEGORIES, type Category } from "~/types/category";
 
 const ITEMS_PER_PAGE = 12;
 type SortOption = "favorite" | "newest" | "oldest";
@@ -47,8 +47,6 @@ interface RecipeListClientProps {
 }
 
 // Update type definitions
-type Category = "Breakfast" | "Lunch" | "Dinner" | "Dessert" | "all";
-
 type RecipeWithCategories = Recipe & {
   categories?: Category | undefined;
   tags?: string | undefined;
