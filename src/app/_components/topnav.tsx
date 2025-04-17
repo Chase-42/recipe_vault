@@ -7,7 +7,7 @@ import { useSearch } from "../../providers";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Plus, Search } from "lucide-react";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -54,30 +54,33 @@ export const TopNav = () => {
           <SignInButton />
         </SignedOut>
         <SignedIn>
-          <Button
-            onClick={handleOpenModal}
-            type="button"
-            className="w-full md:w-auto"
-          >
-            Add Recipe
-          </Button>
-          <Link href="/shopping-lists">
+          <div className="relative w-full md:w-auto">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search recipes..."
+              className="w-full pl-9 md:w-[300px]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              className="flex w-full items-center gap-2 md:w-auto"
+              onClick={handleOpenModal}
+              type="button"
+              className="flex items-center gap-2"
             >
-              <ShoppingCart className="h-4 w-4" />
-              Shopping Lists
+              <Plus className="h-4 w-4" />
+              Add Recipe
             </Button>
-          </Link>
-          <Input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search recipes..."
-            className="w-full md:w-auto"
-          />
-          <UserButton />
+            <Link href="/shopping-lists">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                Shopping Lists
+              </Button>
+            </Link>
+            <UserButton />
+          </div>
         </SignedIn>
       </div>
 

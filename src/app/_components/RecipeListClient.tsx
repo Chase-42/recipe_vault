@@ -312,14 +312,6 @@ export default function RecipeListClient({
     [recipes, toggleFavorite],
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center text-xl text-red-800">
-        Loading recipes...
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

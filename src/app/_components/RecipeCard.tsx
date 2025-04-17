@@ -20,9 +20,16 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { Badge } from "../../components/ui/badge";
+import { useSearch } from "~/providers";
 
 interface RecipeCardProps {
-  recipe: Recipe;
+  recipe: Recipe & {
+    _matches?: Array<{
+      key: string;
+      value: string;
+      indices: Array<[number, number]>;
+    }>;
+  };
   onDelete: (id: number) => void;
   onFavoriteToggle: (id: number) => void;
   priority?: boolean;
@@ -37,6 +44,7 @@ function RecipeCard({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const router = useRouter();
   const imageRef = useRef<HTMLImageElement>(null);
+  const { searchTerm } = useSearch();
 
   const handleFavoriteToggle = useCallback(() => {
     onFavoriteToggle(recipe.id);
@@ -62,6 +70,45 @@ function RecipeCard({
   );
 
   const shouldPrioritize = priority || recipe.id <= 4;
+
+  // Helper function to highlight matches
+  const highlightMatches = (
+    text: string,
+    matches?: Array<[number, number]>,
+  ) => {
+    if (!matches || !searchTerm) return text;
+
+    const result = [];
+    let lastIndex = 0;
+
+    matches.forEach(([start, end]) => {
+      // Add text before the match
+      if (start > lastIndex) {
+        result.push(text.slice(lastIndex, start));
+      }
+      // Add the highlighted match
+      result.push(
+        <span key={start} className="bg-yellow-500/30">
+          {text.slice(start, end + 1)}
+        </span>,
+      );
+      lastIndex = end + 1;
+    });
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+
+    return result;
+  };
+
+  // Get matches for each field
+  const nameMatches = recipe._matches?.find((m) => m.key === "name")?.indices;
+  const categoryMatches = recipe._matches?.find(
+    (m) => m.key === "categories",
+  )?.indices;
+  const tagMatches = recipe._matches?.find((m) => m.key === "tags")?.indices;
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
@@ -96,7 +143,7 @@ function RecipeCard({
 
       <div className="flex w-full flex-col items-center">
         <h2 className="mb-2 break-words text-center text-lg font-semibold">
-          {recipe.name}
+          {highlightMatches(recipe.name, nameMatches)}
         </h2>
         {(recipe.categories ?? recipe.tags) && (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -104,7 +151,11 @@ function RecipeCard({
               ?.split(",")
               .filter(Boolean)
               .map((cat, i) => (
-                <Badge key={"cat-" + i} variant="secondary">
+                <Badge
+                  key={"cat-" + i}
+                  variant="secondary"
+                  className={cn(categoryMatches && "bg-yellow-500/30")}
+                >
                   {cat.trim()}
                 </Badge>
               ))}
@@ -112,7 +163,11 @@ function RecipeCard({
               ?.split(",")
               .filter(Boolean)
               .map((tag, i) => (
-                <Badge key={"tag-" + i} variant="outline">
+                <Badge
+                  key={"tag-" + i}
+                  variant="outline"
+                  className={cn(tagMatches && "bg-yellow-500/30")}
+                >
                   {tag.trim()}
                 </Badge>
               ))}
