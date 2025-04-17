@@ -177,7 +177,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 			const offset = Math.max(Number(url.searchParams.get("offset")) ?? 0, 0);
 			const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
 
+			console.log('API Request:', { userId, offset, limit });
+
 			const { recipes: recipeList, total } = await getMyRecipes(userId, offset, limit);
+			console.log('API Response:', { recipeList, total });
 
 			const response = NextResponse.json({
 				recipes: recipeList,
