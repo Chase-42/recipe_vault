@@ -5,6 +5,9 @@ import { getMyRecipes } from "~/server/queries";
 import { auth } from "@clerk/nextjs/server";
 import RecipeList from "~/app/_components/RecipeList";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import { headers } from "next/headers";
+
+const ITEMS_PER_PAGE = 12;
 
 const FloatingIcon = ({
   children,
@@ -23,10 +26,19 @@ async function RecipeListContainer() {
   if (!userId) return null;
 
   try {
-    const { recipes, total } = await getMyRecipes(userId, 0, 12);
+    // Only fetch first page data
+    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
+    console.log("Server Data:", { recipes, total, userId });
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        <RecipeList initialData={{ recipes, total }} />
+        <RecipeList
+          initialData={{
+            recipes,
+            total,
+            currentPage: 1,
+            totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+          }}
+        />
       </Suspense>
     );
   } catch (error) {

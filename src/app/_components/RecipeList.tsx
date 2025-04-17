@@ -8,6 +8,8 @@ interface RecipeListProps {
   initialData: {
     recipes: Recipe[];
     total: number;
+    currentPage: number;
+    totalPages: number;
   };
 }
 
