@@ -43,6 +43,8 @@ interface RecipeListClientProps {
   initialData: {
     recipes: Recipe[];
     total: number;
+    currentPage: number;
+    totalPages: number;
   };
 }
 
@@ -129,25 +131,53 @@ export default function RecipeListClient({
   // Data fetching with initial data
   const { data, isLoading } = useQuery<PaginatedRecipeResponse>({
     queryKey: ["recipes", offset],
-    queryFn: () => fetchRecipesWithTypes(offset, ITEMS_PER_PAGE),
-    initialData: {
-      recipes: initialData.recipes as RecipeWithCategories[],
-      pagination: {
-        total: initialData.total,
-        totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
-        currentPage: currentPage,
-        hasNextPage:
-          currentPage < Math.ceil(initialData.total / ITEMS_PER_PAGE),
-        hasPreviousPage: currentPage > 1,
-      },
+    queryFn: async () => {
+      console.log("Fetching data for offset:", offset);
+      const response = await fetchRecipesWithTypes(offset, ITEMS_PER_PAGE);
+      console.log("Fetched data:", response);
+      return response;
     },
-    staleTime: 1000 * 30,
+    initialData:
+      currentPage === 1
+        ? {
+            recipes: initialData.recipes as RecipeWithCategories[],
+            pagination: {
+              total: initialData.total,
+              totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
+              currentPage: 1,
+              hasNextPage: initialData.total > ITEMS_PER_PAGE,
+              hasPreviousPage: false,
+            },
+          }
+        : undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  // Log current state
+  useEffect(() => {
+    console.log("Current state:", {
+      currentPage,
+      offset,
+      data,
+      isLoading,
+      initialData,
+    });
+  }, [currentPage, offset, data, isLoading, initialData]);
 
   // Update the recipes type
   const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
   const totalPages = data?.pagination?.totalPages ?? 0;
   const total = data?.pagination?.total ?? 0;
+
+  // Effect to handle page changes
+  useEffect(() => {
+    if (currentPage > 1) {
+      console.log("Invalidating queries for page:", currentPage);
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    }
+  }, [currentPage, queryClient]);
 
   // Update the category filter
   const categoryFilteredRecipes = useMemo(
@@ -281,14 +311,6 @@ export default function RecipeListClient({
     },
     [recipes, toggleFavorite],
   );
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center text-xl text-red-800">
-        Loading recipes...
-      </div>
-    );
-  }
 
   return (
     <div className="p-4">

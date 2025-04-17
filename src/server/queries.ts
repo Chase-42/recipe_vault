@@ -25,7 +25,9 @@ export async function getMyRecipes(
 		const paginatedRecipes = await db
 			.select({
 				id: recipes.id,
+				userId: recipes.userId,
 				name: recipes.name,
+				link: recipes.link,
 				ingredients: recipes.ingredients,
 				instructions: recipes.instructions,
 				imageUrl: recipes.imageUrl,
@@ -71,6 +73,7 @@ export const getRecipe = async (id: number) => {
 
 	return {
 		...recipe,
+		link: recipe.link,
 		createdAt: recipe.createdAt.toISOString(),
 		categories: toCategoryOrUndefined(recipe.categories),
 		tags: recipe.tags,
@@ -116,10 +119,11 @@ export async function updateRecipe(
 			throw new Error("Recipe not found");
 		}
 
+		const updatedRecipe = result[0]!;
 		return {
-			...result[0],
-			categories: toCategoryOrUndefined(result[0].categories),
-			tags: result[0].tags,
+			...updatedRecipe,
+			categories: toCategoryOrUndefined(updatedRecipe.categories),
+			tags: updatedRecipe.tags,
 		};
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
@@ -127,6 +131,6 @@ export async function updateRecipe(
 	}
 }
 
-function toCategoryOrUndefined(val: string | undefined): typeof MAIN_MEAL_CATEGORIES[number] | undefined {
-	return val && MAIN_MEAL_CATEGORIES.includes(val as typeof MAIN_MEAL_CATEGORIES[number]) ? (val as typeof MAIN_MEAL_CATEGORIES[number]) : undefined;
+function toCategoryOrUndefined(val: string | undefined): string {
+	return val && MAIN_MEAL_CATEGORIES.includes(val as typeof MAIN_MEAL_CATEGORIES[number]) ? val : "";
 }
