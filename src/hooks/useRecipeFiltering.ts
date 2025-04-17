@@ -3,8 +3,14 @@ import Fuse from "fuse.js";
 import type { Recipe } from "~/types";
 
 const FUSE_OPTIONS = {
-  keys: ["name"],
-  threshold: 0.5,
+  keys: [
+    { name: "name", weight: 0.6 },
+    { name: "categories", weight: 0.2 },
+    { name: "tags", weight: 0.2 }
+  ],
+  threshold: 0.4,
+  includeScore: true,
+  includeMatches: true,
 };
 
 type SortOption = "favorite" | "newest" | "oldest";
@@ -20,7 +26,12 @@ export function useRecipeFiltering(
   // Memoize search results
   const searchResults = useMemo(() => {
     if (!searchTerm) return recipes;
-    return fuse.search(searchTerm).map(({ item }) => item);
+    const results = fuse.search(searchTerm);
+    return results.map(({ item, score, matches }) => ({
+      ...item,
+      _score: score,
+      _matches: matches
+    }));
   }, [fuse, searchTerm, recipes]);
 
   // Memoize sorting
