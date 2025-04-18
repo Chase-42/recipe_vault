@@ -10,9 +10,9 @@ export interface Recipe {
 	ingredients: string;
 	favorite: boolean;
 	createdAt: string;
-	userId: string;
-	categories: string;
-	tags: string;
+	userId?: string;
+	categories?: string;
+	tags?: string;
 }
 
 export interface RecipesData {
