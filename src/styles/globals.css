@@ -1,6 +1,6 @@
 @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
 
 /* Tailwind CSS */
 @layer utilities {
@@ -8,7 +8,6 @@
     border-color: #8b0000;
   }
 }
-
 
 @layer base {
   :root {
@@ -32,6 +31,7 @@
     --input: 0 0% 89.8%;
     --ring: 0 72.2% 50.6%;
     --radius: 0.5rem;
+    --recipe-red: 0 100% 50%;
   }
 
   .dark {
@@ -54,87 +54,89 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 72.2% 50.6%;
+    --recipe-red: 0 100% 50%;
   }
 }
-  
 
-  @layer base {
-    * {
-      @apply border-border;
-    }
-    body {
-      @apply bg-background text-foreground;
-    }
+@layer base {
+  * {
+    @apply border-border;
   }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
 
-  dialog:modal {
-    max-width: 100vw;
-    max-height: 100vh;
-  }
+dialog:modal {
+  max-width: 100vw;
+  max-height: 100vh;
+}
 
 @keyframes swirl-border {
-	0% {
-		border-color: white transparent transparent transparent;
-	}
-	6.25% {
-		border-color: white white transparent transparent;
-	}
-	12.5% {
-		border-color: white white transparent transparent;
-	}
-	18.75% {
-		border-color: white white white transparent;
-	}
-	25% {
-		border-color: white white white transparent;
-	}
-	31.25% {
-		border-color: white white white white;
-	}
-	37.5% {
-		border-color: white white white white;
-	}
-	43.75% {
-		border-color: white white white white;
-	}
-	50% {
-		border-color: white white white white;
-	}
-	56.25% {
-		border-color: white white white white;
-	}
-	62.5% {
-		border-color: white white white white;
-	}
-	68.75% {
-		border-color: white white white white;
-	}
-	75% {
-		border-color: white white white white;
-	}
-	81.25% {
-		border-color: white white white white;
-	}
-	87.5% {
-		border-color: white white white white;
-	}
-	93.75% {
-		border-color: white white white white;
-	}
-	100% {
-		border-color: white white white white;
-	}
+  0% {
+    border-color: white transparent transparent transparent;
+  }
+  6.25% {
+    border-color: white white transparent transparent;
+  }
+  12.5% {
+    border-color: white white transparent transparent;
+  }
+  18.75% {
+    border-color: white white white transparent;
+  }
+  25% {
+    border-color: white white white transparent;
+  }
+  31.25% {
+    border-color: white white white white;
+  }
+  37.5% {
+    border-color: white white white white;
+  }
+  43.75% {
+    border-color: white white white white;
+  }
+  50% {
+    border-color: white white white white;
+  }
+  56.25% {
+    border-color: white white white white;
+  }
+  62.5% {
+    border-color: white white white white;
+  }
+  68.75% {
+    border-color: white white white white;
+  }
+  75% {
+    border-color: white white white white;
+  }
+  81.25% {
+    border-color: white white white white;
+  }
+  87.5% {
+    border-color: white white white white;
+  }
+  93.75% {
+    border-color: white white white white;
+  }
+  100% {
+    border-color: white white white white;
+  }
 }
 .recipe-card {
-	transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  transition:
+    transform 0.5s ease-in-out,
+    opacity 0.5s ease-in-out;
 }
 
 .hover\:animate-swirl-border:hover {
-	animation: swirl-border .75s ease-in-out forwards;
+  animation: swirl-border 0.75s ease-in-out forwards;
 }
 
 .recipe-card {
-  @apply flex flex-col items-center text-white rounded-md p-4 shadow-md max-w-xs transition border-2 border-transparent hover:border-white hover:animate-swirl-border;
+  @apply hover:animate-swirl-border flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white;
 }
 
 @media (max-width: 768px) {

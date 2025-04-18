@@ -30,16 +30,14 @@ async function RecipeListContainer() {
     const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
     console.log("Server Data:", { recipes, total, userId });
     return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <RecipeList
-          initialData={{
-            recipes,
-            total,
-            currentPage: 1,
-            totalPages: Math.ceil(total / ITEMS_PER_PAGE),
-          }}
-        />
-      </Suspense>
+      <RecipeList
+        initialData={{
+          recipes,
+          total,
+          currentPage: 1,
+          totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+        }}
+      />
     );
   } catch (error) {
     if (error instanceof Error) {
