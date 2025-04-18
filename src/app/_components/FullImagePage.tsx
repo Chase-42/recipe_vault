@@ -3,16 +3,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Checkbox } from "~/components/ui/checkbox";
-import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
+import { fetchRecipe } from "~/utils/recipeService";
 import type { Recipe } from "~/types";
-import { Category, MAIN_MEAL_CATEGORIES } from "~/types/category";
 import LoadingSpinner from "./LoadingSpinner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { ShoppingCart, Pencil, Heart, Edit, ExternalLink } from "lucide-react";
+import { ShoppingCart, Edit } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -22,10 +21,8 @@ import {
 import { IconHeart } from "@tabler/icons-react";
 import { cn } from "~/lib/utils";
 import { useRouter } from "next/navigation";
-import { Badge } from "../../components/ui/badge";
-import { toast } from "sonner";
 
-interface FullImagePageProps {
+interface FullPageImageViewProps {
   id: number;
 }
 
@@ -79,7 +76,7 @@ function RecipeImage({
   );
 }
 
-export default function FullImagePage({ id }: FullImagePageProps) {
+export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [imageLoading, setImageLoading] = useState(true);
@@ -88,12 +85,13 @@ export default function FullImagePage({ id }: FullImagePageProps) {
   // Get cached recipe data immediately
   const cachedRecipe = queryClient.getQueryData<Recipe>(["recipe", id]);
 
-  const { data: recipe } = useQuery<Recipe>({
+  const {
+    data: recipe,
+    error,
+    isLoading,
+  } = useQuery<Recipe>({
     queryKey: ["recipe", id],
-    queryFn: async () => {
-      const data = await fetchRecipe(id);
-      return data;
-    },
+    queryFn: () => fetchRecipe(id),
     enabled: !!id,
     placeholderData: cachedRecipe,
   });
@@ -134,142 +132,245 @@ export default function FullImagePage({ id }: FullImagePageProps) {
   };
 
   // Loading state
-  if (!recipe) {
+  if (isLoading && !cachedRecipe) {
+    return <LoadingSpinner size="lg" />;
+  }
+
+  // Error state
+  if (error instanceof Error) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">Error</h2>
-          <p className="text-gray-500">Failed to load recipe</p>
-        </div>
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-xl text-red-800">Failed to load recipe.</div>
       </div>
     );
   }
 
-  // Debug log for recipe object
-  console.log("FullImagePage recipe:", recipe);
+  // Not found state
+  if (!recipe) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-xl text-red-800">Recipe not found.</div>
+      </div>
+    );
+  }
 
   const ingredients = recipe.ingredients.split("\n");
   const instructions = recipe.instructions.split("\n");
 
-  const toggleFavoriteHandler = async (recipe: Recipe) => {
-    try {
-      await updateRecipe({
-        ...recipe,
-        favorite: !recipe.favorite,
-      });
-      toast.success(
-        recipe.favorite ? "Removed from favorites" : "Added to favorites",
-      );
-    } catch (error) {
-      toast.error("Failed to update favorite status");
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="text-lg font-bold">{recipe.name}</div>
-        <div className="flex space-x-2">
-          {recipe.categories && (
-            <div className="flex space-x-2">
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm">
-                {recipe.categories}
-              </span>
-            </div>
+    <div className="fixed inset-0 grid grid-cols-1 md:grid-cols-2">
+      {/* Left side - Recipe details */}
+      <div className="flex h-full flex-col border-r">
+        {/* Mobile image - Moved to top */}
+        <div className="relative h-48 md:hidden">
+          {recipe.imageUrl && (
+            <Image
+              src={recipe.imageUrl}
+              alt={recipe.name}
+              className="object-cover"
+              fill
+              priority
+              sizes="100vw"
+            />
           )}
-          {recipe.tags && (
-            <div className="flex space-x-2">
-              {recipe.tags
-                .split(",")
-                .filter(Boolean)
-                .map((tag: string, i: number) => (
-                  <span
-                    key={i}
-                    className="rounded-full bg-gray-100 px-3 py-1 text-sm"
+        </div>
+
+        {/* Header */}
+        <div className="border-b bg-background px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-bold md:text-lg">{recipe.name}</div>
+            {/* Desktop buttons */}
+            <div className="hidden items-center gap-2 md:flex">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => router.push(`/edit/${recipe.id}`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit recipe</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAddToList(true)}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add to shopping list</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {recipe.favorite ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(recipe)}
+                        className="transition-opacity duration-300"
+                        aria-label="Unfavorite"
+                      >
+                        <IconHeart
+                          size={24}
+                          className="text-[hsl(var(--recipe-red))] transition-colors duration-300"
+                          strokeWidth={2}
+                          fill="currentColor"
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove from favorites</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(recipe)}
+                        className="transition-opacity duration-300"
+                        aria-label="Favorite"
+                      >
+                        <IconHeart
+                          size={24}
+                          className="text-white transition-colors duration-300"
+                          strokeWidth={2}
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Add to favorites</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto pb-24 md:h-[calc(100vh-4rem)] md:pb-0">
+          {/* Ingredients */}
+          <div className="border-b p-4 md:p-3">
+            <h3 className="mb-4 text-lg font-semibold md:mb-2 md:text-base">
+              Ingredients:
+            </h3>
+            <ul className="space-y-3 md:space-y-2">
+              {ingredients.map((ingredient, index) => (
+                <li key={index} className="flex items-start gap-3 md:gap-2">
+                  <Checkbox
+                    id={`ingredient-${index}`}
+                    checked={checkedIngredients[index] ?? false}
+                    onCheckedChange={() => handleIngredientToggle(index)}
+                    className="mt-1 h-5 w-5 md:h-4 md:w-4"
+                  />
+                  <label
+                    htmlFor={`ingredient-${index}`}
+                    className={cn(
+                      "flex-1 text-lg leading-tight md:text-base",
+                      checkedIngredients[index] && "text-gray-500 line-through",
+                    )}
                   >
-                    {tag.trim()}
-                  </span>
-                ))}
+                    {ingredient}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Instructions */}
+          <div className="border-b p-4 md:p-3">
+            <h3 className="mb-4 text-lg font-semibold md:mb-2 md:text-base">
+              Instructions:
+            </h3>
+            <ol className="list-decimal space-y-4 pl-4 md:space-y-2">
+              {instructions.map((instruction, index) => (
+                <li
+                  key={index}
+                  className="pl-2 text-lg leading-tight md:text-base"
+                >
+                  {instruction}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Link */}
+          {recipe.link && (
+            <div className="p-4 md:p-3">
+              <a
+                href={recipe.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-lg bg-gray-100 px-4 py-2 text-blue-500 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+              >
+                View Original Recipe
+              </a>
             </div>
           )}
         </div>
-      </div>
 
-      <div className="flex space-x-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => router.push(`/edit/${recipe.id}`)}
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => toggleFavoriteHandler(recipe)}
-        >
-          <Heart
-            className={`h-4 w-4 ${recipe.favorite && "text-red-500"}`}
-            fill={recipe.favorite ? "currentColor" : "none"}
-          />
-        </Button>
-        {recipe.favorite && (
-          <span className="text-sm text-gray-500">
-            {recipe.favorite ? "Favorite" : ""}
-          </span>
-        )}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h3 className="mb-4 text-lg font-semibold">Ingredients</h3>
-          <ul className="space-y-2">
-            {ingredients.map((ingredient: string, index: number) => (
-              <li key={index} className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>{ingredient.trim()}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-lg font-semibold">Instructions</h3>
-          <ol className="space-y-4">
-            {instructions.map((instruction: string, index: number) => (
-              <li key={index} className="flex">
-                <span className="mr-2 font-bold">{index + 1}.</span>
-                <span>{instruction.trim()}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-
-      {recipe.link ? (
-        <div className="mt-6">
-          <a
-            href={recipe.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-blue-500 hover:underline"
+        {/* Mobile bottom action bar */}
+        <div className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t bg-background/80 px-6 py-4 backdrop-blur-sm md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push(`/edit/${recipe.id}`)}
+            className="h-12 w-12 rounded-full"
           >
-            View Original Recipe
-            <ExternalLink className="ml-1 h-4 w-4" />
-          </a>
-        </div>
-      ) : null}
+            <Edit className="h-6 w-6" />
+          </Button>
 
-      {recipe.imageUrl ? (
-        <div className="mt-6">
-          <img src={recipe.imageUrl} alt={recipe.name} className="rounded-lg" />
-        </div>
-      ) : null}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowAddToList(true)}
+            className="h-12 w-12 rounded-full"
+          >
+            <ShoppingCart className="h-6 w-6" />
+          </Button>
 
-      <div className="mt-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          Back
-        </Button>
+          <button
+            type="button"
+            onClick={() => toggleFavorite(recipe)}
+            className="flex h-12 w-12 items-center justify-center rounded-full"
+            aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+          >
+            <IconHeart
+              size={32}
+              className={cn(
+                "transition-colors duration-300",
+                recipe.favorite
+                  ? "fill-current text-[hsl(var(--recipe-red))]"
+                  : "text-white",
+              )}
+              strokeWidth={2}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Right side - Desktop Image */}
+      <div className="relative hidden h-screen md:block">
+        {recipe.imageUrl && (
+          <Image
+            src={recipe.imageUrl}
+            alt={recipe.name}
+            className="object-cover"
+            fill
+            priority
+            sizes="50vw"
+          />
+        )}
       </div>
 
       <AddToListModal
