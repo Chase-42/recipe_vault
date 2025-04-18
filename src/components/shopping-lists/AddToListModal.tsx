@@ -120,30 +120,28 @@ export function AddToListModal({
         <DialogHeader>
           <DialogTitle>Add Ingredients from {recipeName}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] pr-4">
-          <div className="space-y-4">
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                Select All
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleClearAll}>
-                Clear All
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {ingredients.map((ingredient, index) => (
-                <IngredientItem
-                  key={index}
-                  ingredient={ingredient}
-                  index={index}
-                  checked={selectedIngredients.has(index)}
-                  onToggle={handleToggleIngredient}
-                />
-              ))}
-            </div>
+        <div className="flex justify-end space-x-2 py-2">
+          <Button variant="outline" size="sm" onClick={handleSelectAll}>
+            Select All
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleClearAll}>
+            Clear All
+          </Button>
+        </div>
+        <ScrollArea className="h-[40vh] pr-4">
+          <div className="space-y-2">
+            {ingredients.map((ingredient, index) => (
+              <IngredientItem
+                key={index}
+                ingredient={ingredient}
+                index={index}
+                checked={selectedIngredients.has(index)}
+                onToggle={handleToggleIngredient}
+              />
+            ))}
           </div>
         </ScrollArea>
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-end space-x-2 pt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

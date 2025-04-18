@@ -121,7 +121,7 @@ function RecipeCard({
         >
           <IconHeart
             size={24}
-            className="text-red-500 transition-colors duration-300"
+            className="text-[hsl(var(--recipe-red))] transition-colors duration-300"
             strokeWidth={2}
             fill="currentColor"
           />
