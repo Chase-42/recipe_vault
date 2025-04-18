@@ -60,22 +60,23 @@ export function Modal({ children, onClose }: ModalProps) {
           role="dialog"
           aria-modal="true"
           tabIndex={-1}
-          className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-black/90 text-white focus:outline-none"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 text-white"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          <button
-            onClick={handleClose}
-            className="absolute right-1 top-0 z-50 animate-fade-in-down text-xl text-[hsl(var(--recipe-red))] transition-all duration-200 hover:scale-110 hover:opacity-80 sm:right-2 sm:top-1 sm:text-3xl"
-            aria-label="Close"
-            type="button"
-          >
-            &times;
-          </button>
-
-          <div className="pt-4">{children}</div>
+          <div className="relative h-full w-full max-w-[1800px]">
+            <button
+              onClick={handleClose}
+              className="absolute right-4 top-4 z-50 text-xl text-[hsl(var(--recipe-red))] transition-all duration-200 hover:scale-110 hover:opacity-80"
+              aria-label="Close"
+              type="button"
+            >
+              &times;
+            </button>
+            <div className="h-full w-full">{children}</div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>,

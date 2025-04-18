@@ -76,7 +76,7 @@ export const TopNav = () => {
             <Link href="/shopping-lists">
               <Button variant="outline" className="flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
-                Shopping Lists
+                Shopping List
               </Button>
             </Link>
             <UserButton />

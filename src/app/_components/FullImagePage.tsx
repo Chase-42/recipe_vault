@@ -158,9 +158,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const instructions = recipe.instructions.split("\n");
 
   return (
-    <div className="fixed inset-0 grid grid-cols-1 md:grid-cols-2">
+    <div className="grid h-full w-full grid-cols-1 md:grid-cols-2">
       {/* Left side - Recipe details */}
-      <div className="flex h-full flex-col border-r">
+      <div className="flex h-full flex-col overflow-hidden border-r">
         {/* Mobile image - Moved to top */}
         <div className="relative h-48 md:hidden">
           {recipe.imageUrl && (
@@ -175,8 +175,8 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           )}
         </div>
 
-        {/* Header */}
-        <div className="border-b bg-background px-4 py-3">
+        {/* Header - Sticky */}
+        <div className="sticky top-0 z-10 border-b bg-background px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="text-xl font-bold md:text-lg">{recipe.name}</div>
             {/* Desktop buttons */}
@@ -188,6 +188,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => router.push(`/edit/${recipe.id}`)}
+                      className="h-8 w-8"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -203,6 +204,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowAddToList(true)}
+                      className="h-8 w-8"
                     >
                       <ShoppingCart className="h-4 w-4" />
                     </Button>
@@ -211,54 +213,29 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                 </Tooltip>
               </TooltipProvider>
 
-              {recipe.favorite ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <button
-                        type="button"
-                        onClick={() => toggleFavorite(recipe)}
-                        className="transition-opacity duration-300"
-                        aria-label="Unfavorite"
-                      >
-                        <IconHeart
-                          size={24}
-                          className="text-[hsl(var(--recipe-red))] transition-colors duration-300"
-                          strokeWidth={2}
-                          fill="currentColor"
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Remove from favorites</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <button
-                        type="button"
-                        onClick={() => toggleFavorite(recipe)}
-                        className="transition-opacity duration-300"
-                        aria-label="Favorite"
-                      >
-                        <IconHeart
-                          size={24}
-                          className="text-white transition-colors duration-300"
-                          strokeWidth={2}
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Add to favorites</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+              <button
+                type="button"
+                onClick={() => toggleFavorite(recipe)}
+                className="flex h-8 w-8 items-center justify-center transition-opacity duration-300"
+                aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+              >
+                <IconHeart
+                  size={24}
+                  className={cn(
+                    "h-6 w-6 transition-colors duration-300",
+                    recipe.favorite
+                      ? "fill-current text-[hsl(var(--recipe-red))]"
+                      : "text-white",
+                  )}
+                  strokeWidth={2}
+                />
+              </button>
             </div>
           </div>
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto pb-24 md:h-[calc(100vh-4rem)] md:pb-0">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {/* Ingredients */}
           <div className="border-b p-4 md:p-3">
             <h3 className="mb-4 text-lg font-semibold md:mb-2 md:text-base">
@@ -320,52 +297,75 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
         </div>
 
         {/* Mobile bottom action bar */}
-        <div className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t bg-background/80 px-6 py-4 backdrop-blur-sm md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push(`/edit/${recipe.id}`)}
-            className="h-12 w-12 rounded-full"
-          >
-            <Edit className="h-6 w-6" />
-          </Button>
+        <div className="sticky bottom-0 left-0 right-0 flex items-center justify-around border-t bg-background/80 px-6 py-4 backdrop-blur-sm md:hidden">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push(`/edit/${recipe.id}`)}
+                  className="h-12 w-12"
+                >
+                  <Edit className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit recipe</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowAddToList(true)}
-            className="h-12 w-12 rounded-full"
-          >
-            <ShoppingCart className="h-6 w-6" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAddToList(true)}
+                  className="h-12 w-12"
+                >
+                  <ShoppingCart className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add to shopping list</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-          <button
-            type="button"
-            onClick={() => toggleFavorite(recipe)}
-            className="flex h-12 w-12 items-center justify-center rounded-full"
-            aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
-          >
-            <IconHeart
-              size={32}
-              className={cn(
-                "transition-colors duration-300",
-                recipe.favorite
-                  ? "fill-current text-[hsl(var(--recipe-red))]"
-                  : "text-white",
-              )}
-              strokeWidth={2}
-            />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(recipe)}
+                  className="flex h-12 w-12 items-center justify-center transition-opacity duration-300"
+                  aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+                >
+                  <IconHeart
+                    size={32}
+                    className={cn(
+                      "h-8 w-8 transition-colors duration-300",
+                      recipe.favorite
+                        ? "fill-current text-[hsl(var(--recipe-red))]"
+                        : "text-white",
+                    )}
+                    strokeWidth={2}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {recipe.favorite ? "Remove from favorites" : "Add to favorites"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
       {/* Right side - Desktop Image */}
-      <div className="relative hidden h-screen md:block">
+      <div className="relative hidden h-full md:block">
         {recipe.imageUrl && (
           <Image
             src={recipe.imageUrl}
             alt={recipe.name}
-            className="object-cover"
+            className="object-contain"
             fill
             priority
             sizes="50vw"

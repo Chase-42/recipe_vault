@@ -116,7 +116,7 @@ export function AddToListModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[80vh] max-w-md">
         <DialogHeader>
           <DialogTitle>Add Ingredients from {recipeName}</DialogTitle>
         </DialogHeader>
@@ -128,7 +128,7 @@ export function AddToListModal({
             Clear All
           </Button>
         </div>
-        <ScrollArea className="h-[40vh] pr-4">
+        <ScrollArea className="h-[50vh] max-h-[400px] pr-4">
           <div className="space-y-2">
             {ingredients.map((ingredient, index) => (
               <IngredientItem
