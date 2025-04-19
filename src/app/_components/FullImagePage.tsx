@@ -158,9 +158,9 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
   const instructions = recipe.instructions.split("\n");
 
   return (
-    <div className="fixed inset-0 grid grid-cols-1 md:grid-cols-2">
+    <div className="grid h-screen max-h-screen grid-cols-1 overflow-hidden md:grid-cols-2">
       {/* Left side - Recipe details */}
-      <div className="flex h-full flex-col border-r">
+      <div className="flex h-full flex-col overflow-hidden border-r">
         {/* Mobile image - Moved to top */}
         <div className="relative h-48 md:hidden">
           {recipe.imageUrl && (
@@ -175,8 +175,8 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           )}
         </div>
 
-        {/* Header */}
-        <div className="border-b bg-background px-4 py-3">
+        {/* Header - Made sticky */}
+        <div className="sticky top-0 z-10 border-b bg-background px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="text-xl font-bold md:text-lg">{recipe.name}</div>
             {/* Desktop buttons */}
@@ -258,7 +258,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto pb-24 md:h-[calc(100vh-4rem)] md:pb-0">
+        <div className="flex-1 overflow-y-auto">
           {/* Ingredients */}
           <div className="border-b p-4 md:p-3">
             <h3 className="mb-4 text-lg font-semibold md:mb-2 md:text-base">
@@ -319,8 +319,8 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
           )}
         </div>
 
-        {/* Mobile bottom action bar */}
-        <div className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t bg-background/80 px-6 py-4 backdrop-blur-sm md:hidden">
+        {/* Mobile bottom action bar - Made sticky */}
+        <div className="sticky bottom-0 z-10 flex items-center justify-around border-t bg-background/80 px-6 py-4 backdrop-blur-sm md:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -360,7 +360,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       </div>
 
       {/* Right side - Desktop Image */}
-      <div className="relative hidden h-screen md:block">
+      <div className="relative hidden h-full md:block">
         {recipe.imageUrl && (
           <Image
             src={recipe.imageUrl}

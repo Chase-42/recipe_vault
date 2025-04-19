@@ -60,7 +60,7 @@ export function Modal({ children, onClose }: ModalProps) {
           role="dialog"
           aria-modal="true"
           tabIndex={-1}
-          className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto bg-black/90 text-white focus:outline-none"
+          className="pointer-events-auto fixed inset-0 z-50 flex h-full items-center justify-center bg-black/90 text-white focus:outline-none"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
@@ -75,7 +75,7 @@ export function Modal({ children, onClose }: ModalProps) {
             &times;
           </button>
 
-          <div className="pt-4">{children}</div>
+          <div className="h-full w-full">{children}</div>
         </motion.div>
       )}
     </AnimatePresence>,
