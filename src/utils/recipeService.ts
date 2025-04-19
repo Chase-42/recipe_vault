@@ -1,4 +1,7 @@
 import { schemas, type Recipe, type PaginatedRecipes, type UpdatedRecipe } from "~/lib/schemas"
+import { type FavoriteResponse } from "~/types/api"
+import { type CreateRecipeInput } from "~/types/recipe"
+import { type APIResponse } from "~/types/api"
 
 export const fetchRecipes = (offset = 0, limit = 12): Promise<PaginatedRecipes> => 
 	fetch(`/api/recipes?offset=${offset}&limit=${limit}`)
@@ -55,10 +58,6 @@ export const deleteRecipe = (id: number): Promise<void> =>
 			if (!res.ok) throw new Error("Failed to delete recipe")
 		})
 
-interface FavoriteResponse {
-	favorite: boolean;
-}
-
 export const toggleFavorite = async (id: number): Promise<boolean> => {
 	const response = await fetch(`/api/recipes/${id}/favorite`, {
 		method: "PUT",
@@ -68,6 +67,30 @@ export const toggleFavorite = async (id: number): Promise<boolean> => {
 		throw new Error("Failed to toggle favorite");
 	}
 
-	const data = (await response.json()) as FavoriteResponse;
-	return data.favorite;
+	const data = await response.json();
+	const validatedData = schemas.favoriteResponse.parse(data);
+	return validatedData.favorite;
 }
+
+export const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
+	const response = await fetch("/api/recipes/create", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(recipe),
+	});
+
+	const data = await response.json();
+	const validatedData = schemas.apiResponse(schemas.recipe).parse(data);
+
+	if (!response.ok || validatedData.error) {
+		throw new Error(validatedData.error ?? "Failed to create recipe");
+	}
+
+	if (!validatedData.data) {
+		throw new Error("No data received from server");
+	}
+
+	return validatedData.data;
+};

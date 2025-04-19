@@ -2,11 +2,13 @@
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useSearch } from "~/providers";
-import type { Recipe } from "~/types";
+import { type Recipe } from "~/types/recipe";
+import type { Category } from "~/types/category";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
+import { schemas } from "~/lib/schemas";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 
@@ -20,9 +22,11 @@ import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
 import { useUrlParams } from "~/hooks/useUrlParams";
+import { type PaginatedRecipeResponse } from "~/types/api";
+import { type RecipeWithCategories } from "~/lib/schemas";
+import { type SortOption } from "~/lib/schemas";
 
 const ITEMS_PER_PAGE = 12;
-type SortOption = "favorite" | "newest" | "oldest";
 
 interface RecipeListProps {
   initialData: {
@@ -33,31 +37,18 @@ interface RecipeListProps {
   };
 }
 
-// Update type definitions
-type RecipeWithCategories = Recipe & {
-  categories?: string | undefined;
-  tags?: string | undefined;
-};
-
-type PaginatedRecipeResponse = {
-  recipes: RecipeWithCategories[];
-  pagination: {
-    total: number;
-    totalPages: number;
-    currentPage: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-};
-
 // Update the fetchRecipes function type
 const fetchRecipesWithTypes = async (
   offset: number,
   limit: number,
 ): Promise<PaginatedRecipeResponse> => {
   const response = await fetchRecipes(offset, limit);
+  const validatedRecipes = response.recipes.map((recipe) =>
+    schemas.recipeWithCategories.parse(recipe),
+  );
+
   return {
-    recipes: response.recipes as RecipeWithCategories[],
+    recipes: validatedRecipes,
     pagination: {
       total: response.pagination.total,
       totalPages: Math.ceil(response.pagination.total / limit),
@@ -82,7 +73,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
-  const sortOption = (getParam("sort") as SortOption) || "newest";
+  const sortOption = schemas.sortOption.parse(getParam("sort") ?? "newest");
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Scroll handler
@@ -123,7 +114,9 @@ export default function RecipeList({ initialData }: RecipeListProps) {
     initialData:
       currentPage === 1
         ? {
-            recipes: initialData.recipes as RecipeWithCategories[],
+            recipes: initialData.recipes.map((recipe) =>
+              schemas.recipeWithCategories.parse(recipe),
+            ),
             pagination: {
               total: initialData.total,
               totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
