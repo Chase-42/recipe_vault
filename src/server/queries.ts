@@ -3,7 +3,7 @@ import { db } from "./db";
 import { auth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
-import { MAIN_MEAL_CATEGORIES } from "../types/category";
+import { MAIN_MEAL_CATEGORIES, type Category } from "../types/category";
 
 // Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
@@ -64,9 +64,12 @@ export const getRecipe = async (id: number) => {
 
 	if (!userId) throw new Error("Unauthorized");
 
-	const recipe = await db.query.recipes.findFirst({
-		where: (model) => eq(model.id, id),
-	});
+	const recipe = await db
+		.select()
+		.from(recipes)
+		.where(eq(recipes.id, id))
+		.limit(1)
+		.then((rows) => rows[0]);
 
 	if (!recipe) throw new Error("Recipe not found");
 	if (recipe.userId !== userId) throw new Error("Unauthorized");
@@ -131,6 +134,6 @@ export async function updateRecipe(
 	}
 }
 
-function toCategoryOrUndefined(val: string | undefined): string {
-	return val && MAIN_MEAL_CATEGORIES.includes(val as typeof MAIN_MEAL_CATEGORIES[number]) ? val : "";
+function toCategoryOrUndefined(val: string): string {
+	return MAIN_MEAL_CATEGORIES.some(category => category === val) ? val : "";
 }

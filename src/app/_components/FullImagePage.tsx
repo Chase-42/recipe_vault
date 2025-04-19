@@ -4,10 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Checkbox } from "~/components/ui/checkbox";
 import { fetchRecipe } from "~/utils/recipeService";
-import type { Recipe } from "~/types";
+import type { Recipe } from "~/lib/schemas";
 import LoadingSpinner from "./LoadingSpinner";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
-import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
@@ -21,6 +20,7 @@ import {
 import { IconHeart } from "@tabler/icons-react";
 import { cn } from "~/lib/utils";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface FullPageImageViewProps {
   id: number;
@@ -36,7 +36,7 @@ function RecipeImage({
   setImageLoading: (loading: boolean) => void;
 }) {
   return (
-    <div className="relative h-full w-full">
+    <div className="relative flex h-full w-full items-center justify-center">
       <AnimatePresence>
         {/* Blur placeholder */}
         <motion.div
@@ -58,7 +58,7 @@ function RecipeImage({
           initial={{ opacity: 0 }}
           animate={{ opacity: imageLoading ? 0 : 1 }}
           transition={{ duration: 0.3 }}
-          className="relative h-full w-full"
+          className="relative h-[80vh] w-auto"
         >
           <Image
             src={recipe.imageUrl}
@@ -89,11 +89,11 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     data: recipe,
     error,
     isLoading,
-  } = useQuery<Recipe>({
+  } = useQuery<Recipe, Error>({
     queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
     enabled: !!id,
-    placeholderData: cachedRecipe,
+    initialData: cachedRecipe,
   });
 
   const { toggleFavorite } = useFavoriteToggle();
@@ -147,11 +147,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
   // Not found state
   if (!recipe) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-xl text-red-800">Recipe not found.</div>
-      </div>
-    );
+    return <LoadingSpinner size="lg" />;
   }
 
   const ingredients = recipe.ingredients.split("\n");
@@ -360,15 +356,12 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       </div>
 
       {/* Right side - Desktop Image */}
-      <div className="relative hidden h-full md:block">
+      <div className="relative hidden h-full md:flex md:items-center">
         {recipe.imageUrl && (
-          <Image
-            src={recipe.imageUrl}
-            alt={recipe.name}
-            className="object-cover"
-            fill
-            priority
-            sizes="50vw"
+          <RecipeImage
+            recipe={recipe}
+            imageLoading={imageLoading}
+            setImageLoading={setImageLoading}
           />
         )}
       </div>

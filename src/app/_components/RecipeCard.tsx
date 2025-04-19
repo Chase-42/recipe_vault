@@ -22,14 +22,15 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { useSearch } from "~/providers";
 
+interface SearchMatch {
+  key: string;
+  value: string;
+  indices: Array<[number, number]>;
+}
+
 interface RecipeCardProps {
-  recipe: Recipe & {
-    _matches?: Array<{
-      key: string;
-      value: string;
-      indices: Array<[number, number]>;
-    }>;
-  };
+  recipe: Recipe;
+  searchMatches?: SearchMatch[];
   onDelete: (id: number) => void;
   onFavoriteToggle: (id: number) => void;
   priority?: boolean;
@@ -37,6 +38,7 @@ interface RecipeCardProps {
 
 function RecipeCard({
   recipe,
+  searchMatches,
   onDelete,
   onFavoriteToggle,
   priority = false,
@@ -104,11 +106,11 @@ function RecipeCard({
   };
 
   // Get matches for each field
-  const nameMatches = recipe._matches?.find((m) => m.key === "name")?.indices;
-  const categoryMatches = recipe._matches?.find(
+  const nameMatches = searchMatches?.find((m) => m.key === "name")?.indices;
+  const categoryMatches = searchMatches?.find(
     (m) => m.key === "categories",
   )?.indices;
-  const tagMatches = recipe._matches?.find((m) => m.key === "tags")?.indices;
+  const tagMatches = searchMatches?.find((m) => m.key === "tags")?.indices;
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
@@ -146,7 +148,7 @@ function RecipeCard({
           {highlightMatches(recipe.name, nameMatches)}
         </h2>
         {(recipe.categories ?? recipe.tags) && (
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="m m-2 flex flex-wrap gap-2">
             {recipe.categories
               ?.split(",")
               .filter(Boolean)
