@@ -1,5 +1,3 @@
-import type { Category } from "./types/category";
-
 export interface Recipe {
 	id: number;
 	name: string;
@@ -13,6 +11,11 @@ export interface Recipe {
 	userId?: string;
 	categories?: string;
 	tags?: string;
+	_matches?: Array<{
+		key: string;
+		value: string;
+		indices: Array<[number, number]>;
+	}>;
 }
 
 export interface RecipesData {
@@ -32,8 +35,8 @@ export interface PaginationMetadata {
 	currentPage: number;
 }
 
-export interface PaginatedResponse {
-	recipes: Recipe[];
+export interface PaginatedResponse<T> {
+	data: T[];
 	pagination: PaginationMetadata;
 }
 
@@ -84,9 +87,21 @@ export interface UpdatedRecipe {
 	imageUrl: string;
 }
 
-export interface CreateRecipeRequest {
-	link: string;
+export interface RecipeSearchMatch {
+	key: string;
+	value: string;
+	indices: Array<[number, number]>;
 }
+
+export type RecipeWithMatches = Recipe & {
+	_matches?: RecipeSearchMatch[];
+};
+
+export type CreateRecipeRequest = {
+	link: string;
+};
+
+export type UpdateRecipeRequest = Partial<Omit<Recipe, 'id' | 'createdAt' | 'userId'>>;
 
 export type APIResponse<T> = {
 	data?: T;
