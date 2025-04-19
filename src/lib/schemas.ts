@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { Category } from "~/types/category"
+import { type Category } from "~/types/category"
 
 const image = z.object({
   url: z.string(),
@@ -18,6 +18,11 @@ const recipe = z.object({
   favorite: z.boolean(),
   createdAt: z.string(),
   userId: z.string().optional(),
+  categories: z.string().optional(),
+  tags: z.string().optional(),
+})
+
+const recipeWithCategories = recipe.extend({
   categories: z.string().optional(),
   tags: z.string().optional(),
 })
@@ -93,8 +98,15 @@ const apiResponse = <T extends z.ZodType>(schema: T) =>
     error: z.string().optional()
   })
 
+const favoriteResponse = z.object({
+  favorite: z.boolean()
+});
+
+const sortOption = z.enum(["favorite", "newest", "oldest"]);
+
 export const schemas = {
   recipe,
+  recipeWithCategories,
   paginatedRecipes,
   flaskApiResponse,
   fallbackApiResponse,
@@ -102,11 +114,14 @@ export const schemas = {
   recipeInstruction,
   updatedRecipe,
   createRecipeRequest,
-  apiResponse
+  apiResponse,
+  favoriteResponse,
+  sortOption,
 } as const
 
 // Export all types derived from Zod schemas
 export type Recipe = z.infer<typeof recipe>
+export type RecipeWithCategories = z.infer<typeof recipeWithCategories>
 export type PaginatedRecipes = z.infer<typeof paginatedRecipes>
 export type FlaskApiResponse = z.infer<typeof flaskApiResponse>
 export type FallbackApiResponse = z.infer<typeof fallbackApiResponse>
@@ -114,4 +129,5 @@ export type ProcessedData = z.infer<typeof processedData>
 export type RecipeInstruction = z.infer<typeof recipeInstruction>
 export type UpdatedRecipe = z.infer<typeof updatedRecipe>
 export type CreateRecipeRequest = z.infer<typeof createRecipeRequest>
-export type APIResponse<T extends z.ZodType> = z.infer<ReturnType<typeof apiResponse<T>>> 
+export type APIResponse<T extends z.ZodType> = z.infer<ReturnType<typeof apiResponse<T>>>
+export type SortOption = z.infer<typeof sortOption> 
