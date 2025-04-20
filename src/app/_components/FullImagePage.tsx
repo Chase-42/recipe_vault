@@ -36,7 +36,7 @@ function RecipeImage({
   setImageLoading: (loading: boolean) => void;
 }) {
   return (
-    <div className="relative flex h-full w-full items-center justify-center">
+    <div className="relative w-full">
       <AnimatePresence>
         {/* Blur placeholder */}
         <motion.div
@@ -44,7 +44,7 @@ function RecipeImage({
           animate={{ opacity: imageLoading ? 1 : 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="absolute inset-0 overflow-hidden"
+          className="absolute inset-0"
           style={{
             backgroundImage: `url(${recipe.blurDataUrl})`,
             backgroundSize: "cover",
@@ -58,17 +58,22 @@ function RecipeImage({
           initial={{ opacity: 0 }}
           animate={{ opacity: imageLoading ? 0 : 1 }}
           transition={{ duration: 0.3 }}
-          className="relative h-[80vh] w-auto"
+          className="relative w-full"
         >
           <Image
             src={recipe.imageUrl}
             alt={`Image of ${recipe.name}`}
-            className="object-contain"
-            fill
+            width={0}
+            height={0}
             priority
-            sizes="(max-width: 768px) 100vw, 50vw"
+            sizes="100vw"
             quality={90}
+            className="w-full"
             onLoad={() => setImageLoading(false)}
+            onError={(e) => {
+              console.error("Image failed to load:", e);
+              setImageLoading(false);
+            }}
           />
         </motion.div>
       </AnimatePresence>
