@@ -1,35 +1,35 @@
-"use client";
+'use client';
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImageIcon, X } from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
-import type { APIResponse, Recipe } from "~/types";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ImageIcon, X } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
+import { Textarea } from '~/components/ui/textarea';
+import type { APIResponse, Recipe } from '~/types';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
-import { type Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
-import LoadingSpinner from "./LoadingSpinner";
+} from '../../components/ui/select';
+import { type Category, MAIN_MEAL_CATEGORIES } from '../../types/category';
+import LoadingSpinner from './LoadingSpinner';
 
 type CreateRecipeInput = Omit<
   Recipe,
-  "id" | "userId" | "blurDataUrl" | "createdAt"
+  'id' | 'userId' | 'blurDataUrl' | 'createdAt'
 >;
 
 const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
-  const response = await fetch("/api/recipes/create", {
-    method: "POST",
+  const response = await fetch('/api/recipes/create', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(recipe),
   });
@@ -37,11 +37,11 @@ const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
   const result = (await response.json()) as APIResponse<Recipe>;
 
   if (!response.ok || result.error) {
-    throw new Error(result.error ?? "Failed to create recipe");
+    throw new Error(result.error ?? 'Failed to create recipe');
   }
 
   if (!result.data) {
-    throw new Error("No data received from server");
+    throw new Error('No data received from server');
   }
 
   return result.data;
@@ -54,13 +54,13 @@ const CreateRecipeClient = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
 
   // Form state
-  const [name, setName] = useState("");
-  const [link, setLink] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [ingredients, setIngredients] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [name, setName] = useState('');
+  const [link, setLink] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [ingredients, setIngredients] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [categories, setCategories] = useState<Category | undefined>(undefined);
-  const [tags, setTags] = useState<string>("");
+  const [tags, setTags] = useState<string>('');
 
   const mutation = useMutation({
     mutationFn: createRecipe,
@@ -68,20 +68,20 @@ const CreateRecipeClient = () => {
       setLoading(true);
     },
     onError: (_error) => {
-      toast.error("Failed to create recipe");
+      toast.error('Failed to create recipe');
     },
     onSuccess: () => {
       setLoading(false);
       setTimeout(() => {
-        toast("Recipe created successfully!");
+        toast('Recipe created successfully!');
       }, 200);
 
       setTimeout(() => {
-        router.push("/");
+        router.push('/');
       }, 1500);
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      await queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
   });
 
@@ -91,14 +91,17 @@ const CreateRecipeClient = () => {
 
     try {
       setUploadLoading(true);
-      const previewUrl = URL.createObjectURL(file);
-      setImageUrl(previewUrl);
+      // Only create object URL on the client side
+      if (typeof window !== 'undefined') {
+        const previewUrl = URL.createObjectURL(file);
+        setImageUrl(previewUrl);
+      }
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
+      const response = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
       });
 
@@ -106,16 +109,16 @@ const CreateRecipeClient = () => {
         | { url: string }
         | { error: string };
 
-      if (!response.ok || "error" in result) {
-        throw new Error("error" in result ? result.error : "Upload failed");
+      if (!response.ok || 'error' in result) {
+        throw new Error('error' in result ? result.error : 'Upload failed');
       }
 
       setImageUrl(result.url);
-      toast("Image uploaded successfully!");
+      toast('Image uploaded successfully!');
     } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error("Error uploading image");
-      setImageUrl("");
+      console.error('Upload failed:', error);
+      toast.error('Error uploading image');
+      setImageUrl('');
     } finally {
       setUploadLoading(false);
     }
@@ -124,7 +127,7 @@ const CreateRecipeClient = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!imageUrl) {
-      toast("Please upload an image first");
+      toast('Please upload an image first');
       return;
     }
     const newRecipe: CreateRecipeInput = {
@@ -141,7 +144,7 @@ const CreateRecipeClient = () => {
   };
 
   const handleCancel = () => {
-    router.push("/");
+    router.push('/');
   };
 
   if (loading) {
@@ -287,7 +290,7 @@ Bake for 25-30 minutes`}
               />
               <button
                 type="button"
-                onClick={() => setImageUrl("")}
+                onClick={() => setImageUrl('')}
                 className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70"
               >
                 <X className="h-5 w-5" />
