@@ -1,11 +1,11 @@
 import "~/styles/globals.css";
-import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ClientProvider } from "~/providers";
-import { SearchProvider } from "~/providers";
+import { GeistSans } from "geist/font/sans";
 import { TopNav } from "~/app/_components/topnav";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { Toaster } from "~/components/ui/sonner";
+import { ClientProvider } from "~/providers";
+import { SearchProvider } from "~/providers";
 export const metadata = {
   title: "Recipe Vault",
   icons: [{ rel: "icon", url: "/recipe_vault_image.svg" }],

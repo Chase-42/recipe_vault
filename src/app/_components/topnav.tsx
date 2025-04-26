@@ -1,13 +1,13 @@
 "use client";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Plus, Search, ShoppingCart } from "lucide-react";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useSearch } from "../../providers";
-import Link from "next/link";
-import Image from "next/image";
-import dynamic from "next/dynamic";
-import { ShoppingCart, Plus, Search } from "lucide-react";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,

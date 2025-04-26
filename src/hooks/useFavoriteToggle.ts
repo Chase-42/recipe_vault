@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { Recipe } from "~/types";
 import type { PaginatedRecipes } from "~/lib/schemas";
+import type { Recipe } from "~/types";
 import { toggleFavorite as toggleFavoriteApi } from "~/utils/recipeService";
 
 export function useFavoriteToggle() {
@@ -16,20 +16,23 @@ export function useFavoriteToggle() {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       await queryClient.cancelQueries({ queryKey: ["recipe", recipe.id] });
-      
+
       // Update both the list and individual recipe cache
       const newFavoriteState = !recipe.favorite;
-      
+
       // Update recipes list if it exists
-      queryClient.setQueriesData<PaginatedRecipes>({ queryKey: ["recipes"] }, (old) => {
-        if (!old?.recipes) return old;
-        return {
-          ...old,
-          recipes: old.recipes.map((r) =>
-            r.id === recipe.id ? { ...r, favorite: newFavoriteState } : r
-          ),
-        };
-      });
+      queryClient.setQueriesData<PaginatedRecipes>(
+        { queryKey: ["recipes"] },
+        (old) => {
+          if (!old?.recipes) return old;
+          return {
+            ...old,
+            recipes: old.recipes.map((r) =>
+              r.id === recipe.id ? { ...r, favorite: newFavoriteState } : r
+            ),
+          };
+        }
+      );
 
       // Update individual recipe if it exists
       queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
@@ -40,16 +43,19 @@ export function useFavoriteToggle() {
     onError: (_, recipe) => {
       // Revert both caches on error
       const oldFavoriteState = recipe.favorite;
-      
-      queryClient.setQueriesData<PaginatedRecipes>({ queryKey: ["recipes"] }, (old) => {
-        if (!old?.recipes) return old;
-        return {
-          ...old,
-          recipes: old.recipes.map((r) =>
-            r.id === recipe.id ? { ...r, favorite: oldFavoriteState } : r
-          ),
-        };
-      });
+
+      queryClient.setQueriesData<PaginatedRecipes>(
+        { queryKey: ["recipes"] },
+        (old) => {
+          if (!old?.recipes) return old;
+          return {
+            ...old,
+            recipes: old.recipes.map((r) =>
+              r.id === recipe.id ? { ...r, favorite: oldFavoriteState } : r
+            ),
+          };
+        }
+      );
 
       queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
         ...recipe,
@@ -59,7 +65,9 @@ export function useFavoriteToggle() {
       toast.error("Failed to update favorite status");
     },
     onSuccess: (data) => {
-      toast.success(data.favorite ? "Added to favorites" : "Removed from favorites");
+      toast.success(
+        data.favorite ? "Added to favorites" : "Removed from favorites"
+      );
     },
   });
 
@@ -67,4 +75,4 @@ export function useFavoriteToggle() {
     toggleFavorite: mutation.mutate,
     isLoading: mutation.isPending,
   };
-} 
+}

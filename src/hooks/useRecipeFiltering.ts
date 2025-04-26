@@ -1,12 +1,12 @@
-import { useMemo } from "react";
 import Fuse from "fuse.js";
+import { useMemo } from "react";
 import type { Recipe } from "~/types";
 
 const FUSE_OPTIONS = {
   keys: [
     { name: "name", weight: 0.6 },
     { name: "categories", weight: 0.2 },
-    { name: "tags", weight: 0.2 }
+    { name: "tags", weight: 0.2 },
   ],
   threshold: 0.4,
   includeScore: true,
@@ -30,7 +30,7 @@ export function useRecipeFiltering(
     return results.map(({ item, score, matches }) => ({
       ...item,
       _score: score,
-      _matches: matches
+      _matches: matches,
     }));
   }, [fuse, searchTerm, recipes]);
 
@@ -42,23 +42,27 @@ export function useRecipeFiltering(
       case "favorite":
         result.sort((a, b) => {
           if (a.favorite === b.favorite) {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           }
           return a.favorite ? -1 : 1;
         });
         break;
       case "newest":
         result.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         break;
       case "oldest":
         result.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         break;
     }
 
     return result;
   }, [searchResults, sortOption]);
-} 
+}

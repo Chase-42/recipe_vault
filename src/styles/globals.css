@@ -126,9 +126,7 @@ dialog:modal {
   }
 }
 .recipe-card {
-  transition:
-    transform 0.5s ease-in-out,
-    opacity 0.5s ease-in-out;
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
 .hover\:animate-swirl-border:hover {

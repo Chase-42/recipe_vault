@@ -1,13 +1,10 @@
 "use client";
 
-import Image from "next/image";
-import { Button } from "~/components/ui/button";
 import { IconHeart } from "@tabler/icons-react";
-import type { Recipe } from "~/types";
-import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { cn } from "~/lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +16,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { Badge } from "../../components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 import { useSearch } from "~/providers";
+import type { Recipe } from "~/types";
+import { Badge } from "../../components/ui/badge";
 
 interface SearchMatch {
   key: string;
@@ -68,7 +68,7 @@ function RecipeCard({
       e.preventDefault();
       router.push(`/img/${recipe.id}?modal=true`);
     },
-    [recipe.id, router],
+    [recipe.id, router]
   );
 
   const shouldPrioritize = priority || recipe.id <= 4;
@@ -76,7 +76,7 @@ function RecipeCard({
   // Helper function to highlight matches
   const highlightMatches = (
     text: string,
-    matches?: Array<[number, number]>,
+    matches?: Array<[number, number]>
   ) => {
     if (!matches || !searchTerm) return text;
 
@@ -92,7 +92,7 @@ function RecipeCard({
       result.push(
         <span key={start} className="bg-yellow-500/30">
           {text.slice(start, end + 1)}
-        </span>,
+        </span>
       );
       lastIndex = end + 1;
     });
@@ -108,7 +108,7 @@ function RecipeCard({
   // Get matches for each field
   const nameMatches = searchMatches?.find((m) => m.key === "name")?.indices;
   const categoryMatches = searchMatches?.find(
-    (m) => m.key === "categories",
+    (m) => m.key === "categories"
   )?.indices;
   const tagMatches = searchMatches?.find((m) => m.key === "tags")?.indices;
 
@@ -154,7 +154,7 @@ function RecipeCard({
               .filter(Boolean)
               .map((cat, i) => (
                 <Badge
-                  key={"cat-" + i}
+                  key={`cat-${i}`}
                   variant="secondary"
                   className={cn(categoryMatches && "bg-yellow-500/30")}
                 >
@@ -166,7 +166,7 @@ function RecipeCard({
               .filter(Boolean)
               .map((tag, i) => (
                 <Badge
-                  key={"tag-" + i}
+                  key={`tag-${i}`}
                   variant="outline"
                   className={cn(tagMatches && "bg-yellow-500/30")}
                 >
@@ -188,7 +188,7 @@ function RecipeCard({
               className={cn(
                 "h-full w-full object-cover transition-all duration-300",
                 !isImageLoaded && "blur-sm",
-                "group-hover:scale-105 group-active:scale-100",
+                "group-hover:scale-105 group-active:scale-100"
               )}
               style={{
                 transform: "translateZ(0)",

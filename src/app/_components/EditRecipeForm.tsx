@@ -1,24 +1,24 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { type ChangeEvent, type FormEvent, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { Button } from "~/components/ui/button";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import LoadingSpinner from "./LoadingSpinner";
 import type { Recipe } from "~/types";
 import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
-import dynamic from "next/dynamic";
-import { Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
 import {
   Select,
-  SelectTrigger,
   SelectContent,
   SelectItem,
+  SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { type Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
+import LoadingSpinner from "./LoadingSpinner";
 
 const ImageUpload = dynamic(() => import("./ImageUpload"), {
   loading: () => (
@@ -72,10 +72,10 @@ function useRecipeMutation(initialRecipe: Recipe) {
             recipes: old.recipes.map((recipe) =>
               recipe.id === initialRecipe.id
                 ? { ...recipe, ...newRecipe }
-                : recipe,
+                : recipe
             ),
           };
-        },
+        }
       );
 
       // Update single recipe
@@ -90,13 +90,13 @@ function useRecipeMutation(initialRecipe: Recipe) {
       if (context?.previousRecipes) {
         queryClient.setQueriesData(
           { queryKey: ["recipes"] },
-          context.previousRecipes,
+          context.previousRecipes
         );
       }
       if (context?.previousRecipe) {
         queryClient.setQueryData(
           ["recipe", initialRecipe.id],
-          context.previousRecipe,
+          context.previousRecipe
         );
       }
       toast.error("Failed to update recipe");
@@ -112,10 +112,10 @@ function useRecipeMutation(initialRecipe: Recipe) {
           return {
             ...old,
             recipes: old.recipes.map((recipe) =>
-              recipe.id === initialRecipe.id ? updatedRecipe : recipe,
+              recipe.id === initialRecipe.id ? updatedRecipe : recipe
             ),
           };
-        },
+        }
       );
 
       // Ensure cache is fresh
@@ -160,7 +160,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   const { mutation, isSubmitting } = useRecipeMutation(initialRecipe);
 
   const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));

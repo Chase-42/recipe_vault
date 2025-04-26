@@ -1,24 +1,24 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ImageIcon, X } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { Button } from "~/components/ui/button";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import LoadingSpinner from "./LoadingSpinner";
-import type { Recipe, APIResponse } from "~/types";
-import Image from "next/image";
-import { ImageIcon, X } from "lucide-react";
+import type { APIResponse, Recipe } from "~/types";
 import {
   Select,
-  SelectTrigger,
   SelectContent,
   SelectItem,
+  SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
+import { type Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
+import LoadingSpinner from "./LoadingSpinner";
 
 type CreateRecipeInput = Omit<
   Recipe,

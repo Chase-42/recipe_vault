@@ -13,4 +13,4 @@ const FullImagePage = dynamic(() => import("~/app/_components/FullImagePage"), {
 
 export default function FullImagePageClient({ id }: { id: number }) {
   return <FullImagePage id={id} />;
-} 
+}

@@ -1,26 +1,26 @@
 "use client";
 
+import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
+import { Edit, ShoppingCart } from "lucide-react";
 import Image from "next/image";
-import { Checkbox } from "~/components/ui/checkbox";
-import { fetchRecipe } from "~/utils/recipeService";
-import type { Recipe } from "~/lib/schemas";
-import LoadingSpinner from "./LoadingSpinner";
-import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "~/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { ShoppingCart, Edit } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { IconHeart } from "@tabler/icons-react";
+import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
+import type { Recipe } from "~/lib/schemas";
 import { cn } from "~/lib/utils";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { fetchRecipe } from "~/utils/recipeService";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface FullPageImageViewProps {
   id: number;
@@ -115,7 +115,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
       try {
         const parsed = JSON.parse(stored) as Record<number, boolean>;
         setCheckedIngredients(parsed);
-      } catch (e) {
+      } catch (_e) {
         console.error("Failed to parse stored ingredients");
       }
     }
@@ -126,7 +126,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     if (Object.keys(checkedIngredients).length > 0) {
       localStorage.setItem(
         `recipe-${id}-ingredients`,
-        JSON.stringify(checkedIngredients),
+        JSON.stringify(checkedIngredients)
       );
     }
   }, [checkedIngredients, id]);
@@ -282,7 +282,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                     htmlFor={`ingredient-${index}`}
                     className={cn(
                       "flex-1 text-lg leading-tight md:text-base",
-                      checkedIngredients[index] && "text-gray-500 line-through",
+                      checkedIngredients[index] && "text-gray-500 line-through"
                     )}
                   >
                     {ingredient}
@@ -356,7 +356,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                 "transition-colors duration-300",
                 recipe.favorite
                   ? "fill-current text-[hsl(var(--recipe-red))]"
-                  : "text-white",
+                  : "text-white"
               )}
               strokeWidth={2}
             />

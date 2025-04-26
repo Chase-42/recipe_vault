@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
+import { and, eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
 
 export async function PUT(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function PUT(
     }
 
     const id = Number(params.id);
-    if (isNaN(id)) {
+    if (Number.isNaN(id)) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
@@ -43,4 +43,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}

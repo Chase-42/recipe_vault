@@ -7,10 +7,13 @@ interface RateLimitConfig {
   path?: string;
 }
 
-type RateLimitStore = Record<string, {
-  count: number;
-  resetTime: number;
-}>;
+type RateLimitStore = Record<
+  string,
+  {
+    count: number;
+    resetTime: number;
+  }
+>;
 
 // Create a global store for all rate limiters
 const globalStore: Record<string, RateLimitStore> = {};
@@ -99,11 +102,11 @@ const defaultConfig: RateLimitConfig = {
 export async function withRateLimit(
   req: NextRequest,
   handler: (req: NextRequest) => Promise<NextResponse>,
-  config?: RateLimitConfig,
+  config?: RateLimitConfig
 ): Promise<NextResponse> {
   const finalConfig = config ?? defaultConfig;
   const cacheKey = `${finalConfig.path ?? "default"}-${finalConfig.maxRequests}-${finalConfig.windowMs}`;
-  
+
   let limiter = rateLimiterCache.get(cacheKey);
   if (!limiter) {
     limiter = new RateLimiter(finalConfig);
@@ -111,28 +114,37 @@ export async function withRateLimit(
   }
 
   const { allowed, remaining, resetTime } = await limiter.check(req);
-  
+
   if (!allowed) {
     const response = NextResponse.json(
       { error: "Too many requests" },
-      { status: 429 },
+      { status: 429 }
     );
 
     // Add rate limit headers
-    response.headers.set("X-RateLimit-Limit", limiter.config.maxRequests.toString());
+    response.headers.set(
+      "X-RateLimit-Limit",
+      limiter.config.maxRequests.toString()
+    );
     response.headers.set("X-RateLimit-Remaining", remaining.toString());
     response.headers.set("X-RateLimit-Reset", resetTime.toString());
-    response.headers.set("Retry-After", Math.ceil((resetTime - Date.now()) / 1000).toString());
+    response.headers.set(
+      "Retry-After",
+      Math.ceil((resetTime - Date.now()) / 1000).toString()
+    );
 
     return response;
   }
 
   const response = await handler(req);
-  
+
   // Add rate limit headers to successful responses
-  response.headers.set("X-RateLimit-Limit", limiter.config.maxRequests.toString());
+  response.headers.set(
+    "X-RateLimit-Limit",
+    limiter.config.maxRequests.toString()
+  );
   response.headers.set("X-RateLimit-Remaining", remaining.toString());
   response.headers.set("X-RateLimit-Reset", resetTime.toString());
 
   return response;
-} 
+}
