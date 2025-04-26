@@ -40,8 +40,6 @@ const config = {
 			},
 		];
 	},
-	swcMinify: true,
-	optimizeFonts: true,
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production" ? {
 			exclude: ['error', 'warn'],
@@ -59,8 +57,9 @@ const config = {
 			'@tabler/icons-react',
 			'framer-motion'
 		],
-		optimizeServerReact: true,
-		serverMinification: true,
+		serverActions: {
+			allowedOrigins: ['localhost:3000', 'localhost:5328'],
+		},
 	}
 };
 
