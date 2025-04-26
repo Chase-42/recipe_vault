@@ -1,21 +1,21 @@
-import { headers } from "next/headers";
-import { NextRequest } from "next/server";
-import EditRecipeForm from "~/app/_components/EditRecipeForm";
-import { getRecipe } from "~/server/queries";
-import type { Recipe } from "~/types";
+import { auth } from '@clerk/nextjs/server';
+import EditRecipeForm from '~/app/_components/EditRecipeForm';
+import { getRecipe } from '~/server/queries';
+import type { Recipe } from '~/types';
 
 export default async function EditPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const awaitedParams = await params;
-  const idAsNumber = Number(awaitedParams.id);
-  if (Number.isNaN(idAsNumber)) throw new Error("Invalid photo id");
+  const idAsNumber = Number(params.id);
+  if (Number.isNaN(idAsNumber)) throw new Error('Invalid recipe id');
 
-  const headersList = await headers();
-  const req = new NextRequest("http://localhost", { headers: headersList });
-  const recipe: Recipe | null = await getRecipe(idAsNumber, req);
+  const session = await auth();
+  const userId = session?.userId;
+  if (!userId) return null;
+
+  const recipe: Recipe | null = await getRecipe(idAsNumber, userId);
 
   if (!recipe) {
     return (
