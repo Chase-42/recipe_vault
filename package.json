@@ -53,7 +53,7 @@
     "zod": "^3.23.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.8.3",
+    "@biomejs/biome": "^1.8.3",
     "@types/eslint": "^8.56.2",
     "@types/node": "^20.11.20",
     "@types/react": "^18.2.57",
@@ -66,8 +66,6 @@
     "eslint-plugin-drizzle": "^0.2.3",
     "pg": "^8.11.3",
     "postcss": "^8.4.34",
-    "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.2"
   },
