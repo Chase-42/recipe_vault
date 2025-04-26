@@ -1,24 +1,23 @@
-import "server-only";
-import { getAuth } from "@clerk/nextjs/server";
-import { and, desc, eq, sql } from "drizzle-orm";
-import type { NextRequest } from "next/server";
-import { type Category, MAIN_MEAL_CATEGORIES } from "../types/category";
-import { db } from "./db";
-import { recipes } from "./db/schema";
+import 'server-only';
+import { getAuth } from '@clerk/nextjs/server';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import type { NextRequest } from 'next/server';
+import { type Category, MAIN_MEAL_CATEGORIES } from '../types/category';
+import { db } from './db';
+import { recipes } from './db/schema';
 
 // Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
   userId: string,
   offset: number,
   limit: number,
-  _options?: { cache?: "force-cache" | "no-store" }
+  _options?: { cache?: 'force-cache' | 'no-store' }
 ) {
   try {
     // Get total count
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(recipes)
-      .where(eq(recipes.userId, userId))
       .execute();
 
     const total = Number(countResult?.count ?? 0);
@@ -40,7 +39,6 @@ export async function getMyRecipes(
         tags: recipes.tags,
       })
       .from(recipes)
-      .where(eq(recipes.userId, userId))
       .offset(offset)
       .limit(limit)
       .orderBy(desc(recipes.createdAt));
@@ -55,15 +53,13 @@ export async function getMyRecipes(
       total,
     };
   } catch (error) {
-    console.error("Failed to fetch recipes:", error);
-    throw new Error("Failed to fetch recipes");
+    console.error('Failed to fetch recipes:', error);
+    throw new Error('Failed to fetch recipes');
   }
 }
 
-export const getRecipe = async (id: number, req: NextRequest) => {
-  const { userId } = getAuth(req);
-
-  if (!userId) throw new Error("Unauthorized");
+export const getRecipe = async (id: number, userId: string) => {
+  if (!userId) throw new Error('Unauthorized');
 
   const recipe = await db
     .select()
@@ -72,8 +68,8 @@ export const getRecipe = async (id: number, req: NextRequest) => {
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!recipe) throw new Error("Recipe not found");
-  if (recipe.userId !== userId) throw new Error("Unauthorized");
+  if (!recipe) throw new Error('Recipe not found');
+  if (recipe.userId !== userId) throw new Error('Unauthorized');
 
   return {
     ...recipe,
@@ -87,15 +83,15 @@ export const getRecipe = async (id: number, req: NextRequest) => {
 export async function deleteRecipe(id: number, req: NextRequest) {
   const { userId } = getAuth(req);
 
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) throw new Error('Unauthorized');
 
   try {
     await db
       .delete(recipes)
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
   } catch (error) {
-    console.error("Failed to delete recipe:", error);
-    throw new Error("Failed to delete recipe");
+    console.error('Failed to delete recipe:', error);
+    throw new Error('Failed to delete recipe');
   }
 }
 
@@ -106,19 +102,31 @@ export async function updateRecipe(
 ) {
   const { userId } = getAuth(req);
 
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) throw new Error('Unauthorized');
 
   try {
-    await db
+    const [updatedRecipe] = await db
       .update(recipes)
       .set(data)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .returning();
+
+    if (!updatedRecipe) {
+      throw new Error('Recipe not found or unauthorized');
+    }
+
+    return {
+      ...updatedRecipe,
+      createdAt: updatedRecipe.createdAt.toISOString(),
+      categories: toCategoryOrUndefined(updatedRecipe.categories),
+      tags: updatedRecipe.tags,
+    };
   } catch (error) {
-    console.error("Failed to update recipe:", error);
-    throw new Error("Failed to update recipe");
+    console.error('Failed to update recipe:', error);
+    throw new Error('Failed to update recipe');
   }
 }
 
 function toCategoryOrUndefined(val: string): string {
-  return MAIN_MEAL_CATEGORIES.some((category) => category === val) ? val : "";
+  return MAIN_MEAL_CATEGORIES.some((category) => category === val) ? val : '';
 }
