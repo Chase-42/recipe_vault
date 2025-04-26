@@ -1,10 +1,10 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface ModalProps {
   children: React.ReactNode;
@@ -79,6 +79,6 @@ export function Modal({ children, onClose }: ModalProps) {
         </motion.div>
       )}
     </AnimatePresence>,
-    modalRoot,
+    modalRoot
   );
 }

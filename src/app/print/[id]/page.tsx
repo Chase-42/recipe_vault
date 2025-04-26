@@ -1,12 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchRecipe } from "~/utils/recipeService";
 import { format } from "date-fns";
-import Image from "next/image";
-import { Button } from "~/components/ui/button";
 import { Printer } from "lucide-react";
+import Image from "next/image";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import { Button } from "~/components/ui/button";
+import { fetchRecipe } from "~/utils/recipeService";
 
 export default function PrintRecipe({ params }: { params: { id: string } }) {
   const idAsNumber = Number(params.id);

@@ -1,13 +1,13 @@
 {
-	"functions": {
-		"api/**": {
-			"excludeFiles": "{.next,*.cache,node_modules,public,app}/**"
-		}
-	},
-	"rewrites": [
-		{
-			"source": "/api/scraper/:path*",
-			"destination": "/api/index.py"
-		}
-	]
+  "functions": {
+    "api/**": {
+      "excludeFiles": "{.next,*.cache,node_modules,public,app}/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/scraper/:path*",
+      "destination": "/api/index.py"
+    }
+  ]
 }

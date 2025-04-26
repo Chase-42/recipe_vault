@@ -1,8 +1,8 @@
 "use client";
 
+import { Home, RefreshCcw } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "~/components/ui/button";
-import { Home, RefreshCcw } from "lucide-react";
 
 export default function GlobalErrorPage({
   error,

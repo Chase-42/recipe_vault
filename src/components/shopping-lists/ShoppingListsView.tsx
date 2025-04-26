@@ -1,11 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Checkbox } from "~/components/ui/checkbox";
-import { ScrollArea } from "~/components/ui/scroll-area";
-import { Trash2, Search } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
   AlertDialog,
@@ -18,6 +14,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
+import { ScrollArea } from "~/components/ui/scroll-area";
 
 interface ShoppingItem {
   id: number;
@@ -35,14 +35,14 @@ export function ShoppingListsView() {
   const filteredItems = useMemo(() => {
     if (!items) return [];
     return items.filter((item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [items, searchQuery]);
 
   const areAllFilteredItemsChecked = useMemo(
     () =>
       filteredItems.length > 0 && filteredItems.every((item) => item.checked),
-    [filteredItems],
+    [filteredItems]
   );
 
   // Fetch items
@@ -96,7 +96,7 @@ export function ShoppingListsView() {
       setItems((prev) => {
         if (!prev) return prev;
         return prev.map((item) =>
-          item.id === itemId ? { ...item, checked } : item,
+          item.id === itemId ? { ...item, checked } : item
         );
       });
     } catch (error) {
@@ -161,8 +161,8 @@ export function ShoppingListsView() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ checked: newCheckedState }),
-        }),
-      ),
+        })
+      )
     );
   };
 

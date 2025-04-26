@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useCallback, memo } from "react";
+import { memo, useCallback, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { toast } from "sonner";
 
 interface AddToListModalProps {
   isOpen: boolean;
@@ -56,7 +56,7 @@ export function AddToListModal({
   recipeName,
 }: AddToListModalProps) {
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(
-    new Set(),
+    new Set()
   );
 
   const handleToggleIngredient = useCallback((index: number) => {

@@ -1,8 +1,11 @@
+import { getAuth } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { updateShoppingItem, deleteShoppingItem } from "~/server/queries/shopping-list";
+import {
+  deleteShoppingItem,
+  updateShoppingItem,
+} from "~/server/queries/shopping-list";
 
 const updateItemSchema = z.object({
   checked: z.boolean(),
@@ -21,8 +24,8 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const itemId = parseInt(params.itemId);
-    if (isNaN(itemId)) {
+    const itemId = Number.parseInt(params.itemId);
+    if (Number.isNaN(itemId)) {
       return new NextResponse("Invalid item ID", { status: 400 });
     }
 
@@ -55,8 +58,8 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const itemId = parseInt(params.itemId);
-    if (isNaN(itemId)) {
+    const itemId = Number.parseInt(params.itemId);
+    if (Number.isNaN(itemId)) {
       return new NextResponse("Invalid item ID", { status: 400 });
     }
 
@@ -70,4 +73,4 @@ export async function DELETE(
     console.error("Error deleting shopping item:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-} 
+}

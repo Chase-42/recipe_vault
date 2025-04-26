@@ -1,12 +1,12 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import { Utensils, ChefHat, Clock } from "lucide-react";
-import { Suspense } from "react";
-import { getMyRecipes } from "~/server/queries";
 import { getAuth } from "@clerk/nextjs/server";
-import RecipeList from "~/app/_components/RecipeList";
-import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import { ChefHat, Clock, Utensils } from "lucide-react";
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
+import { Suspense } from "react";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import RecipeList from "~/app/_components/RecipeList";
+import { getMyRecipes } from "~/server/queries";
 
 const ITEMS_PER_PAGE = 12;
 

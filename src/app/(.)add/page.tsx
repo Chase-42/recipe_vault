@@ -1,5 +1,5 @@
-import { Modal } from "~/app/_components/Modal";
 import AddRecipeForm from "~/app/_components/AddRecipeForm";
+import { Modal } from "~/app/_components/Modal";
 
 export default function AddRecipePage() {
   return (

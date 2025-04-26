@@ -1,10 +1,10 @@
+import { headers } from "next/headers";
+import { NextRequest } from "next/server";
 // src/app/edit/[id]/page.tsx
 import EditRecipeForm from "~/app/_components/EditRecipeForm";
 import { Modal } from "~/app/_components/Modal";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
-import { headers } from "next/headers";
-import { NextRequest } from "next/server";
 
 export default async function EditModal({
   params,
