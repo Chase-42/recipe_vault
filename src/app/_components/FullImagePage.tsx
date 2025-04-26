@@ -40,6 +40,7 @@ function RecipeImage({
       <AnimatePresence>
         {/* Blur placeholder */}
         <motion.div
+          key="blur-placeholder"
           initial={{ opacity: 1 }}
           animate={{ opacity: imageLoading ? 1 : 0 }}
           exit={{ opacity: 0 }}
@@ -55,6 +56,7 @@ function RecipeImage({
         />
         {/* Main image */}
         <motion.div
+          key="main-image"
           initial={{ opacity: 0 }}
           animate={{ opacity: imageLoading ? 0 : 1 }}
           transition={{ duration: 0.3 }}
@@ -184,7 +186,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
             <div className="hidden items-center gap-2 md:flex">
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -199,7 +201,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
 
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -215,9 +217,10 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
               {recipe.favorite ? (
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <button
-                        type="button"
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => toggleFavorite(recipe)}
                         className="transition-opacity duration-300"
                         aria-label="Unfavorite"
@@ -228,7 +231,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                           strokeWidth={2}
                           fill="currentColor"
                         />
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>Remove from favorites</TooltipContent>
                   </Tooltip>
@@ -236,9 +239,10 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
               ) : (
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <button
-                        type="button"
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => toggleFavorite(recipe)}
                         className="transition-opacity duration-300"
                         aria-label="Favorite"
@@ -248,7 +252,7 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
                           className="text-white transition-colors duration-300"
                           strokeWidth={2}
                         />
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>Add to favorites</TooltipContent>
                   </Tooltip>

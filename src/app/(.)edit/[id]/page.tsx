@@ -3,16 +3,21 @@ import EditRecipeForm from "~/app/_components/EditRecipeForm";
 import { Modal } from "~/app/_components/Modal";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
+import { headers } from "next/headers";
+import { NextRequest } from "next/server";
 
 export default async function EditModal({
-  params: { id: recipeId },
+  params,
 }: {
   params: { id: string };
 }) {
-  const idAsNumber = Number(recipeId);
+  const awaitedParams = await params;
+  const idAsNumber = Number(awaitedParams.id);
   if (Number.isNaN(idAsNumber)) throw new Error("Invalid recipe id");
 
-  const recipe: Recipe | null = await getRecipe(idAsNumber);
+  const headersList = await headers();
+  const req = new NextRequest("http://localhost", { headers: headersList });
+  const recipe: Recipe | null = await getRecipe(idAsNumber, req);
 
   if (!recipe) {
     return (
