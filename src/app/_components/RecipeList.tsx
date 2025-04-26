@@ -1,36 +1,36 @@
-"use client";
+'use client';
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { schemas } from "~/lib/schemas";
-import { cn } from "~/lib/utils";
-import { useSearch } from "~/providers";
-import type { Category } from "~/types/category";
-import type { Recipe } from "~/types/recipe";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { schemas } from '~/lib/schemas';
+import { cn } from '~/lib/utils';
+import { useSearch } from '~/providers';
+import type { Category } from '~/types/category';
+import type {
+  RecipeWithCategories,
+  PaginatedRecipes,
+  SortOption,
+} from '~/lib/schemas';
 
-import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import LoadingSpinner from '~/app/_components/LoadingSpinner';
 
 // Components
-import RecipeCard from "./RecipeCard";
-import RecipeFilters from "./RecipeFilters";
-import RecipePagination from "./RecipePagination";
+import RecipeCard from './RecipeCard';
+import RecipeFilters from './RecipeFilters';
+import RecipePagination from './RecipePagination';
 
-import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
-import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
-import { useUrlParams } from "~/hooks/useUrlParams";
-import type { RecipeWithCategories } from "~/lib/schemas";
-import type { SortOption } from "~/lib/schemas";
-import type { PaginatedRecipeResponse } from "~/types/api";
-// Utils & Hooks
-import { deleteRecipe, fetchRecipe, fetchRecipes } from "~/utils/recipeService";
+import { useFavoriteToggle } from '~/hooks/useFavoriteToggle';
+import { useRecipeFiltering } from '~/hooks/useRecipeFiltering';
+import { useUrlParams } from '~/hooks/useUrlParams';
+import { deleteRecipe, fetchRecipe, fetchRecipes } from '~/utils/recipeService';
 
 const ITEMS_PER_PAGE = 12;
 
 interface RecipeListProps {
   initialData: {
-    recipes: Recipe[];
+    recipes: RecipeWithCategories[];
     total: number;
     currentPage: number;
     totalPages: number;
@@ -41,7 +41,7 @@ interface RecipeListProps {
 const fetchRecipesWithTypes = async (
   offset: number,
   limit: number
-): Promise<PaginatedRecipeResponse> => {
+): Promise<PaginatedRecipes> => {
   const response = await fetchRecipes(offset, limit);
   const validatedRecipes = response.recipes.map((recipe) =>
     schemas.recipeWithCategories.parse(recipe)
@@ -51,6 +51,8 @@ const fetchRecipesWithTypes = async (
     recipes: validatedRecipes,
     pagination: {
       total: response.pagination.total,
+      offset,
+      limit,
       totalPages: Math.ceil(response.pagination.total / limit),
       currentPage: Math.floor(offset / limit) + 1,
       hasNextPage: offset + limit < response.pagination.total,
@@ -67,18 +69,18 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   const { toggleFavorite } = useFavoriteToggle();
 
   // State
-  const [gridView, setGridView] = useState<"grid" | "list">("grid");
+  const [gridView, setGridView] = useState<'grid' | 'list'>('grid');
   const [_showScrollTop, setShowScrollTop] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category>("all");
+  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
 
   // URL params
-  const currentPage = Number(getParam("page")) || 1;
-  const sortOption = schemas.sortOption.parse(getParam("sort") ?? "newest");
+  const currentPage = Number(getParam('page')) || 1;
+  const sortOption = schemas.sortOption.parse(getParam('sort') ?? 'newest');
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Scroll handler
   useEffect(() => {
-    const scrollContainer = document.querySelector("main");
+    const scrollContainer = document.querySelector('main');
     if (!scrollContainer) return;
 
     const handleScroll = () => {
@@ -88,27 +90,26 @@ export default function RecipeList({ initialData }: RecipeListProps) {
     // Check initial scroll position
     handleScroll();
 
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
   const _scrollToTop = useCallback(() => {
-    const scrollContainer = document.querySelector("main");
+    const scrollContainer = document.querySelector('main');
     if (!scrollContainer) return;
 
     scrollContainer.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   }, []);
 
   // Data fetching with initial data
-  const { data, isLoading } = useQuery<PaginatedRecipeResponse>({
-    queryKey: ["recipes", offset],
+  const { data, isLoading } = useQuery<PaginatedRecipes>({
+    queryKey: ['recipes', offset],
     queryFn: async () => {
-      console.log("Fetching data for offset:", offset);
       const response = await fetchRecipesWithTypes(offset, ITEMS_PER_PAGE);
-      console.log("Fetched data:", response);
+
       return response;
     },
     initialData:
@@ -119,6 +120,8 @@ export default function RecipeList({ initialData }: RecipeListProps) {
             ),
             pagination: {
               total: initialData.total,
+              offset: 0,
+              limit: ITEMS_PER_PAGE,
               totalPages: Math.ceil(initialData.total / ITEMS_PER_PAGE),
               currentPage: 1,
               hasNextPage: initialData.total > ITEMS_PER_PAGE,
@@ -131,17 +134,6 @@ export default function RecipeList({ initialData }: RecipeListProps) {
     refetchOnWindowFocus: true,
   });
 
-  // Log current state
-  useEffect(() => {
-    console.log("Current state:", {
-      currentPage,
-      offset,
-      data,
-      isLoading,
-      initialData,
-    });
-  }, [currentPage, offset, data, isLoading, initialData]);
-
   // Update the recipes type
   const recipes = useMemo(() => data?.recipes ?? [], [data?.recipes]);
   const totalPages = data?.pagination?.totalPages ?? 0;
@@ -150,15 +142,14 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   // Effect to handle page changes
   useEffect(() => {
     if (currentPage > 1) {
-      console.log("Invalidating queries for page:", currentPage);
-      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      void queryClient.invalidateQueries({ queryKey: ['recipes'] });
     }
   }, [currentPage, queryClient]);
 
   // Update the category filter
   const categoryFilteredRecipes = useMemo(
     () =>
-      selectedCategory && selectedCategory !== "all"
+      selectedCategory && selectedCategory !== 'all'
         ? recipes.filter((r) => r.categories === selectedCategory)
         : recipes,
     [recipes, selectedCategory]
@@ -168,38 +159,36 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   const deleteRecipeMutation = useMutation({
     mutationFn: deleteRecipe,
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["recipes"] });
-      const previousRecipes = queryClient.getQueryData<PaginatedRecipeResponse>(
-        ["recipes"]
-      );
+      await queryClient.cancelQueries({ queryKey: ['recipes'] });
+      const previousRecipes = queryClient.getQueryData<PaginatedRecipes>([
+        'recipes',
+      ]);
 
       if (previousRecipes) {
-        queryClient.setQueryData<PaginatedRecipeResponse>(
-          ["recipes"],
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              recipes: old.recipes.filter((recipe) => recipe.id !== id),
-              pagination: {
-                ...old.pagination,
-                total: old.pagination.total - 1,
-              },
-            };
-          }
-        );
+        queryClient.setQueryData<PaginatedRecipes>(['recipes'], (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            recipes: old.recipes.filter((recipe) => recipe.id !== id),
+            pagination: {
+              ...old.pagination,
+              total: old.pagination.total - 1,
+            },
+          };
+        });
       }
 
       return { previousRecipes };
     },
     onError: (_, __, context) => {
       if (context?.previousRecipes) {
-        queryClient.setQueryData(["recipes"], context.previousRecipes);
+        queryClient.setQueryData(['recipes'], context.previousRecipes);
       }
-      toast.error("Failed to delete recipe");
+      toast.error('Failed to delete recipe');
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      await queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      toast.success('Recipe deleted successfully');
     },
   });
 
@@ -212,15 +201,15 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   );
 
   const handlePageChange = (page: number) => {
-    updateParam("page", page.toString());
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    updateParam('page', page.toString());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSortChange = useCallback(
     (value: SortOption) => {
-      updateParam("sort", value);
+      updateParam('sort', value);
       if (currentPage !== 1) {
-        updateParam("page", "1");
+        updateParam('page', '1');
       }
     },
     [currentPage, updateParam]
@@ -236,7 +225,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   // Smart preloading on hover with rate limiting
   const handleRecipeHover = useCallback(
     (recipe: RecipeWithCategories) => {
-      const cacheKey = ["preloadedImages", recipe.id];
+      const cacheKey = ['preloadedImages', recipe.id];
       if (!queryClient.getQueryData(cacheKey)) {
         // Load image
         const img = new Image();
@@ -247,7 +236,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
 
         // Prefetch recipe data
         void queryClient.prefetchQuery({
-          queryKey: ["recipe", recipe.id],
+          queryKey: ['recipe', recipe.id],
           queryFn: () => fetchRecipe(recipe.id),
           staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
         });
@@ -268,7 +257,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
       timeoutId = setTimeout(() => {
         const nextPageOffset = currentPage * ITEMS_PER_PAGE;
         void queryClient.prefetchQuery({
-          queryKey: ["recipes", nextPageOffset],
+          queryKey: ['recipes', nextPageOffset],
           queryFn: () => fetchRecipesWithTypes(nextPageOffset, ITEMS_PER_PAGE),
           staleTime: 1000 * 30, // Consider data fresh for 30 seconds
         });
@@ -305,10 +294,10 @@ export default function RecipeList({ initialData }: RecipeListProps) {
       <div className="min-h-[calc(100vh-160px)]">
         <div
           className={cn(
-            "flex gap-6 pb-8",
-            gridView === "grid"
-              ? "mx-auto flex w-full max-w-[1200px] flex-wrap justify-center"
-              : "mx-auto w-full max-w-3xl flex-col items-center"
+            'flex gap-6 pb-8',
+            gridView === 'grid'
+              ? 'mx-auto flex w-full max-w-[1200px] flex-wrap justify-center'
+              : 'mx-auto w-full max-w-3xl flex-col items-center'
           )}
         >
           {data?.recipes && filteredAndSortedRecipes.length === 0 ? (
@@ -321,8 +310,8 @@ export default function RecipeList({ initialData }: RecipeListProps) {
                 key={recipe.id}
                 onMouseEnter={() => handleRecipeHover(recipe)}
                 className={cn(
-                  gridView === "grid" &&
-                    "w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]"
+                  gridView === 'grid' &&
+                    'w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]'
                 )}
               >
                 <RecipeCard
