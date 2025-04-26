@@ -2,10 +2,11 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Utensils, ChefHat, Clock } from "lucide-react";
 import { Suspense } from "react";
 import { getMyRecipes } from "~/server/queries";
-import { auth } from "@clerk/nextjs/server";
+import { getAuth } from "@clerk/nextjs/server";
 import RecipeList from "~/app/_components/RecipeList";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { headers } from "next/headers";
+import { NextRequest } from "next/server";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -22,12 +23,16 @@ const FloatingIcon = ({
 };
 
 async function RecipeListContainer() {
-  const { userId } = auth();
+  const headersList = await headers();
+  const req = new NextRequest("http://localhost", { headers: headersList });
+  const { userId } = getAuth(req);
   if (!userId) return null;
 
   try {
-    // Only fetch first page data
-    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
+    // Only fetch first page data with explicit caching
+    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE, {
+      cache: "force-cache",
+    });
     console.log("Server Data:", { recipes, total, userId });
     return (
       <RecipeList

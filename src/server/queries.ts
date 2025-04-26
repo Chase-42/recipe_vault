@@ -1,15 +1,17 @@
 import "server-only";
 import { db } from "./db";
-import { auth } from "@clerk/nextjs/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { recipes } from "./db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { MAIN_MEAL_CATEGORIES, type Category } from "../types/category";
+import { type NextRequest } from "next/server";
 
 // Fetch user's recipes with pagination and total count
 export async function getMyRecipes(
 	userId: string,
 	offset: number,
 	limit: number,
+	options?: { cache?: 'force-cache' | 'no-store' }
 ) {
 	try {
 		// Get total count
@@ -58,9 +60,8 @@ export async function getMyRecipes(
 	}
 }
 
-// Rest of the file remains the same...
-export const getRecipe = async (id: number) => {
-	const { userId } = auth();
+export const getRecipe = async (id: number, req: NextRequest) => {
+	const { userId } = getAuth(req);
 
 	if (!userId) throw new Error("Unauthorized");
 
@@ -83,8 +84,8 @@ export const getRecipe = async (id: number) => {
 	};
 };
 
-export async function deleteRecipe(id: number) {
-	const { userId } = auth();
+export async function deleteRecipe(id: number, req: NextRequest) {
+	const { userId } = getAuth(req);
 
 	if (!userId) throw new Error("Unauthorized");
 
@@ -101,33 +102,17 @@ export async function deleteRecipe(id: number) {
 export async function updateRecipe(
 	id: number,
 	data: Partial<typeof recipes.$inferInsert>,
+	req: NextRequest
 ) {
-	const { userId } = auth();
+	const { userId } = getAuth(req);
 
 	if (!userId) throw new Error("Unauthorized");
 
 	try {
-		// Ensure we have valid data to update
-		if (!data || Object.keys(data).length === 0) {
-			throw new Error("No values to set");
-		}
-
-		const result = await db
+		await db
 			.update(recipes)
 			.set(data)
-			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-			.returning();
-
-		if (!result.length) {
-			throw new Error("Recipe not found");
-		}
-
-		const updatedRecipe = result[0]!;
-		return {
-			...updatedRecipe,
-			categories: toCategoryOrUndefined(updatedRecipe.categories),
-			tags: updatedRecipe.tags,
-		};
+			.where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
 	} catch (error) {
 		console.error("Failed to update recipe:", error);
 		throw new Error("Failed to update recipe");
