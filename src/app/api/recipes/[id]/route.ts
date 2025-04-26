@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 			throw new ValidationError("Invalid ID");
 		}
 
-		const recipe = await getRecipe(id);
+		const recipe = await getRecipe(id, req);
 		if (!recipe) {
 			throw new NotFoundError("Recipe not found");
 		}

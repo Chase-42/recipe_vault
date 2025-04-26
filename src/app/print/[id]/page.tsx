@@ -9,9 +9,10 @@ import { Printer } from "lucide-react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 
 export default function PrintRecipe({ params }: { params: { id: string } }) {
+  const idAsNumber = Number(params.id);
   const { data: recipe, error } = useQuery({
-    queryKey: ["recipe", params.id],
-    queryFn: () => fetchRecipe(Number(params.id)),
+    queryKey: ["recipe", idAsNumber],
+    queryFn: () => fetchRecipe(idAsNumber),
   });
 
   if (error) return <div>Failed to load recipe</div>;
