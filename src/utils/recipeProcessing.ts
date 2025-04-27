@@ -1,16 +1,24 @@
-import { uploadImage } from "./uploadImage";
-import { dynamicBlurDataUrl } from "./dynamicBlurDataUrl";
-import { schemas, type ProcessedData, type FlaskApiResponse } from "~/lib/schemas";
-import fetchRecipeImages from "./scraper";
-import sanitizeString from "./sanitizeString";
 import { RecipeError } from "~/lib/errors";
+import {
+  type FlaskApiResponse,
+  type ProcessedData,
+  schemas,
+} from "~/lib/schemas";
+import { dynamicBlurDataUrl } from "./dynamicBlurDataUrl";
+import sanitizeString from "./sanitizeString";
+import fetchRecipeImages from "./scraper";
+import { uploadImage } from "./uploadImage";
 
 export async function processRecipeData(
   data: FlaskApiResponse,
-  link: string,
+  link: string
 ): Promise<ProcessedData> {
   let { imageUrl } = data;
-  const { instructions: rawInstructions, ingredients = [], name: rawName } = data;
+  const {
+    instructions: rawInstructions,
+    ingredients = [],
+    name: rawName,
+  } = data;
   const name = sanitizeString(rawName);
   const instructions = sanitizeString(rawInstructions);
 
@@ -25,7 +33,7 @@ export async function processRecipeData(
 
   const [uploadedImageUrl, blurDataURL] = await Promise.all([
     uploadImage(imageUrl),
-    dynamicBlurDataUrl(imageUrl)
+    dynamicBlurDataUrl(imageUrl),
   ]).catch(() => {
     throw new RecipeError("Failed to process image", 500);
   });
@@ -37,4 +45,4 @@ export async function processRecipeData(
     instructions,
     ingredients: ingredients.map(sanitizeString),
   });
-} 
+}

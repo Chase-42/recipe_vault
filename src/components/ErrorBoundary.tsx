@@ -1,8 +1,8 @@
 "use client";
 
+import { Home, RefreshCcw } from "lucide-react";
 import { Component, type ReactNode } from "react";
 import { Button } from "~/components/ui/button";
-import { RefreshCcw, Home } from "lucide-react";
 
 interface Props {
   children: ReactNode;

@@ -1,19 +1,19 @@
 "use client";
-import type React from "react";
 import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
-import {
+  MutationCache,
   QueryClient,
   QueryClientProvider,
   type QueryKey,
-  MutationCache,
 } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
+import type React from "react";
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface SearchContextProps {
   searchTerm: string;
@@ -66,8 +66,8 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
         if (!error && mutationContext?.invalidateQueries) {
           await Promise.all(
             mutationContext.invalidateQueries.map((query) =>
-              queryClient.invalidateQueries(query),
-            ),
+              queryClient.invalidateQueries(query)
+            )
           );
         }
       },
@@ -112,7 +112,7 @@ export const useAnimatePresence = (): ReactNode => {
   const context = useContext(AnimatePresenceContext);
   if (!context) {
     throw new Error(
-      "useAnimatePresence must be used within an AnimatePresenceProvider",
+      "useAnimatePresence must be used within an AnimatePresenceProvider"
     );
   }
   return context;

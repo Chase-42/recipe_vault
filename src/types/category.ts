@@ -5,4 +5,4 @@ export const MAIN_MEAL_CATEGORIES: Category[] = [
   "Lunch",
   "Dinner",
   "Dessert",
-]; 
+];

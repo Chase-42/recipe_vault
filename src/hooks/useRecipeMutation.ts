@@ -6,7 +6,7 @@ import { updateRecipe } from "~/utils/recipeService";
 
 type MutationType = "create" | "update";
 
-type CreateRecipeInput = Omit<Recipe, 'id'>;
+type CreateRecipeInput = Omit<Recipe, "id">;
 type UpdateRecipeInput = UpdatedRecipe & { id: number };
 
 export function useRecipeMutation(type: MutationType) {
@@ -25,7 +25,7 @@ export function useRecipeMutation(type: MutationType) {
         }
         return response.json();
       }
-      
+
       const updateData = data as UpdateRecipeInput;
       if (!updateData.id) throw new Error("Recipe ID is required for update");
       return updateRecipe(updateData);
@@ -36,13 +36,16 @@ export function useRecipeMutation(type: MutationType) {
         await queryClient.cancelQueries({ queryKey: ["recipe", data.id] });
       }
 
-      const previousRecipes = queryClient.getQueryData<PaginatedRecipes>(["recipes"]);
-      const previousRecipe = type === "update" && "id" in data
-        ? queryClient.getQueryData<Recipe>(["recipe", data.id])
-        : undefined;
+      const previousRecipes = queryClient.getQueryData<PaginatedRecipes>([
+        "recipes",
+      ]);
+      const previousRecipe =
+        type === "update" && "id" in data
+          ? queryClient.getQueryData<Recipe>(["recipe", data.id])
+          : undefined;
 
       if (previousRecipes) {
-        queryClient.setQueryData<PaginatedRecipes>(["recipes"], old => {
+        queryClient.setQueryData<PaginatedRecipes>(["recipes"], (old) => {
           if (!old) return old;
           if (type === "create" && isCreateRecipeInput(data)) {
             const newRecipe: Recipe = {
@@ -58,15 +61,15 @@ export function useRecipeMutation(type: MutationType) {
               recipes: [newRecipe, ...old.recipes],
               pagination: {
                 ...old.pagination,
-                total: old.pagination.total + 1
-              }
+                total: old.pagination.total + 1,
+              },
             };
           }
           return {
             ...old,
-            recipes: old.recipes.map(recipe =>
-              recipe.id === (data as UpdateRecipeInput).id 
-                ? { ...recipe, ...data } 
+            recipes: old.recipes.map((recipe) =>
+              recipe.id === (data as UpdateRecipeInput).id
+                ? { ...recipe, ...data }
                 : recipe
             ),
           };
@@ -74,7 +77,7 @@ export function useRecipeMutation(type: MutationType) {
       }
 
       if (type === "update" && "id" in data) {
-        queryClient.setQueryData<Recipe>(["recipe", data.id], old => {
+        queryClient.setQueryData<Recipe>(["recipe", data.id], (old) => {
           if (!old) return old;
           return { ...old, ...data };
         });
@@ -85,7 +88,9 @@ export function useRecipeMutation(type: MutationType) {
         previousRecipe,
         invalidateQueries: [
           { queryKey: ["recipes"] },
-          ...(type === "update" && "id" in data ? [{ queryKey: ["recipe", data.id] }] : []),
+          ...(type === "update" && "id" in data
+            ? [{ queryKey: ["recipe", data.id] }]
+            : []),
         ],
       };
     },
@@ -94,7 +99,10 @@ export function useRecipeMutation(type: MutationType) {
         queryClient.setQueryData(["recipes"], context.previousRecipes);
       }
       if (type === "update" && context?.previousRecipe) {
-        queryClient.setQueryData(["recipe", context.previousRecipe.id], context.previousRecipe);
+        queryClient.setQueryData(
+          ["recipe", context.previousRecipe.id],
+          context.previousRecipe
+        );
       }
       toast.error(`Failed to ${type} recipe`);
     },
@@ -105,6 +113,8 @@ export function useRecipeMutation(type: MutationType) {
 }
 
 // Type guard to ensure we have a complete CreateRecipeInput
-function isCreateRecipeInput(data: CreateRecipeInput | UpdateRecipeInput): data is CreateRecipeInput {
+function isCreateRecipeInput(
+  data: CreateRecipeInput | UpdateRecipeInput
+): data is CreateRecipeInput {
   return !("id" in data);
-} 
+}
