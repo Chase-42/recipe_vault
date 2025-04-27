@@ -1,11 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { RecipesData, Recipe } from "~/types";
+import type { Recipe, RecipesData } from "~/types";
 
 // Helper function to update recipes in the cache
 export function updateRecipesInCache(
   queryClient: QueryClient,
-  updateFn: (recipes: Recipe[]) => Recipe[],
+  updateFn: (recipes: Recipe[]) => Recipe[]
 ) {
   queryClient.setQueryData<RecipesData>(["recipes"], (oldData) => {
     if (!oldData) return oldData;
@@ -26,7 +26,7 @@ export async function performMutationWithRollback(
   queryClient: QueryClient,
   previousData: RecipesData | undefined,
   successMessage: string,
-  errorMessage: string,
+  errorMessage: string
 ) {
   try {
     await mutationFn();

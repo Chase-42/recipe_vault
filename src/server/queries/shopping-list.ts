@@ -1,6 +1,6 @@
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { shoppingItems } from "../db/schema";
-import { and, eq, desc } from "drizzle-orm";
 
 export async function getShoppingItems(userId: string) {
   try {
@@ -25,10 +25,7 @@ export async function updateShoppingItem(
       .update(shoppingItems)
       .set({ checked })
       .where(
-        and(
-          eq(shoppingItems.id, itemId),
-          eq(shoppingItems.userId, userId)
-        )
+        and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
       )
       .returning();
 
@@ -44,10 +41,7 @@ export async function deleteShoppingItem(userId: string, itemId: number) {
     const [deletedItem] = await db
       .delete(shoppingItems)
       .where(
-        and(
-          eq(shoppingItems.id, itemId),
-          eq(shoppingItems.userId, userId)
-        )
+        and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
       )
       .returning();
 
@@ -70,12 +64,9 @@ export async function addShoppingItems(
       checked: false,
     }));
 
-    return await db
-      .insert(shoppingItems)
-      .values(itemsToInsert)
-      .returning();
+    return await db.insert(shoppingItems).values(itemsToInsert).returning();
   } catch (error) {
     console.error("Failed to add shopping items:", error);
     throw new Error("Failed to add shopping items");
   }
-} 
+}

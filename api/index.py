@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,12 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+# Enable debug mode if FLASK_DEBUG is set
+if os.environ.get('FLASK_DEBUG') == '1':
+    app.config['DEBUG'] = True
+    logger.setLevel(logging.DEBUG)
+    logger.info("Debug mode enabled")
 
 # Configure session with retries
 session = requests.Session()

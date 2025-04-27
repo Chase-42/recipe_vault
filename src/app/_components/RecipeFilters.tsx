@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "~/components/ui/button";
 import { LayoutGrid, LayoutList } from "lucide-react";
-import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { MAIN_MEAL_CATEGORIES, type Category } from "~/types/category";
+import { cn } from "~/lib/utils";
+import { type Category, MAIN_MEAL_CATEGORIES } from "~/types/category";
 
 type SortOption = "favorite" | "newest" | "oldest";
 
@@ -56,7 +56,7 @@ export default function RecipeFilters({
             className={cn(
               "hover:bg-accent hover:text-accent-foreground",
               gridView === "grid" && "bg-accent text-accent-foreground",
-              "border-r p-2 sm:p-3",
+              "border-r p-2 sm:p-3"
             )}
           >
             <LayoutGrid className="h-5 w-5 sm:h-4 sm:w-4" />
@@ -67,7 +67,7 @@ export default function RecipeFilters({
             onClick={() => setGridView("list")}
             className={cn(
               "p-2 hover:bg-accent hover:text-accent-foreground sm:p-3",
-              gridView === "list" && "bg-accent text-accent-foreground",
+              gridView === "list" && "bg-accent text-accent-foreground"
             )}
           >
             <LayoutList className="h-5 w-5 sm:h-4 sm:w-4" />

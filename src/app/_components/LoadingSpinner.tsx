@@ -22,13 +22,13 @@ const LoadingSpinner = ({
     className={cn(
       "flex items-center justify-center",
       fullHeight && "h-full",
-      className,
+      className
     )}
   >
     <div
       className={cn(
         "animate-spin rounded-full border-b-4 border-t-4 border-red-800",
-        sizeClasses[size],
+        sizeClasses[size]
       )}
     />
   </div>

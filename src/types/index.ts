@@ -53,4 +53,4 @@ export interface RecipeResponse {
 
 export interface CreateRecipeRequest {
   link: string;
-} 
+}

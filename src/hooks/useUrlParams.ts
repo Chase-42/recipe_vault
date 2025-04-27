@@ -1,5 +1,5 @@
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 export function useUrlParams() {
   const router = useRouter();
@@ -35,4 +35,4 @@ export function useUrlParams() {
     getParam,
     createQueryString,
   };
-} 
+}

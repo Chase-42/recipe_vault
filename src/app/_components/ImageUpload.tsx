@@ -1,6 +1,6 @@
-import { useState, type ChangeEvent } from "react";
-import Image from "next/image";
 import { ImageIcon, X } from "lucide-react";
+import Image from "next/image";
+import { type ChangeEvent, useState } from "react";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
@@ -44,7 +44,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     } catch (error) {
       console.error("Upload failed:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload image",
+        error instanceof Error ? error.message : "Failed to upload image"
       );
       onImageChange(imageUrl);
     } finally {

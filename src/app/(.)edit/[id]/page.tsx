@@ -1,18 +1,22 @@
-// src/app/edit/[id]/page.tsx
-import EditRecipeForm from "~/app/_components/EditRecipeForm";
-import { Modal } from "~/app/_components/Modal";
-import { getRecipe } from "~/server/queries";
-import type { Recipe } from "~/types";
+import { auth } from '@clerk/nextjs/server';
+import EditRecipeForm from '~/app/_components/EditRecipeForm';
+import { Modal } from '~/app/_components/Modal';
+import { getRecipe } from '~/server/queries';
+import type { Recipe } from '~/types';
 
 export default async function EditModal({
-  params: { id: recipeId },
+  params,
 }: {
   params: { id: string };
 }) {
-  const idAsNumber = Number(recipeId);
-  if (Number.isNaN(idAsNumber)) throw new Error("Invalid recipe id");
+  const session = await auth();
+  const userId = session?.userId;
+  if (!userId) return null;
 
-  const recipe: Recipe | null = await getRecipe(idAsNumber);
+  const idAsNumber = Number(params.id);
+  if (Number.isNaN(idAsNumber)) throw new Error('Invalid recipe id');
+
+  const recipe: Recipe | null = await getRecipe(idAsNumber, userId);
 
   if (!recipe) {
     return (
