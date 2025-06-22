@@ -11,8 +11,8 @@ export interface Recipe {
   favorite: boolean;
   createdAt: string;
   userId: string;
-  categories: string;
-  tags: string;
+  categories: string[];
+  tags: string[];
 }
 
 export interface PaginationMetadata {

@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { PaginatedRecipes } from "~/lib/schemas";
-import type { Recipe } from "~/types";
+import type { PaginatedRecipes, Recipe } from "~/lib/schemas";
 import { toggleFavorite as toggleFavoriteApi } from "~/utils/recipeService";
 
 export function useFavoriteToggle() {

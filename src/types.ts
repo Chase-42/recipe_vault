@@ -1,3 +1,5 @@
+import type { Category } from "./types/category";
+
 export interface Recipe {
   id: number;
   name: string;
@@ -9,8 +11,8 @@ export interface Recipe {
   favorite: boolean;
   createdAt: string;
   userId?: string;
-  categories?: string;
-  tags?: string;
+  categories: string[];
+  tags: string[];
   _matches?: Array<{
     key: string;
     value: string;
@@ -112,3 +114,11 @@ export type APIResponse<T> = {
   data?: T;
   error?: string;
 };
+
+export interface FetchRecipesParams {
+  offset?: number;
+  limit?: number;
+  searchTerm?: string;
+  category?: Category;
+  sortOption?: "newest" | "oldest" | "favorite" | "relevance";
+}

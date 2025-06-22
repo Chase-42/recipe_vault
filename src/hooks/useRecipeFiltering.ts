@@ -1,6 +1,6 @@
-import Fuse from "fuse.js";
-import { useMemo } from "react";
-import type { Recipe } from "~/types";
+import { useQuery } from "@tanstack/react-query";
+import { fetchRecipes } from "~/utils/recipeService";
+import type { Category } from "~/types/category";
 
 const FUSE_OPTIONS = {
   keys: [
@@ -16,53 +16,27 @@ const FUSE_OPTIONS = {
 type SortOption = "favorite" | "newest" | "oldest";
 
 export function useRecipeFiltering(
-  recipes: Recipe[],
   searchTerm: string,
-  sortOption: SortOption
+  sortOption: SortOption,
+  category: Category,
+  page = 1,
+  itemsPerPage = 12
 ) {
-  // Memoize the Fuse instance
-  const fuse = useMemo(() => new Fuse(recipes, FUSE_OPTIONS), [recipes]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["recipes", { searchTerm, sortOption, category, page }],
+    queryFn: () =>
+      fetchRecipes({
+        searchTerm,
+        sortOption,
+        category,
+        offset: (page - 1) * itemsPerPage,
+        limit: itemsPerPage,
+      }),
+  });
 
-  // Memoize search results
-  const searchResults = useMemo(() => {
-    if (!searchTerm) return recipes;
-    const results = fuse.search(searchTerm);
-    return results.map(({ item, score, matches }) => ({
-      ...item,
-      _score: score,
-      _matches: matches,
-    }));
-  }, [fuse, searchTerm, recipes]);
-
-  // Memoize sorting
-  return useMemo(() => {
-    const result = [...searchResults];
-
-    switch (sortOption) {
-      case "favorite":
-        result.sort((a, b) => {
-          if (a.favorite === b.favorite) {
-            return (
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-          }
-          return a.favorite ? -1 : 1;
-        });
-        break;
-      case "newest":
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        break;
-      case "oldest":
-        result.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        break;
-    }
-
-    return result;
-  }, [searchResults, sortOption]);
+  return {
+    recipes: data?.recipes ?? [],
+    isLoading,
+    pagination: data?.pagination,
+  };
 }
