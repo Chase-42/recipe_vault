@@ -38,8 +38,8 @@ interface FormData {
   ingredients: string;
   instructions: string;
   imageUrl: string;
-  categories: Category | undefined;
-  tags: string;
+  categories: string[];
+  tags: string[];
 }
 
 function useRecipeMutation(initialRecipe: Recipe) {
@@ -153,8 +153,8 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     ingredients: recipe?.ingredients ?? "",
     instructions: recipe?.instructions ?? "",
     imageUrl: recipe?.imageUrl ?? "",
-    categories: recipe?.categories,
-    tags: recipe?.tags ?? "",
+    categories: recipe?.categories ?? [],
+    tags: recipe?.tags ?? [],
   });
 
   const { mutation, isSubmitting } = useRecipeMutation(initialRecipe);
@@ -167,11 +167,19 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   };
 
   const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, categories: value as Category }));
+    setFormData((prev) => ({
+      ...prev,
+      categories: value ? [value as Category] : [],
+    }));
   };
 
   const handleTagChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, tags: e.target.value }));
+    const tagString = e.target.value;
+    const tagsArray = tagString
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+    setFormData((prev) => ({ ...prev, tags: tagsArray }));
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -267,7 +275,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
             <div>
               <label className="text-sm font-medium">Category</label>
               <Select
-                value={formData.categories}
+                value={formData.categories[0] ?? ""}
                 onValueChange={handleCategoryChange}
               >
                 <SelectTrigger>
@@ -287,7 +295,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
               <label className="text-sm font-medium">Tag(s)</label>
               <Input
                 id="tags"
-                value={formData.tags}
+                value={formData.tags.join(", ")}
                 onChange={handleTagChange}
                 placeholder="e.g. spicy, quick, gluten-free"
                 className="mt-1 block w-full"

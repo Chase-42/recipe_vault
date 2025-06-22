@@ -1,5 +1,8 @@
 import { z } from "zod";
 import type { Category } from "~/types/category";
+import { MAIN_MEAL_CATEGORIES } from "~/types/category";
+
+const DEFAULT_LIMIT = 12;
 
 const image = z.object({
   url: z.string(),
@@ -18,13 +21,13 @@ const recipe = z.object({
   favorite: z.boolean(),
   createdAt: z.string(),
   userId: z.string().optional(),
-  categories: z.string().optional(),
-  tags: z.string().optional(),
+  categories: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
 });
 
 const recipeWithCategories = recipe.extend({
-  categories: z.string().optional(),
-  tags: z.string().optional(),
+  categories: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
 });
 
 const paginationMetadata = z.object({
@@ -102,6 +105,14 @@ const favoriteResponse = z.object({
   favorite: z.boolean(),
 });
 
+const searchParamsSchema = z.object({
+  offset: z.number().min(0).default(0),
+  limit: z.number().min(1).max(100).default(DEFAULT_LIMIT),
+  search: z.string().optional(),
+  category: z.enum(["all", ...MAIN_MEAL_CATEGORIES]).default("all"),
+  sort: z.enum(["newest", "oldest", "favorite", "relevance"]).default("newest"),
+});
+
 const sortOption = z.enum(["favorite", "newest", "oldest"]);
 
 export const schemas = {
@@ -117,6 +128,7 @@ export const schemas = {
   apiResponse,
   favoriteResponse,
   sortOption,
+  searchParamsSchema,
 } as const;
 
 // Export all types derived from Zod schemas
@@ -133,3 +145,4 @@ export type APIResponse<T extends z.ZodType> = z.infer<
   ReturnType<typeof apiResponse<T>>
 >;
 export type SortOption = z.infer<typeof sortOption>;
+export type SearchParams = z.infer<typeof searchParamsSchema>;

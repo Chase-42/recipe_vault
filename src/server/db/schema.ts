@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   varchar,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator((name) => `recipe_vault_${name}`);
@@ -23,13 +24,18 @@ export const recipes = createTable(
     ingredients: text("ingredients").notNull(),
     favorite: boolean("favorite").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    categories: text("categories").notNull().default(""),
-    tags: text("tags").notNull().default(""),
+    categories: text("categories").array().notNull().default([]),
+    tags: text("tags").array().notNull().default([]),
   },
   (table) => ({
     userIdIdx: index("user_id_idx").on(table.userId),
     createdAtIdx: index("created_at_idx").on(table.createdAt),
     favoriteIdx: index("favorite_idx").on(table.favorite),
+    searchIdx: index("search_idx").on(
+      table.name,
+      table.instructions,
+      table.ingredients
+    ),
   })
 );
 

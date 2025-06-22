@@ -1,16 +1,16 @@
-import { SignedIn, SignedOut } from '@clerk/nextjs';
-import { auth } from '@clerk/nextjs/server';
-import { ChefHat, Clock, Utensils } from 'lucide-react';
-import { Suspense } from 'react';
-import LoadingSpinner from '~/app/_components/LoadingSpinner';
-import RecipeList from '~/app/_components/RecipeList';
-import { getMyRecipes } from '~/server/queries';
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { ChefHat, Clock, Utensils } from "lucide-react";
+import { Suspense } from "react";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import RecipeList from "~/app/_components/RecipeList";
+import { getMyRecipes } from "~/server/queries";
 
 const ITEMS_PER_PAGE = 12;
 
 const FloatingIcon = ({
   children,
-  className = '',
+  className = "",
 }: {
   children: React.ReactNode;
   className?: string;
@@ -27,9 +27,7 @@ async function RecipeListContainer() {
 
   try {
     // Only fetch first page data with explicit caching
-    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE, {
-      cache: 'force-cache',
-    });
+    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
 
     return (
       <RecipeList
@@ -43,7 +41,7 @@ async function RecipeListContainer() {
     );
   } catch (error) {
     if (error instanceof Error) {
-      console.error('Failed to fetch recipes:', error.message);
+      console.error("Failed to fetch recipes:", error.message);
     }
     return <div>Failed to load recipes</div>;
   }
@@ -74,7 +72,7 @@ export default function HomePage() {
                 <span className="absolute -bottom-2 left-0 h-1 w-full animate-slide-in bg-primary" />
                 <span className="inline-block animate-fade-in-down">
                   Welcome to
-                </span>{' '}
+                </span>{" "}
                 <span className="animation-delay-200 relative inline-block animate-fade-in-down text-primary">
                   Recipe Vault
                 </span>

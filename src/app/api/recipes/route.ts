@@ -1,32 +1,34 @@
-import { getAuth } from '@clerk/nextjs/server';
-import getRecipeData from '@rethora/url-recipe-scraper';
-import { type NextRequest, NextResponse } from 'next/server';
+import { getAuth } from "@clerk/nextjs/server";
+import getRecipeData from "@rethora/url-recipe-scraper";
+import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthorizationError,
   RecipeError,
   ValidationError,
   getErrorMessage,
   handleApiError,
-} from '~/lib/errors';
-import { withRateLimit } from '~/lib/rateLimit';
+} from "~/lib/errors";
+import { withRateLimit } from "~/lib/rateLimit";
 import {
   type FallbackApiResponse,
   type FlaskApiResponse,
   type ProcessedData,
+  type SearchParams,
   schemas,
-} from '~/lib/schemas';
-import { db } from '~/server/db';
-import { recipes } from '~/server/db/schema';
-import { deleteRecipe, getMyRecipes } from '~/server/queries';
-import { dynamicBlurDataUrl } from '~/utils/dynamicBlurDataUrl';
-import sanitizeString from '~/utils/sanitizeString';
-import fetchRecipeImages from '~/utils/scraper';
-import { uploadImage } from '~/utils/uploadImage';
+} from "~/lib/schemas";
+import { db } from "~/server/db";
+import { recipes } from "~/server/db/schema";
+import { deleteRecipe, getMyRecipes } from "~/server/queries";
+import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
+import sanitizeString from "~/utils/sanitizeString";
+import fetchRecipeImages from "~/utils/scraper";
+import { uploadImage } from "~/utils/uploadImage";
+import type { Category } from "~/types/category";
 
 // Constants
 const baseUrl =
-  process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5328/'
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:5328/"
     : `${process.env.NEXT_PUBLIC_DOMAIN}/`;
 
 const MAX_LIMIT = 100;
@@ -35,7 +37,7 @@ const DEFAULT_LIMIT = 12;
 // Types
 interface RecipeStep {
   text?: string;
-  '@type'?: string;
+  "@type"?: string;
   name?: string;
   itemListElement?: RecipeStep[];
 }
@@ -63,14 +65,14 @@ function processInstructions(instructions: RecipeStep[] = []): string {
   };
 
   instructions.forEach(extractSteps);
-  return allSteps.filter(Boolean).join('\n');
+  return allSteps.filter(Boolean).join("\n");
 }
 
 // Data Processing Functions
 async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
   try {
     const response = await fetch(flaskApiUrl(link).toString(), {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: "application/json" },
       next: { revalidate: 0 },
     });
 
@@ -113,29 +115,29 @@ async function tryJsPackageScraper(
 
     const transformedInstructions = data.recipeInstructions
       .map((instruction) => {
-        if (typeof instruction === 'string') {
-          return { '@type': 'HowToStep' as const, text: instruction };
+        if (typeof instruction === "string") {
+          return { "@type": "HowToStep" as const, text: instruction };
         }
         if (
-          typeof instruction === 'object' &&
+          typeof instruction === "object" &&
           instruction &&
-          'text' in instruction
+          "text" in instruction
         ) {
           return {
-            '@type': 'HowToStep' as const,
-            text: String(instruction.text ?? ''),
+            "@type": "HowToStep" as const,
+            text: String(instruction.text ?? ""),
           };
         }
         return null;
       })
       .filter(
-        (i): i is { '@type': 'HowToStep'; text: string } =>
+        (i): i is { "@type": "HowToStep"; text: string } =>
           i !== null && !!i.text
       );
 
     const validIngredients =
       data.recipeIngredient
-        ?.map((ing) => (typeof ing === 'string' ? ing : String(ing)))
+        ?.map((ing) => (typeof ing === "string" ? ing : String(ing)))
         .filter(Boolean) ?? [];
 
     if (!transformedInstructions.length || !validIngredients.length) {
@@ -144,7 +146,7 @@ async function tryJsPackageScraper(
 
     return {
       name: data.name,
-      image: { url: data.image?.url ?? '' },
+      image: { url: data.image?.url ?? "" },
       recipeInstructions: transformedInstructions,
       recipeIngredient: validIngredients,
     };
@@ -179,14 +181,14 @@ async function processRecipeData(
   }
 
   if (!imageUrl || !instructions || !ingredients.length || !name) {
-    throw new RecipeError('Failed to extract complete recipe data', 422);
+    throw new RecipeError("Failed to extract complete recipe data", 422);
   }
 
   const [uploadedImageUrl, blurDataURL] = await Promise.all([
     uploadImage(imageUrl),
     dynamicBlurDataUrl(imageUrl),
   ]).catch(() => {
-    throw new RecipeError('Failed to process image', 500);
+    throw new RecipeError("Failed to process image", 500);
   });
 
   return schemas.processedData.parse({
@@ -202,7 +204,7 @@ async function processRecipeData(
 const recipesRateLimiter = {
   maxRequests: 100,
   windowMs: 60 * 1000,
-  path: '/api/recipes',
+  path: "/api/recipes",
 };
 
 // API Route Handlers
@@ -215,34 +217,48 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         if (!userId) throw new AuthorizationError();
 
         const url = new URL(req.url);
-        const offset = Math.max(Number(url.searchParams.get('offset')) ?? 0, 0);
-        const limit = Math.min(
-          Math.max(Number(url.searchParams.get('limit')) ?? DEFAULT_LIMIT, 1),
-          MAX_LIMIT
-        );
+        const params: SearchParams = {
+          offset: Number(url.searchParams.get("offset")) ?? 0,
+          limit: Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT,
+          search: url.searchParams.get("search") ?? undefined,
+          category: (url.searchParams.get("category") ?? "all") as Category,
+          sort: (url.searchParams.get("sort") ?? "newest") as
+            | "newest"
+            | "oldest"
+            | "favorite"
+            | "relevance",
+        };
+
+        const validatedParams = schemas.searchParamsSchema.parse(params);
 
         const { recipes: recipeList, total } = await getMyRecipes(
           userId,
-          offset,
-          limit
+          validatedParams.offset,
+          validatedParams.limit,
+          {
+            searchQuery: validatedParams.search,
+            category: validatedParams.category,
+            sortBy: validatedParams.sort,
+          }
         );
 
         const response = NextResponse.json({
           recipes: recipeList,
           pagination: {
             total,
-            offset,
-            limit,
-            hasNextPage: total > offset + limit,
-            hasPreviousPage: offset > 0,
-            totalPages: Math.ceil(total / limit),
-            currentPage: Math.floor(offset / limit) + 1,
+            offset: validatedParams.offset,
+            limit: validatedParams.limit,
+            hasNextPage: total > validatedParams.offset + validatedParams.limit,
+            hasPreviousPage: validatedParams.offset > 0,
+            totalPages: Math.ceil(total / validatedParams.limit),
+            currentPage:
+              Math.floor(validatedParams.offset / validatedParams.limit) + 1,
           },
         });
 
         response.headers.set(
-          'Cache-Control',
-          'no-cache, no-store, must-revalidate'
+          "Cache-Control",
+          "no-cache, no-store, must-revalidate"
         );
         return response;
       } catch (error) {
@@ -266,7 +282,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (!userId) throw new AuthorizationError();
 
         const { link } = (await req.json()) as { link?: string };
-        if (!link?.trim()) throw new ValidationError('Valid link required');
+        if (!link?.trim()) throw new ValidationError("Valid link required");
 
         const recipeData = await fetchDataFromFlask(link).catch((error) => {
           throw new RecipeError(
@@ -284,7 +300,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             imageUrl: processedData.imageUrl,
             blurDataUrl: processedData.blurDataURL,
             instructions: processedData.instructions,
-            ingredients: processedData.ingredients.join('\n'),
+            ingredients: processedData.ingredients.join("\n"),
             name: processedData.name,
             userId,
           })
@@ -311,11 +327,11 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         const { userId } = getAuth(req);
         if (!userId) throw new AuthorizationError();
 
-        const id = new URL(req.url).searchParams.get('id');
-        if (!id) throw new ValidationError('Invalid ID');
+        const id = new URL(req.url).searchParams.get("id");
+        if (!id) throw new ValidationError("Invalid ID");
 
         await deleteRecipe(Number(id), req);
-        return NextResponse.json({ message: 'Recipe deleted successfully' });
+        return NextResponse.json({ message: "Recipe deleted successfully" });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
         return NextResponse.json(

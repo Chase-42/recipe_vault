@@ -7,12 +7,25 @@ import {
 import type { FavoriteResponse } from "~/types/api";
 import type { APIResponse } from "~/types/api";
 import type { CreateRecipeInput } from "~/types/recipe";
+import type { FetchRecipesParams } from "~/types";
 
-export const fetchRecipes = (
+export const fetchRecipes = ({
   offset = 0,
-  limit = 12
-): Promise<PaginatedRecipes> =>
-  fetch(`/api/recipes?offset=${offset}&limit=${limit}`)
+  limit = 12,
+  searchTerm,
+  category,
+  sortOption,
+}: FetchRecipesParams = {}): Promise<PaginatedRecipes> => {
+  const params = new URLSearchParams({
+    offset: offset.toString(),
+    limit: limit.toString(),
+  });
+
+  if (searchTerm) params.append("search", searchTerm);
+  if (category) params.append("category", category);
+  if (sortOption) params.append("sort", sortOption);
+
+  return fetch(`/api/recipes?${params.toString()}`)
     .then((res) => {
       if (!res.ok) throw new Error("Failed to fetch recipes");
       return res.json();
@@ -26,6 +39,7 @@ export const fetchRecipes = (
         throw error;
       }
     });
+};
 
 export const fetchRecipe = (id: number): Promise<Recipe> =>
   fetch(`/api/recipes/${id}`)

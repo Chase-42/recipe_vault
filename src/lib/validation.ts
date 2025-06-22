@@ -9,7 +9,12 @@ const createSanitizedString = (maxLength: number, fieldName: string) =>
     .max(maxLength, `${fieldName} must be ${maxLength} characters or less`)
     .transform((str) => {
       // Remove zero-width spaces and normalize line endings
-      return str.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\r\n/g, "\n");
+      return str
+        .replace(/\u200B/g, "")
+        .replace(/\u200C/g, "")
+        .replace(/\u200D/g, "")
+        .replace(/\uFEFF/g, "")
+        .replace(/\r\n/g, "\n");
     });
 
 // URL validation schema
@@ -39,8 +44,8 @@ export const createRecipeSchema = z.object({
     processMultilineText
   ),
   favorite: z.boolean().optional().default(false),
-  categories: z.string().optional(),
-  tags: z.string().optional(),
+  categories: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
 });
 
 // For updates, we want to make all fields optional except link which must be a string (can be empty)

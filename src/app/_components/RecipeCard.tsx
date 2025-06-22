@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { IconHeart } from '@tabler/icons-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { IconHeart } from "@tabler/icons-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,12 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '~/components/ui/alert-dialog';
-import { Button } from '~/components/ui/button';
-import { cn } from '~/lib/utils';
-import { useSearch } from '~/providers';
-import type { RecipeWithCategories } from '~/lib/schemas';
-import { Badge } from '../../components/ui/badge';
+} from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
+import { useSearch } from "~/providers";
+import type { RecipeWithCategories } from "~/lib/schemas";
+import { Badge } from "../../components/ui/badge";
 
 interface SearchMatch {
   key: string;
@@ -106,11 +106,11 @@ function RecipeCard({
   };
 
   // Get matches for each field
-  const nameMatches = searchMatches?.find((m) => m.key === 'name')?.indices;
+  const nameMatches = searchMatches?.find((m) => m.key === "name")?.indices;
   const categoryMatches = searchMatches?.find(
-    (m) => m.key === 'categories'
+    (m) => m.key === "categories"
   )?.indices;
-  const tagMatches = searchMatches?.find((m) => m.key === 'tags')?.indices;
+  const tagMatches = searchMatches?.find((m) => m.key === "tags")?.indices;
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
@@ -149,30 +149,24 @@ function RecipeCard({
         </h2>
         {(recipe.categories ?? recipe.tags) && (
           <div className="m m-2 flex flex-wrap gap-2">
-            {recipe.categories
-              ?.split(',')
-              .filter(Boolean)
-              .map((cat, i) => (
-                <Badge
-                  key={`cat-${i}`}
-                  variant="secondary"
-                  className={cn(categoryMatches && 'bg-yellow-500/30')}
-                >
-                  {cat.trim()}
-                </Badge>
-              ))}
-            {recipe.tags
-              ?.split(',')
-              .filter(Boolean)
-              .map((tag, i) => (
-                <Badge
-                  key={`tag-${i}`}
-                  variant="outline"
-                  className={cn(tagMatches && 'bg-yellow-500/30')}
-                >
-                  {tag.trim()}
-                </Badge>
-              ))}
+            {recipe.categories?.map((cat, i) => (
+              <Badge
+                key={`cat-${i}`}
+                variant="secondary"
+                className={cn(categoryMatches && "bg-yellow-500/30")}
+              >
+                {cat}
+              </Badge>
+            ))}
+            {recipe.tags?.map((tag, i) => (
+              <Badge
+                key={`tag-${i}`}
+                variant="outline"
+                className={cn(tagMatches && "bg-yellow-500/30")}
+              >
+                {tag}
+              </Badge>
+            ))}
           </div>
         )}
         <Link
@@ -186,13 +180,13 @@ function RecipeCard({
               ref={imageRef}
               src={recipe.imageUrl}
               className={cn(
-                'h-full w-full object-cover transition-all duration-300',
-                !isImageLoaded && 'blur-sm',
-                'group-hover:scale-105 group-active:scale-100'
+                "h-full w-full object-cover transition-all duration-300",
+                !isImageLoaded && "blur-sm",
+                "group-hover:scale-105 group-active:scale-100"
               )}
               style={{
-                transform: 'translateZ(0)',
-                willChange: 'transform',
+                transform: "translateZ(0)",
+                willChange: "transform",
               }}
               width={400}
               height={400}
@@ -200,12 +194,12 @@ function RecipeCard({
               placeholder="blur"
               blurDataURL={recipe.blurDataUrl}
               priority={shouldPrioritize}
-              loading={shouldPrioritize ? 'eager' : 'lazy'}
+              loading={shouldPrioritize ? "eager" : "lazy"}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
               onLoad={handleImageLoadComplete}
               onError={handleImageLoadComplete}
               quality={75}
-              fetchPriority={shouldPrioritize ? 'high' : 'auto'}
+              fetchPriority={shouldPrioritize ? "high" : "auto"}
             />
             {!isImageLoaded && (
               <div

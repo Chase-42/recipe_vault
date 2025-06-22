@@ -29,7 +29,16 @@ export async function POST(
       })
       .returning();
 
-    return NextResponse.json({ data: recipe as Recipe });
+    if (!recipe) {
+      throw new Error("Failed to create recipe");
+    }
+
+    return NextResponse.json({
+      data: {
+        ...recipe,
+        createdAt: recipe.createdAt.toISOString(),
+      } as Recipe,
+    });
   } catch (error) {
     console.error("Recipe creation failed:", error);
     const message =
