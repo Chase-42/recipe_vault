@@ -28,16 +28,7 @@ import { deleteRecipe, fetchRecipe } from "~/utils/recipeService";
 
 const ITEMS_PER_PAGE = 12;
 
-interface RecipeListProps {
-  initialData: {
-    recipes: RecipeWithCategories[];
-    total: number;
-    currentPage: number;
-    totalPages: number;
-  };
-}
-
-export default function RecipeList({ initialData }: RecipeListProps) {
+export default function RecipeList() {
   const { searchTerm } = useSearch();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -45,39 +36,11 @@ export default function RecipeList({ initialData }: RecipeListProps) {
   const { toggleFavorite } = useFavoriteToggle();
 
   // State
-  const [gridView, setGridView] = useState<"grid" | "list">("grid");
-  const [_showScrollTop, setShowScrollTop] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category>("all");
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
   const sortOption = schemas.sortOption.parse(getParam("sort") ?? "newest");
-
-  // Scroll handler
-  useEffect(() => {
-    const scrollContainer = document.querySelector("main");
-    if (!scrollContainer) return;
-
-    const handleScroll = () => {
-      setShowScrollTop(scrollContainer.scrollTop > 300);
-    };
-
-    // Check initial scroll position
-    handleScroll();
-
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const _scrollToTop = useCallback(() => {
-    const scrollContainer = document.querySelector("main");
-    if (!scrollContainer) return;
-
-    scrollContainer.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }, []);
 
   // Data fetching with new backend search implementation
   const { recipes, isLoading, pagination } = useRecipeFiltering(
@@ -195,8 +158,6 @@ export default function RecipeList({ initialData }: RecipeListProps) {
         total={total}
         offset={(currentPage - 1) * ITEMS_PER_PAGE}
         itemsPerPage={ITEMS_PER_PAGE}
-        gridView={gridView}
-        setGridView={setGridView}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         sortOption={sortOption}
@@ -207,14 +168,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
         {isLoading ? (
           <LoadingSpinner />
         ) : (
-          <div
-            className={cn(
-              "flex gap-6 pb-8",
-              gridView === "grid"
-                ? "mx-auto flex w-full max-w-[1200px] flex-wrap justify-center"
-                : "mx-auto w-full max-w-3xl flex-col items-center"
-            )}
-          >
+          <div className="mx-auto flex w-full max-w-[1200px] flex-wrap justify-center gap-6 pb-8">
             {recipes.length === 0 ? (
               <div className="flex h-[50vh] w-full items-center justify-center text-lg text-muted-foreground">
                 No recipes found
@@ -224,10 +178,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
                 <div
                   key={recipe.id}
                   onMouseEnter={() => handleRecipeHover(recipe)}
-                  className={cn(
-                    gridView === "grid" &&
-                      "w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]"
-                  )}
+                  className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]"
                 >
                   <RecipeCard
                     recipe={recipe}
