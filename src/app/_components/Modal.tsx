@@ -61,8 +61,6 @@ export function Modal({ children, onClose }: ModalProps) {
           aria-modal="true"
           tabIndex={-1}
           className="pointer-events-auto fixed inset-0 z-50 flex h-full items-center justify-center bg-black/90 text-white focus:outline-none"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
