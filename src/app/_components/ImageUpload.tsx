@@ -1,6 +1,6 @@
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
@@ -23,6 +23,7 @@ const compressImage = (
     }
 
     const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
       const { width, height } = img;
@@ -48,9 +49,17 @@ const compressImage = (
         "image/jpeg",
         quality
       );
+
+      // Clean up the object URL after compression
+      URL.revokeObjectURL(objectUrl);
     };
 
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
   });
 };
 
@@ -59,6 +68,24 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   onImageChange,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const previousBlobUrl = useRef<string | null>(null);
+
+  // Clean up blob URLs when they're replaced
+  useEffect(() => {
+    if (previousBlobUrl.current && !imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previousBlobUrl.current);
+      previousBlobUrl.current = null;
+    }
+  }, [imageUrl]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (previousBlobUrl.current) {
+        URL.revokeObjectURL(previousBlobUrl.current);
+      }
+    };
+  }, []);
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,6 +94,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     try {
       setIsUploading(true);
       const previewUrl = URL.createObjectURL(file);
+      previousBlobUrl.current = previewUrl;
       onImageChange(previewUrl);
 
       // Compress image before upload
