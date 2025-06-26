@@ -1,8 +1,6 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { ChefHat, Clock, Utensils } from "lucide-react";
-import { Suspense } from "react";
-import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import RecipeList from "~/app/_components/RecipeList";
 import { getMyRecipes } from "~/server/queries";
 
@@ -26,23 +24,25 @@ async function RecipeListContainer() {
   if (!userId) return null;
 
   try {
-    // Only fetch first page data with explicit caching
+    // Fetch initial data on server
     const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
 
-    return (
-      <RecipeList
-        initialData={{
-          recipes,
-          total,
-          currentPage: 1,
-          totalPages: Math.ceil(total / ITEMS_PER_PAGE),
-        }}
-      />
-    );
+    const initialData = {
+      recipes,
+      pagination: {
+        total,
+        offset: 0,
+        limit: ITEMS_PER_PAGE,
+        hasNextPage: total > ITEMS_PER_PAGE,
+        hasPreviousPage: false,
+        totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+        currentPage: 1,
+      },
+    };
+
+    return <RecipeList initialData={initialData} />;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Failed to fetch recipes:", error.message);
-    }
+    console.error("Failed to fetch initial recipes:", error);
     return <div>Failed to load recipes</div>;
   }
 }

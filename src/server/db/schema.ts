@@ -34,8 +34,12 @@ export const recipes = createTable(
     searchIdx: index("search_idx").on(
       table.name,
       table.instructions,
-      table.ingredients
+      table.ingredients,
+      table.categories,
+      table.tags
     ),
+    categoriesIdx: index("categories_idx").on(table.categories),
+    tagsIdx: index("tags_idx").on(table.tags),
   })
 );
 

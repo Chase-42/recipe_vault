@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipes } from "~/utils/recipeService";
 import type { Category } from "~/types/category";
+import type { PaginatedRecipes } from "~/lib/schemas";
 
 const FUSE_OPTIONS = {
   keys: [
@@ -22,17 +23,26 @@ export function useRecipeFiltering(
   page = 1,
   itemsPerPage = 12
 ) {
+  const queryKey = ["recipes", { searchTerm, sortOption, category, page }];
+  console.time(`useRecipeFiltering: ${JSON.stringify(queryKey)}`);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["recipes", { searchTerm, sortOption, category, page }],
-    queryFn: () =>
-      fetchRecipes({
+    queryKey,
+    queryFn: async () => {
+      console.time(`fetchRecipes call: ${JSON.stringify(queryKey)}`);
+      const result = await fetchRecipes({
         searchTerm,
         sortOption,
         category,
         offset: (page - 1) * itemsPerPage,
         limit: itemsPerPage,
-      }),
+      });
+      console.timeEnd(`fetchRecipes call: ${JSON.stringify(queryKey)}`);
+      return result;
+    },
   });
+
+  console.timeEnd(`useRecipeFiltering: ${JSON.stringify(queryKey)}`);
 
   return {
     recipes: data?.recipes ?? [],

@@ -209,6 +209,7 @@ const recipesRateLimiter = {
 
 // API Route Handlers
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  console.time("GET /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -216,53 +217,51 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const { userId } = getAuth(req);
         if (!userId) throw new AuthorizationError();
 
-        const url = new URL(req.url);
-        const params: SearchParams = {
-          offset: Number(url.searchParams.get("offset")) ?? 0,
-          limit: Number(url.searchParams.get("limit")) ?? DEFAULT_LIMIT,
-          search: url.searchParams.get("search") ?? undefined,
-          category: (url.searchParams.get("category") ?? "all") as Category,
-          sort: (url.searchParams.get("sort") ?? "newest") as
-            | "newest"
-            | "oldest"
-            | "favorite"
-            | "relevance",
-        };
+        const { searchParams } = new URL(req.url);
+        const params = schemas.searchParamsSchema.parse({
+          offset: Number(searchParams.get("offset")) ?? 0,
+          limit: Number(searchParams.get("limit")) ?? DEFAULT_LIMIT,
+          search: searchParams.get("search") ?? undefined,
+          category: (searchParams.get("category") as Category) ?? "all",
+          sort: searchParams.get("sort") ?? "newest",
+        });
 
-        const validatedParams = schemas.searchParamsSchema.parse(params);
+        if (params.limit > MAX_LIMIT) {
+          params.limit = MAX_LIMIT;
+        }
 
-        const { recipes: recipeList, total } = await getMyRecipes(
+        const { recipes, total } = await getMyRecipes(
           userId,
-          validatedParams.offset,
-          validatedParams.limit,
+          params.offset,
+          params.limit,
           {
-            searchQuery: validatedParams.search,
-            category: validatedParams.category,
-            sortBy: validatedParams.sort,
+            searchQuery: params.search,
+            category: params.category,
+            sortBy: params.sort,
           }
         );
 
-        const response = NextResponse.json({
-          recipes: recipeList,
+        const totalPages = Math.ceil(total / params.limit);
+        const currentPage = Math.floor(params.offset / params.limit) + 1;
+
+        const response = {
+          recipes,
           pagination: {
             total,
-            offset: validatedParams.offset,
-            limit: validatedParams.limit,
-            hasNextPage: total > validatedParams.offset + validatedParams.limit,
-            hasPreviousPage: validatedParams.offset > 0,
-            totalPages: Math.ceil(total / validatedParams.limit),
-            currentPage:
-              Math.floor(validatedParams.offset / validatedParams.limit) + 1,
+            offset: params.offset,
+            limit: params.limit,
+            hasNextPage: currentPage < totalPages,
+            hasPreviousPage: currentPage > 1,
+            totalPages,
+            currentPage,
           },
-        });
+        };
 
-        response.headers.set(
-          "Cache-Control",
-          "no-cache, no-store, must-revalidate"
-        );
-        return response;
+        console.timeEnd("GET /api/recipes");
+        return NextResponse.json(response);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
+        console.timeEnd("GET /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }
@@ -274,6 +273,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  console.time("POST /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -306,9 +306,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           })
           .returning();
 
+        console.timeEnd("POST /api/recipes");
         return NextResponse.json(recipe);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
+        console.timeEnd("POST /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }
@@ -320,20 +322,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  console.time("DELETE /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(req);
-        if (!userId) throw new AuthorizationError();
+        const { searchParams } = new URL(req.url);
+        const id = Number(searchParams.get("id"));
+        if (!id || Number.isNaN(id))
+          throw new ValidationError("Valid recipe ID required");
 
-        const id = new URL(req.url).searchParams.get("id");
-        if (!id) throw new ValidationError("Invalid ID");
+        await deleteRecipe(id, req);
 
-        await deleteRecipe(Number(id), req);
-        return NextResponse.json({ message: "Recipe deleted successfully" });
+        console.timeEnd("DELETE /api/recipes");
+        return NextResponse.json({ success: true });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
+        console.timeEnd("DELETE /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }

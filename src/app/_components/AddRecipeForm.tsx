@@ -50,7 +50,6 @@ const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
 const CreateRecipeClient = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
 
   // Form state
@@ -64,14 +63,10 @@ const CreateRecipeClient = () => {
 
   const mutation = useMutation({
     mutationFn: createRecipe,
-    onMutate: () => {
-      setLoading(true);
-    },
     onError: (_error) => {
       toast.error("Failed to create recipe");
     },
     onSuccess: () => {
-      setLoading(false);
       setTimeout(() => {
         toast("Recipe created successfully!");
       }, 200);
@@ -151,7 +146,7 @@ const CreateRecipeClient = () => {
     router.push("/");
   };
 
-  if (loading) {
+  if (mutation.isPending) {
     return (
       <div className="flex h-full items-center justify-center">
         <LoadingSpinner />
@@ -275,7 +270,11 @@ Bake for 25-30 minutes`}
             <Button variant="secondary" type="button" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} onClick={handleSubmit}>
+            <Button
+              type="submit"
+              disabled={mutation.isPending}
+              onClick={handleSubmit}
+            >
               Create
             </Button>
           </div>

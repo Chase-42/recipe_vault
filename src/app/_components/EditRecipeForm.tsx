@@ -45,12 +45,10 @@ interface FormData {
 function useRecipeMutation(initialRecipe: Recipe) {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mutation = useMutation({
     mutationFn: updateRecipe,
     onMutate: async (newRecipe) => {
-      setIsSubmitting(true);
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       await queryClient.cancelQueries({
         queryKey: ["recipe", initialRecipe.id],
@@ -100,7 +98,6 @@ function useRecipeMutation(initialRecipe: Recipe) {
         );
       }
       toast.error("Failed to update recipe");
-      setIsSubmitting(false);
     },
     onSuccess: (updatedRecipe) => {
       // Update cache with server data
@@ -124,7 +121,6 @@ function useRecipeMutation(initialRecipe: Recipe) {
         queryKey: ["recipe", initialRecipe.id],
       });
 
-      setIsSubmitting(false);
       toast("Recipe updated successfully!");
 
       // Navigate back after success
@@ -132,7 +128,7 @@ function useRecipeMutation(initialRecipe: Recipe) {
     },
   });
 
-  return { mutation, isSubmitting };
+  return { mutation };
 }
 
 const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
@@ -157,7 +153,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     tags: recipe?.tags ?? [],
   });
 
-  const { mutation, isSubmitting } = useRecipeMutation(initialRecipe);
+  const { mutation } = useRecipeMutation(initialRecipe);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -203,7 +199,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     );
   }
 
-  if (isSubmitting) {
+  if (mutation.isPending) {
     return (
       <div className="flex h-full items-center justify-center">
         <LoadingSpinner />
@@ -310,7 +306,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={mutation.isPending}>
                 Save
               </Button>
             </div>

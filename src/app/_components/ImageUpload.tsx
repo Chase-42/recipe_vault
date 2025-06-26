@@ -8,6 +8,52 @@ interface ImageUploadProps {
   onImageChange: (url: string) => void;
 }
 
+// Simple image compression function
+const compressImage = (
+  file: File,
+  maxWidth = 1200,
+  quality = 0.8
+): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      resolve(file);
+      return;
+    }
+
+    const img = new window.Image();
+
+    img.onload = () => {
+      const { width, height } = img;
+      const ratio = Math.min(maxWidth / width, maxWidth / height);
+
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 const ImageUpload: React.FC<ImageUploadProps> = ({
   imageUrl,
   onImageChange,
@@ -23,8 +69,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       const previewUrl = URL.createObjectURL(file);
       onImageChange(previewUrl);
 
+      // Compress image before upload
+      const compressedFile = await compressImage(file);
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", compressedFile);
 
       const response = await fetch("/api/upload", {
         method: "POST",
