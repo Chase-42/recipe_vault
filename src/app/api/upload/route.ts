@@ -1,5 +1,10 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  AuthorizationError,
+  handleApiError,
+  ValidationError,
+} from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { uploadImage } from "~/utils/uploadImage";
 
@@ -21,41 +26,33 @@ const uploadRateLimiter = {
 };
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  console.time("POST /api/upload");
+
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
         const { userId } = getAuth(req);
         if (!userId) {
-          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+          throw new AuthorizationError();
         }
 
         const formData = await req.formData();
         const file = formData.get("file") as File;
 
         if (!file) {
-          return NextResponse.json(
-            { error: "No file provided" },
-            { status: 400 }
-          );
+          throw new ValidationError("No file provided");
         }
 
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
-          return NextResponse.json(
-            { error: "File size exceeds 5MB limit" },
-            { status: 400 }
-          );
+          throw new ValidationError("File size exceeds 5MB limit");
         }
 
         // Validate file type
         if (!ALLOWED_MIME_TYPES.has(file.type)) {
-          return NextResponse.json(
-            {
-              error:
-                "Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed",
-            },
-            { status: 400 }
+          throw new ValidationError(
+            "Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed"
           );
         }
 
@@ -67,12 +64,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         const cdnUrl = await uploadImage(dataUrl);
 
+        console.timeEnd("POST /api/upload");
         return NextResponse.json({ url: cdnUrl });
       } catch (error) {
-        console.error("Upload error:", error);
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        console.timeEnd("POST /api/upload");
         return NextResponse.json(
-          { error: "Failed to upload image" },
-          { status: 500 }
+          { error: errorMessage },
+          { status: statusCode }
         );
       }
     },

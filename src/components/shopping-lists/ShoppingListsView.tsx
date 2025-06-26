@@ -18,6 +18,7 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { RecipeError } from "~/lib/errors";
 
 interface ShoppingItem {
   id: number;
@@ -51,7 +52,7 @@ export function ShoppingListsView() {
       try {
         const response = await fetch("/api/shopping-lists");
         if (!response.ok) {
-          throw new Error("Failed to fetch items");
+          throw new RecipeError("Failed to fetch items", 500);
         }
         const data = (await response.json()) as ShoppingItem[];
         setItems(data);
@@ -89,7 +90,7 @@ export function ShoppingListsView() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update item");
+        throw new RecipeError("Failed to update item", 500);
       }
 
       // Update local state
@@ -111,7 +112,7 @@ export function ShoppingListsView() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete item");
+        throw new RecipeError("Failed to delete item", 500);
       }
 
       // Update local state
@@ -145,12 +146,12 @@ export function ShoppingListsView() {
     setItems((prev) => {
       if (!prev) return prev;
       const updatedItems = [...prev];
-      filteredItems.forEach((item) => {
+      for (const item of filteredItems) {
         const index = updatedItems.findIndex((i) => i.id === item.id);
         if (index !== -1) {
           updatedItems[index] = { ...item, checked: newCheckedState };
         }
-      });
+      }
       return updatedItems;
     });
 
@@ -251,8 +252,9 @@ export function ShoppingListsView() {
                 </div>
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   onClick={() => void deleteItem(item.id)}
+                  className="h-8 w-8 p-0"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

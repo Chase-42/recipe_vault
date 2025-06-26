@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { RecipeError } from "~/lib/errors";
 
 interface AddToListModalProps {
   isOpen: boolean;
@@ -97,13 +98,15 @@ export function AddToListModal({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add items to shopping list");
+        throw new RecipeError("Failed to add items to shopping list", 500);
       }
 
       toast.success("Items added to shopping list", {
         action: {
           label: "View List",
-          onClick: () => (window.location.href = "/shopping-lists"),
+          onClick: () => {
+            window.location.href = "/shopping-lists";
+          },
         },
       });
 
@@ -132,7 +135,7 @@ export function AddToListModal({
           <div className="space-y-2">
             {ingredients.map((ingredient, index) => (
               <IngredientItem
-                key={index}
+                key={`${recipeId}-${ingredient.trim()}`}
                 ingredient={ingredient}
                 index={index}
                 checked={selectedIngredients.has(index)}

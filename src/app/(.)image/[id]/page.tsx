@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
-import EditRecipeForm from "~/app/_components/EditRecipeForm";
+import FullImagePageClient from "~/app/_components/FullImagePageClient";
 import { Modal } from "~/app/_components/Modal";
 import { ValidationError } from "~/lib/errors";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
 
-export default async function EditModal({
+export default async function ImageModal({
   params,
 }: {
   params: { id: string };
@@ -15,7 +15,7 @@ export default async function EditModal({
   if (!userId) return null;
 
   const idAsNumber = Number(params.id);
-  if (Number.isNaN(idAsNumber)) throw new ValidationError("Invalid recipe id");
+  if (Number.isNaN(idAsNumber)) throw new ValidationError("Invalid photo id");
 
   const recipe: Recipe | null = await getRecipe(idAsNumber, userId);
 
@@ -29,14 +29,7 @@ export default async function EditModal({
 
   return (
     <Modal>
-      <div className="flex h-full w-full flex-col">
-        <div className="border-b p-2 text-center text-lg font-bold">
-          Edit Recipe
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <EditRecipeForm initialRecipe={recipe} />
-        </div>
-      </div>
+      <FullImagePageClient id={idAsNumber} />
     </Modal>
   );
 }

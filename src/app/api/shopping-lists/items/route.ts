@@ -1,6 +1,11 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  AuthorizationError,
+  handleApiError,
+  ValidationError,
+} from "~/lib/errors";
 import { addShoppingItems } from "~/server/queries/shopping-list";
 
 const addItemsSchema = z.object({
@@ -18,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = getAuth(req);
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      throw new AuthorizationError();
     }
 
     const body = (await req.json()) as AddItemsRequest;
@@ -28,10 +33,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, items: newItems });
   } catch (error) {
-    console.error("Error adding items to shopping list:", error);
     if (error instanceof z.ZodError) {
-      return new NextResponse("Invalid request data", { status: 400 });
+      throw new ValidationError("Invalid request data");
     }
-    return new NextResponse("Internal Server Error", { status: 500 });
+    const { error: errorMessage, statusCode } = handleApiError(error);
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

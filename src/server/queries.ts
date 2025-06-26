@@ -2,6 +2,7 @@ import "server-only";
 import { getAuth } from "@clerk/nextjs/server";
 import { and, desc, eq, sql, or, count, ilike } from "drizzle-orm";
 import type { NextRequest } from "next/server";
+import { AuthorizationError, NotFoundError, RecipeError } from "../lib/errors";
 import { type Category, MAIN_MEAL_CATEGORIES } from "../types/category";
 import { db } from "./db";
 import { recipes } from "./db/schema";
@@ -20,8 +21,9 @@ export async function getMyRecipes(
     sortBy?: "newest" | "oldest" | "favorite" | "relevance";
   }
 ) {
+  const timeLabel = `getMyRecipes ${JSON.stringify(options)} ${Date.now()}`;
   try {
-    console.time(`getMyRecipes ${JSON.stringify(options)}`);
+    console.time(timeLabel);
     // Build base conditions
     const conditions = [eq(recipes.userId, userId)];
 
@@ -157,17 +159,18 @@ export async function getMyRecipes(
       })),
       total,
     };
-    console.timeEnd(`getMyRecipes ${JSON.stringify(options)}`);
+    console.timeEnd(timeLabel);
     return result;
   } catch (error) {
     console.error("Failed to fetch recipes:", error);
-    throw new Error("Failed to fetch recipes");
+    throw new RecipeError("Failed to fetch recipes", 500);
   }
 }
 
 export const getRecipe = async (id: number, userId: string) => {
-  console.time(`getRecipe ${id}`);
-  if (!userId) throw new Error("Unauthorized");
+  const timeLabel = `getRecipe ${id} ${Date.now()}`;
+  console.time(timeLabel);
+  if (!userId) throw new AuthorizationError();
 
   const recipe = await db
     .select()
@@ -176,8 +179,8 @@ export const getRecipe = async (id: number, userId: string) => {
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!recipe) throw new Error("Recipe not found");
-  if (recipe.userId !== userId) throw new Error("Unauthorized");
+  if (!recipe) throw new NotFoundError("Recipe not found");
+  if (recipe.userId !== userId) throw new AuthorizationError();
 
   const result = {
     ...recipe,
@@ -186,24 +189,25 @@ export const getRecipe = async (id: number, userId: string) => {
     categories: recipe.categories,
     tags: recipe.tags,
   };
-  console.timeEnd(`getRecipe ${id}`);
+  console.timeEnd(timeLabel);
   return result;
 };
 
 export async function deleteRecipe(id: number, req: NextRequest) {
-  console.time(`deleteRecipe ${id}`);
+  const timeLabel = `deleteRecipe ${id} ${Date.now()}`;
+  console.time(timeLabel);
   const { userId } = getAuth(req);
 
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) throw new AuthorizationError();
 
   try {
     await db
       .delete(recipes)
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
-    console.timeEnd(`deleteRecipe ${id}`);
+    console.timeEnd(timeLabel);
   } catch (error) {
     console.error("Failed to delete recipe:", error);
-    throw new Error("Failed to delete recipe");
+    throw new RecipeError("Failed to delete recipe", 500);
   }
 }
 
@@ -212,10 +216,11 @@ export async function updateRecipe(
   data: Partial<typeof recipes.$inferInsert>,
   req: NextRequest
 ) {
-  console.time(`updateRecipe ${id}`);
+  const timeLabel = `updateRecipe ${id} ${Date.now()}`;
+  console.time(timeLabel);
   const { userId } = getAuth(req);
 
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) throw new AuthorizationError();
 
   try {
     const [updatedRecipe] = await db
@@ -225,7 +230,7 @@ export async function updateRecipe(
       .returning();
 
     if (!updatedRecipe) {
-      throw new Error("Recipe not found or unauthorized");
+      throw new NotFoundError("Recipe not found or unauthorized");
     }
 
     const result = {
@@ -234,10 +239,10 @@ export async function updateRecipe(
       categories: updatedRecipe.categories,
       tags: updatedRecipe.tags,
     };
-    console.timeEnd(`updateRecipe ${id}`);
+    console.timeEnd(timeLabel);
     return result;
   } catch (error) {
     console.error("Failed to update recipe:", error);
-    throw new Error("Failed to update recipe");
+    throw new RecipeError("Failed to update recipe", 500);
   }
 }

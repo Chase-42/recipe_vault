@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ValidationError } from "~/lib/errors";
 
 interface ModalProps {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ export function Modal({ children, onClose }: ModalProps) {
 
   const modalRoot = document.getElementById("modal-root");
   if (!modalRoot) {
-    throw new Error("Modal root element not found");
+    throw new ValidationError("Modal root element not found");
   }
 
   return createPortal(

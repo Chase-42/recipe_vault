@@ -2,6 +2,7 @@ import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { RecipeError } from "~/lib/errors";
 
 interface ImageUploadProps {
   imageUrl: string;
@@ -113,7 +114,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         | { error: string };
 
       if (!response.ok || "error" in result) {
-        throw new Error("error" in result ? result.error : "Upload failed");
+        throw new RecipeError(
+          "error" in result ? result.error : "Upload failed",
+          500
+        );
       }
 
       onImageChange(result.url);

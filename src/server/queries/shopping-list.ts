@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { RecipeError } from "../../lib/errors";
 import { db } from "../db";
 import { shoppingItems } from "../db/schema";
 
@@ -11,7 +12,7 @@ export async function getShoppingItems(userId: string) {
       .orderBy(desc(shoppingItems.createdAt));
   } catch (error) {
     console.error("Failed to fetch shopping items:", error);
-    throw new Error("Failed to fetch shopping items");
+    throw new RecipeError("Failed to fetch shopping items", 500);
   }
 }
 
@@ -32,7 +33,7 @@ export async function updateShoppingItem(
     return updatedItem;
   } catch (error) {
     console.error("Failed to update shopping item:", error);
-    throw new Error("Failed to update shopping item");
+    throw new RecipeError("Failed to update shopping item", 500);
   }
 }
 
@@ -48,7 +49,7 @@ export async function deleteShoppingItem(userId: string, itemId: number) {
     return deletedItem;
   } catch (error) {
     console.error("Failed to delete shopping item:", error);
-    throw new Error("Failed to delete shopping item");
+    throw new RecipeError("Failed to delete shopping item", 500);
   }
 }
 
@@ -67,6 +68,6 @@ export async function addShoppingItems(
     return await db.insert(shoppingItems).values(itemsToInsert).returning();
   } catch (error) {
     console.error("Failed to add shopping items:", error);
-    throw new Error("Failed to add shopping items");
+    throw new RecipeError("Failed to add shopping items", 500);
   }
 }

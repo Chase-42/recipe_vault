@@ -1,48 +1,66 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { AuthorizationError, handleApiError, RecipeError } from "~/lib/errors";
 import { type CreateRecipeInput, validateCreateRecipe } from "~/lib/validation";
+import { withRateLimit } from "~/lib/rateLimit";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import type { APIResponse, Recipe } from "~/types";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 
-export async function POST(
-  req: NextRequest
-): Promise<NextResponse<APIResponse<Recipe>>> {
-  try {
-    const { userId } = getAuth(req);
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+// Rate limiter for recipe creation
+const createRecipeRateLimiter = {
+  maxRequests: 10,
+  windowMs: 60 * 1000, // 1 minute
+  path: "/api/recipes/create",
+};
 
-    const body = (await req.json()) as CreateRecipeInput;
-    const validatedData = validateCreateRecipe(body);
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  console.time("POST /api/recipes/create");
 
-    const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
+  return withRateLimit(
+    req,
+    async (req: NextRequest): Promise<NextResponse> => {
+      try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+          throw new AuthorizationError();
+        }
 
-    const [recipe] = await db
-      .insert(recipes)
-      .values({
-        ...validatedData,
-        blurDataUrl,
-        userId,
-      })
-      .returning();
+        const body = (await req.json()) as CreateRecipeInput;
+        const validatedData = validateCreateRecipe(body);
 
-    if (!recipe) {
-      throw new Error("Failed to create recipe");
-    }
+        const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
 
-    return NextResponse.json({
-      data: {
-        ...recipe,
-        createdAt: recipe.createdAt.toISOString(),
-      } as Recipe,
-    });
-  } catch (error) {
-    console.error("Recipe creation failed:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to save recipe";
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
+        const [recipe] = await db
+          .insert(recipes)
+          .values({
+            ...validatedData,
+            blurDataUrl,
+            userId,
+          })
+          .returning();
+
+        if (!recipe) {
+          throw new RecipeError("Failed to create recipe", 500);
+        }
+
+        console.timeEnd("POST /api/recipes/create");
+        return NextResponse.json({
+          data: {
+            ...recipe,
+            createdAt: recipe.createdAt.toISOString(),
+          } as Recipe,
+        });
+      } catch (error) {
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        console.timeEnd("POST /api/recipes/create");
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: statusCode }
+        );
+      }
+    },
+    createRecipeRateLimiter
+  );
 }

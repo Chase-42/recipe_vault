@@ -3,6 +3,12 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  AuthorizationError,
+  handleApiError,
+  NotFoundError,
+  ValidationError,
+} from "~/lib/errors";
+import {
   deleteShoppingItem,
   updateShoppingItem,
 } from "~/server/queries/shopping-list";
@@ -21,12 +27,12 @@ export async function PATCH(
   try {
     const { userId } = getAuth(req);
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      throw new AuthorizationError();
     }
 
     const itemId = Number.parseInt(params.itemId);
     if (Number.isNaN(itemId)) {
-      return new NextResponse("Invalid item ID", { status: 400 });
+      throw new ValidationError("Invalid item ID");
     }
 
     const body = (await req.json()) as UpdateItemRequest;
@@ -34,16 +40,16 @@ export async function PATCH(
 
     const updatedItem = await updateShoppingItem(userId, itemId, checked);
     if (!updatedItem) {
-      return new NextResponse("Item not found", { status: 404 });
+      throw new NotFoundError("Item not found");
     }
 
     return NextResponse.json(updatedItem);
   } catch (error) {
-    console.error("Error updating shopping item:", error);
     if (error instanceof z.ZodError) {
-      return new NextResponse("Invalid request data", { status: 400 });
+      throw new ValidationError("Invalid request data");
     }
-    return new NextResponse("Internal Server Error", { status: 500 });
+    const { error: errorMessage, statusCode } = handleApiError(error);
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }
 
@@ -55,22 +61,22 @@ export async function DELETE(
   try {
     const { userId } = getAuth(req);
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      throw new AuthorizationError();
     }
 
     const itemId = Number.parseInt(params.itemId);
     if (Number.isNaN(itemId)) {
-      return new NextResponse("Invalid item ID", { status: 400 });
+      throw new ValidationError("Invalid item ID");
     }
 
     const deletedItem = await deleteShoppingItem(userId, itemId);
     if (!deletedItem) {
-      return new NextResponse("Item not found", { status: 404 });
+      throw new NotFoundError("Item not found");
     }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("Error deleting shopping item:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    const { error: errorMessage, statusCode } = handleApiError(error);
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

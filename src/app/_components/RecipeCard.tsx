@@ -66,7 +66,7 @@ function RecipeCard({
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      router.push(`/img/${recipe.id}?modal=true`);
+      router.push(`/image/${recipe.id}?modal=true`);
     },
     [recipe.id, router]
   );
@@ -170,7 +170,7 @@ function RecipeCard({
           </div>
         )}
         <Link
-          href={`/img/${recipe.id}?modal=true`}
+          href={`/image/${recipe.id}?modal=true`}
           onClick={handleCardClick}
           className="group relative mb-4 w-full"
           prefetch={false}

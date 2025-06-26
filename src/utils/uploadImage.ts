@@ -1,9 +1,10 @@
 import { UploadClient, type UploadcareFile } from "@uploadcare/upload-client";
+import { RecipeError, ValidationError } from "../lib/errors";
 
 const publicKey = process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY;
 
 if (!publicKey) {
-  throw new Error("Uploadcare public key is not defined");
+  throw new ValidationError("Uploadcare public key is not defined");
 }
 
 const client = new UploadClient({ publicKey });
@@ -13,11 +14,12 @@ interface UploadResponse extends UploadcareFile {
 }
 
 export const uploadImage = async (imageUrl: string): Promise<string> => {
-  console.time(`uploadImage: ${imageUrl}`);
+  const timeLabel = `uploadImage: ${imageUrl} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     // Download the image
     const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error("Failed to download image");
+    if (!response.ok) throw new RecipeError("Failed to download image", 500);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(new Uint8Array(arrayBuffer));
 
@@ -40,17 +42,17 @@ export const uploadImage = async (imageUrl: string): Promise<string> => {
     })) as UploadResponse;
 
     if (!file.cdnUrl) {
-      throw new Error("Failed to upload image: No CDN URL returned");
+      throw new RecipeError("Failed to upload image: No CDN URL returned", 500);
     }
 
     // Apply transformations to ensure optimal quality and size
     const transformedUrl = `${file.cdnUrl}-/quality/best/-/format/auto/`;
 
-    console.timeEnd(`uploadImage: ${imageUrl}`);
+    console.timeEnd(timeLabel);
     return transformedUrl;
   } catch (error) {
     console.error("Failed to upload image to Uploadcare", error);
-    console.timeEnd(`uploadImage: ${imageUrl}`);
-    throw new Error("Failed to upload image");
+    console.timeEnd(timeLabel);
+    throw new RecipeError("Failed to upload image", 500);
   }
 };
