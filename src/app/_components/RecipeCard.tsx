@@ -149,18 +149,18 @@ function RecipeCard({
         </h2>
         {(recipe.categories ?? recipe.tags) && (
           <div className="m m-2 flex flex-wrap gap-2">
-            {recipe.categories?.map((cat, i) => (
+            {recipe.categories?.map((cat) => (
               <Badge
-                key={`cat-${i}`}
+                key={cat}
                 variant="secondary"
                 className={cn(categoryMatches && "bg-yellow-500/30")}
               >
                 {cat}
               </Badge>
             ))}
-            {recipe.tags?.map((tag, i) => (
+            {recipe.tags?.map((tag) => (
               <Badge
-                key={`tag-${i}`}
+                key={tag}
                 variant="outline"
                 className={cn(tagMatches && "bg-yellow-500/30")}
               >

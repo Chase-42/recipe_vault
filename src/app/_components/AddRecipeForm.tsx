@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -51,6 +51,7 @@ const CreateRecipeClient = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [uploadLoading, setUploadLoading] = useState(false);
+  const previousBlobUrl = useRef<string | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -60,6 +61,23 @@ const CreateRecipeClient = () => {
   const [instructions, setInstructions] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string>("");
+
+  // Clean up blob URLs when they're replaced
+  useEffect(() => {
+    if (previousBlobUrl.current && !imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previousBlobUrl.current);
+      previousBlobUrl.current = null;
+    }
+  }, [imageUrl]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (previousBlobUrl.current) {
+        URL.revokeObjectURL(previousBlobUrl.current);
+      }
+    };
+  }, []);
 
   const mutation = useMutation({
     mutationFn: createRecipe,
@@ -89,6 +107,7 @@ const CreateRecipeClient = () => {
       // Only create object URL on the client side
       if (typeof window !== "undefined") {
         const previewUrl = URL.createObjectURL(file);
+        previousBlobUrl.current = previewUrl;
         setImageUrl(previewUrl);
       }
 
