@@ -77,25 +77,24 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
     });
 
     if (!response.ok) {
-      return {} as FlaskApiResponse;
+      return schemas.flaskApiResponse.parse({});
     }
 
-    const rawData = (await response.json()) as RawFlaskResponse;
+    const rawData = (await response.json()) as unknown;
+    const validatedData = schemas.flaskApiResponse.parse(rawData);
 
     const data = {
-      name: rawData.name ?? undefined,
-      imageUrl: rawData.image ?? rawData.imageUrl ?? undefined,
-      instructions: rawData.instructions ?? undefined,
-      ingredients: Array.isArray(rawData.ingredients)
-        ? rawData.ingredients
-        : undefined,
+      name: validatedData.name ?? undefined,
+      imageUrl: validatedData.imageUrl ?? undefined,
+      instructions: validatedData.instructions ?? undefined,
+      ingredients: validatedData.ingredients ?? undefined,
     };
 
     return data.name && data.instructions && data.ingredients?.length
       ? data
-      : ({} as FlaskApiResponse);
+      : schemas.flaskApiResponse.parse({});
   } catch {
-    return {} as FlaskApiResponse;
+    return schemas.flaskApiResponse.parse({});
   }
 }
 

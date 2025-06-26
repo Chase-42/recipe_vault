@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import type { APIResponse, Recipe } from "~/types";
+import { schemas } from "~/lib/schemas";
+import type { Recipe } from "~/types";
 import {
   Select,
   SelectContent,
@@ -34,7 +35,8 @@ const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
     body: JSON.stringify(recipe),
   });
 
-  const result = (await response.json()) as APIResponse<Recipe>;
+  const data = (await response.json()) as unknown;
+  const result = schemas.apiResponse(schemas.recipe).parse(data);
 
   if (!response.ok || result.error) {
     throw new Error(result.error ?? "Failed to create recipe");
