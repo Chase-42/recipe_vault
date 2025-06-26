@@ -21,6 +21,7 @@ export async function getMyRecipes(
   }
 ) {
   try {
+    console.time(`getMyRecipes ${JSON.stringify(options)}`);
     // Build base conditions
     const conditions = [eq(recipes.userId, userId)];
 
@@ -147,7 +148,7 @@ export async function getMyRecipes(
         .limit(limit);
     }
 
-    return {
+    const result = {
       recipes: paginatedRecipes.map((recipe) => ({
         ...recipe,
         createdAt: recipe.createdAt.toISOString(),
@@ -156,6 +157,8 @@ export async function getMyRecipes(
       })),
       total,
     };
+    console.timeEnd(`getMyRecipes ${JSON.stringify(options)}`);
+    return result;
   } catch (error) {
     console.error("Failed to fetch recipes:", error);
     throw new Error("Failed to fetch recipes");
@@ -163,6 +166,7 @@ export async function getMyRecipes(
 }
 
 export const getRecipe = async (id: number, userId: string) => {
+  console.time(`getRecipe ${id}`);
   if (!userId) throw new Error("Unauthorized");
 
   const recipe = await db
@@ -175,16 +179,19 @@ export const getRecipe = async (id: number, userId: string) => {
   if (!recipe) throw new Error("Recipe not found");
   if (recipe.userId !== userId) throw new Error("Unauthorized");
 
-  return {
+  const result = {
     ...recipe,
     link: recipe.link,
     createdAt: recipe.createdAt.toISOString(),
     categories: recipe.categories,
     tags: recipe.tags,
   };
+  console.timeEnd(`getRecipe ${id}`);
+  return result;
 };
 
 export async function deleteRecipe(id: number, req: NextRequest) {
+  console.time(`deleteRecipe ${id}`);
   const { userId } = getAuth(req);
 
   if (!userId) throw new Error("Unauthorized");
@@ -193,6 +200,7 @@ export async function deleteRecipe(id: number, req: NextRequest) {
     await db
       .delete(recipes)
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
+    console.timeEnd(`deleteRecipe ${id}`);
   } catch (error) {
     console.error("Failed to delete recipe:", error);
     throw new Error("Failed to delete recipe");
@@ -204,6 +212,7 @@ export async function updateRecipe(
   data: Partial<typeof recipes.$inferInsert>,
   req: NextRequest
 ) {
+  console.time(`updateRecipe ${id}`);
   const { userId } = getAuth(req);
 
   if (!userId) throw new Error("Unauthorized");
@@ -219,12 +228,14 @@ export async function updateRecipe(
       throw new Error("Recipe not found or unauthorized");
     }
 
-    return {
+    const result = {
       ...updatedRecipe,
       createdAt: updatedRecipe.createdAt.toISOString(),
       categories: updatedRecipe.categories,
       tags: updatedRecipe.tags,
     };
+    console.timeEnd(`updateRecipe ${id}`);
+    return result;
   } catch (error) {
     console.error("Failed to update recipe:", error);
     throw new Error("Failed to update recipe");

@@ -1,6 +1,12 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -28,8 +34,12 @@ import { deleteRecipe, fetchRecipe } from "~/utils/recipeService";
 
 const ITEMS_PER_PAGE = 12;
 
-export default function RecipeList() {
-  const { searchTerm } = useSearch();
+interface RecipeListProps {
+  initialData?: PaginatedRecipes;
+}
+
+function RecipeListContent({ initialData }: RecipeListProps) {
+  const { debouncedSearchTerm } = useSearch();
   const queryClient = useQueryClient();
   const router = useRouter();
   const { updateParam, getParam } = useUrlParams();
@@ -44,7 +54,7 @@ export default function RecipeList() {
 
   // Data fetching with new backend search implementation
   const { recipes, isLoading, pagination } = useRecipeFiltering(
-    searchTerm,
+    debouncedSearchTerm,
     sortOption,
     selectedCategory,
     currentPage,
@@ -200,4 +210,28 @@ export default function RecipeList() {
       />
     </div>
   );
+}
+
+export default function RecipeList({ initialData }: RecipeListProps) {
+  // If we have initial data, hydrate it into the query client
+  if (initialData) {
+    const queryClient = new QueryClient();
+
+    queryClient.setQueryData(
+      [
+        "recipes",
+        { searchTerm: "", sortOption: "newest", category: "all", page: 1 },
+      ],
+      initialData
+    );
+
+    return (
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <RecipeListContent />
+      </HydrationBoundary>
+    );
+  }
+
+  // No initial data, just render normally
+  return <RecipeListContent />;
 }
