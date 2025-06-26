@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ValidationError } from "./errors";
 
 // Base schema for common string validation with length constraint
 const createSanitizedString = (maxLength: number, fieldName: string) =>
@@ -70,7 +71,7 @@ export const validateUpdateRecipe = (data: unknown) => {
 export const validateId = (id: unknown): number => {
   const result = z.number().int().positive().safeParse(Number(id));
   if (!result.success) {
-    throw new Error("Invalid ID");
+    throw new ValidationError("Invalid ID");
   }
   return result.data;
 };

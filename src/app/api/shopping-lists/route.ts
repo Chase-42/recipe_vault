@@ -1,5 +1,10 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  AuthorizationError,
+  handleApiError,
+  ValidationError,
+} from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import {
   addShoppingItems,
@@ -31,14 +36,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       try {
         const { userId } = getAuth(req);
         if (!userId) {
-          return new NextResponse("Unauthorized", { status: 401 });
+          throw new AuthorizationError();
         }
 
         const items = await getShoppingItems(userId);
         return NextResponse.json(items);
       } catch (error) {
-        console.error("Error fetching shopping items:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: statusCode }
+        );
       }
     },
     shoppingListsRateLimiter
@@ -52,14 +60,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       try {
         const { userId } = getAuth(req);
         if (!userId) {
-          return new NextResponse("Unauthorized", { status: 401 });
+          throw new AuthorizationError();
         }
 
         const body = (await req.json()) as ShoppingItemRequest;
         if (!body.name || !body.recipeId) {
-          return new NextResponse("Name and recipeId are required", {
-            status: 400,
-          });
+          throw new ValidationError("Name and recipeId are required");
         }
 
         const items = await addShoppingItems(userId, [
@@ -67,8 +73,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         ]);
         return NextResponse.json(items);
       } catch (error) {
-        console.error("Error adding shopping item:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: statusCode }
+        );
       }
     },
     shoppingListsRateLimiter
@@ -82,19 +91,22 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       try {
         const { userId } = getAuth(req);
         if (!userId) {
-          return new NextResponse("Unauthorized", { status: 401 });
+          throw new AuthorizationError();
         }
 
         const body = (await req.json()) as DeleteItemRequest;
         if (!body.id) {
-          return new NextResponse("Item ID is required", { status: 400 });
+          throw new ValidationError("Item ID is required");
         }
 
         await deleteShoppingItem(userId, body.id);
         return new NextResponse(null, { status: 204 });
       } catch (error) {
-        console.error("Error deleting shopping item:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: statusCode }
+        );
       }
     },
     shoppingListsRateLimiter

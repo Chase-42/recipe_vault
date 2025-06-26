@@ -1,19 +1,20 @@
-import { auth } from '@clerk/nextjs/server';
-import EditRecipeForm from '~/app/_components/EditRecipeForm';
-import { getRecipe } from '~/server/queries';
-import type { Recipe } from '~/types';
+import { auth } from "@clerk/nextjs/server";
+import EditRecipeForm from "~/app/_components/EditRecipeForm";
+import { ValidationError } from "~/lib/errors";
+import { getRecipe } from "~/server/queries";
+import type { Recipe } from "~/types";
 
 export default async function EditPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const idAsNumber = Number(params.id);
-  if (Number.isNaN(idAsNumber)) throw new Error('Invalid recipe id');
-
   const session = await auth();
   const userId = session?.userId;
   if (!userId) return null;
+
+  const idAsNumber = Number(params.id);
+  if (Number.isNaN(idAsNumber)) throw new ValidationError("Invalid recipe id");
 
   const recipe: Recipe | null = await getRecipe(idAsNumber, userId);
 

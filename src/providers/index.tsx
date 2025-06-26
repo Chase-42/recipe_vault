@@ -14,6 +14,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { ValidationError } from "../lib/errors";
 
 interface SearchContextProps {
   searchTerm: string;
@@ -53,7 +54,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({
 export const useSearch = (): SearchContextProps => {
   const context = useContext(SearchContext);
   if (!context) {
-    throw new Error("useSearch must be used within a SearchProvider");
+    throw new ValidationError("useSearch must be used within a SearchProvider");
   }
   return context;
 };
@@ -111,7 +112,7 @@ export const AnimatePresenceProvider: React.FC<{ children: ReactNode }> = ({
 export const useAnimatePresence = (): ReactNode => {
   const context = useContext(AnimatePresenceContext);
   if (!context) {
-    throw new Error(
+    throw new ValidationError(
       "useAnimatePresence must be used within an AnimatePresenceProvider"
     );
   }

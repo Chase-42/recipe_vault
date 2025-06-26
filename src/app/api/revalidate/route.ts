@@ -1,6 +1,11 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  AuthorizationError,
+  handleApiError,
+  ValidationError,
+} from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 
 interface RevalidateRequest {
@@ -18,27 +23,21 @@ export async function GET(request: NextRequest) {
   try {
     const { userId } = getAuth(request);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new AuthorizationError();
     }
 
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
 
     if (!path) {
-      return NextResponse.json(
-        { error: "Path parameter is required" },
-        { status: 400 }
-      );
+      throw new ValidationError("Path parameter is required");
     }
 
     revalidatePath(path);
     return NextResponse.json({ revalidated: true, now: Date.now() });
   } catch (error) {
-    console.error("Revalidation failed:", error);
-    return NextResponse.json(
-      { error: "Failed to revalidate" },
-      { status: 500 }
-    );
+    const { error: errorMessage, statusCode } = handleApiError(error);
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }
 
@@ -49,24 +48,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       try {
         const { userId } = getAuth(req);
         if (!userId) {
-          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+          throw new AuthorizationError();
         }
 
         const body = (await req.json()) as RevalidateRequest;
         if (!body.path) {
-          return NextResponse.json(
-            { error: "Path is required" },
-            { status: 400 }
-          );
+          throw new ValidationError("Path is required");
         }
 
         revalidatePath(body.path);
         return NextResponse.json({ revalidated: true });
       } catch (error) {
-        console.error("Revalidation error:", error);
+        const { error: errorMessage, statusCode } = handleApiError(error);
         return NextResponse.json(
-          { error: "Failed to revalidate" },
-          { status: 500 }
+          { error: errorMessage },
+          { status: statusCode }
         );
       }
     },

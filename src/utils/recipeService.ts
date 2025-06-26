@@ -4,6 +4,7 @@ import {
   type UpdatedRecipe,
   schemas,
 } from "~/lib/schemas";
+import { RecipeError } from "~/lib/errors";
 import type { FavoriteResponse } from "~/types/api";
 import type { APIResponse } from "~/types/api";
 import type { CreateRecipeInput } from "~/types/recipe";
@@ -26,10 +27,11 @@ export const fetchRecipes = async ({
   if (sortOption) params.append("sort", sortOption);
 
   const url = `/api/recipes?${params.toString()}`;
-  console.time(`fetchRecipes: ${url}`);
+  const timeLabel = `fetchRecipes: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch recipes");
+    if (!response.ok) throw new RecipeError("Failed to fetch recipes", 500);
     const data = await response.json();
     const parsedData = schemas.paginatedRecipes.parse(data);
     return parsedData;
@@ -37,23 +39,24 @@ export const fetchRecipes = async ({
     console.error("fetchRecipes error:", error);
     throw error;
   } finally {
-    console.timeEnd(`fetchRecipes: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };
 
 export const fetchRecipe = async (id: number): Promise<Recipe> => {
   const url = `/api/recipes/${id}`;
-  console.time(`fetchRecipe: ${url}`);
+  const timeLabel = `fetchRecipe: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch recipe");
+    if (!response.ok) throw new RecipeError("Failed to fetch recipe", 500);
     const data = await response.json();
     return schemas.recipe.parse(data);
   } catch (error) {
     console.error("Validation error:", error);
     throw error;
   } finally {
-    console.timeEnd(`fetchRecipe: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };
 
@@ -63,50 +66,53 @@ export const updateRecipe = async (
 ): Promise<Recipe> => {
   const { id, ...updateData } = recipe;
   const url = `/api/recipes/${id}`;
-  console.time(`updateRecipe: ${url}`);
+  const timeLabel = `updateRecipe: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updateData),
     });
-    if (!response.ok) throw new Error("Failed to update recipe");
+    if (!response.ok) throw new RecipeError("Failed to update recipe", 500);
     const data = await response.json();
     return schemas.recipe.parse(data);
   } finally {
-    console.timeEnd(`updateRecipe: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };
 
 // Delete a recipe by ID
 export const deleteRecipe = async (id: number): Promise<void> => {
   const url = `/api/recipes?id=${id}`;
-  console.time(`deleteRecipe: ${url}`);
+  const timeLabel = `deleteRecipe: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url, { method: "DELETE" });
-    if (!response.ok) throw new Error("Failed to delete recipe");
+    if (!response.ok) throw new RecipeError("Failed to delete recipe", 500);
   } finally {
-    console.timeEnd(`deleteRecipe: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };
 
 export const toggleFavorite = async (id: number): Promise<boolean> => {
   const url = `/api/recipes/${id}/favorite`;
-  console.time(`toggleFavorite: ${url}`);
+  const timeLabel = `toggleFavorite: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "PUT",
     });
 
     if (!response.ok) {
-      throw new Error("Failed to toggle favorite");
+      throw new RecipeError("Failed to toggle favorite", 500);
     }
 
     const data = await response.json();
     const validatedData = schemas.favoriteResponse.parse(data);
     return validatedData.favorite;
   } finally {
-    console.timeEnd(`toggleFavorite: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };
 
@@ -114,7 +120,8 @@ export const createRecipe = async (
   recipe: CreateRecipeInput
 ): Promise<Recipe> => {
   const url = "/api/recipes/create";
-  console.time(`createRecipe: ${url}`);
+  const timeLabel = `createRecipe: ${url} ${Date.now()}`;
+  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -128,15 +135,18 @@ export const createRecipe = async (
     const validatedData = schemas.apiResponse(schemas.recipe).parse(data);
 
     if (!response.ok || validatedData.error) {
-      throw new Error(validatedData.error ?? "Failed to create recipe");
+      throw new RecipeError(
+        validatedData.error ?? "Failed to create recipe",
+        500
+      );
     }
 
     if (!validatedData.data) {
-      throw new Error("No data received from server");
+      throw new RecipeError("No data received from server", 500);
     }
 
     return validatedData.data;
   } finally {
-    console.timeEnd(`createRecipe: ${url}`);
+    console.timeEnd(timeLabel);
   }
 };

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { RecipeError, ValidationError } from "~/lib/errors";
 import type { Recipe, UpdatedRecipe } from "~/lib/schemas";
 import type { PaginatedRecipes } from "~/lib/schemas";
 import { updateRecipe } from "~/utils/recipeService";
@@ -21,13 +22,14 @@ export function useRecipeMutation(type: MutationType) {
           body: JSON.stringify(data),
         });
         if (!response.ok) {
-          throw new Error("Failed to create recipe");
+          throw new RecipeError("Failed to create recipe", 500);
         }
         return response.json();
       }
 
       const updateData = data as UpdateRecipeInput;
-      if (!updateData.id) throw new Error("Recipe ID is required for update");
+      if (!updateData.id)
+        throw new ValidationError("Recipe ID is required for update");
       return updateRecipe(updateData);
     },
     onMutate: async (data: CreateRecipeInput | UpdateRecipeInput) => {

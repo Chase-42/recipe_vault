@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { AuthorizationError } from "./lib/errors";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
@@ -11,7 +12,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     const authObj = await auth();
     if (!authObj.userId) {
-      throw new Error("Unauthorized");
+      throw new AuthorizationError();
     }
   }
 });

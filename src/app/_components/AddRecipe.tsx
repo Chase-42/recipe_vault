@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Toaster } from "~/components/ui/sonner";
+import { RecipeError } from "~/lib/errors";
 import type { Recipe } from "~/types";
 import { Input } from "../../components/ui/input";
 
@@ -42,7 +43,7 @@ const saveRecipe = async (link: string): Promise<Recipe> => {
   const result = (await response.json()) as SaveRecipeResponse;
 
   if (!response.ok || result.error) {
-    throw new Error(result.error ?? "Failed to save recipe");
+    throw new RecipeError(result.error ?? "Failed to save recipe", 500);
   }
 
   return result.data;

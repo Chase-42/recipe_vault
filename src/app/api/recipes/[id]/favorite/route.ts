@@ -1,6 +1,12 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  AuthorizationError,
+  handleApiError,
+  NotFoundError,
+  ValidationError,
+} from "~/lib/errors";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 
@@ -11,12 +17,12 @@ export async function PUT(
   try {
     const { userId } = getAuth(request);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new AuthorizationError();
     }
 
     const id = Number(params.id);
     if (Number.isNaN(id)) {
-      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+      throw new ValidationError("Invalid ID");
     }
 
     // Get current favorite status
@@ -26,7 +32,7 @@ export async function PUT(
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
 
     if (!recipe) {
-      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
+      throw new NotFoundError("Recipe not found");
     }
 
     // Toggle favorite
@@ -37,10 +43,7 @@ export async function PUT(
 
     return NextResponse.json({ favorite: !recipe.favorite });
   } catch (error) {
-    console.error("Failed to toggle favorite:", error);
-    return NextResponse.json(
-      { error: "Failed to update recipe" },
-      { status: 500 }
-    );
+    const { error: errorMessage, statusCode } = handleApiError(error);
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
+import { RecipeError } from "~/lib/errors";
 import { schemas } from "~/lib/schemas";
 import type { Recipe } from "~/types";
 import {
@@ -39,11 +40,11 @@ const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
   const result = schemas.apiResponse(schemas.recipe).parse(data);
 
   if (!response.ok || result.error) {
-    throw new Error(result.error ?? "Failed to create recipe");
+    throw new RecipeError(result.error ?? "Failed to create recipe", 500);
   }
 
   if (!result.data) {
-    throw new Error("No data received from server");
+    throw new RecipeError("No data received from server", 500);
   }
 
   return result.data;
@@ -126,7 +127,10 @@ const CreateRecipeClient = () => {
         | { error: string };
 
       if (!response.ok || "error" in result) {
-        throw new Error("error" in result ? result.error : "Upload failed");
+        throw new RecipeError(
+          "error" in result ? result.error : "Upload failed",
+          500
+        );
       }
 
       setImageUrl(result.url);
