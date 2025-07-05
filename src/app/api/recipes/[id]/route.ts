@@ -12,7 +12,7 @@ import type { UpdateRecipeInput } from "~/types";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = getAuth(request);
@@ -20,7 +20,8 @@ export async function PUT(
       throw new AuthorizationError();
     }
 
-    const id = validateId(params.id);
+    const { id: idParam } = await params;
+    const id = validateId(idParam);
     const body = (await request.json()) as UpdateRecipeInput;
 
     // Validate and sanitize the update data

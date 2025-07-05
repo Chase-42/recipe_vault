@@ -22,7 +22,7 @@ type UpdateItemRequest = z.infer<typeof updateItemSchema>;
 // Update an item (toggle checked status)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const { userId } = getAuth(req);
@@ -30,7 +30,8 @@ export async function PATCH(
       throw new AuthorizationError();
     }
 
-    const itemId = Number.parseInt(params.itemId);
+    const { itemId: itemIdParam } = await params;
+    const itemId = Number.parseInt(itemIdParam);
     if (Number.isNaN(itemId)) {
       throw new ValidationError("Invalid item ID");
     }
@@ -56,7 +57,7 @@ export async function PATCH(
 // Delete an item
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const { userId } = getAuth(req);
@@ -64,7 +65,8 @@ export async function DELETE(
       throw new AuthorizationError();
     }
 
-    const itemId = Number.parseInt(params.itemId);
+    const { itemId: itemIdParam } = await params;
+    const itemId = Number.parseInt(itemIdParam);
     if (Number.isNaN(itemId)) {
       throw new ValidationError("Invalid item ID");
     }

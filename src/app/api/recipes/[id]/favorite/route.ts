@@ -1,5 +1,5 @@
 import { getAuth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthorizationError,
@@ -12,7 +12,7 @@ import { recipes } from "~/server/db/schema";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = getAuth(request);
@@ -20,28 +20,26 @@ export async function PUT(
       throw new AuthorizationError();
     }
 
-    const id = Number(params.id);
+    const { id: idParam } = await params;
+    const id = Number(idParam);
     if (Number.isNaN(id)) {
       throw new ValidationError("Invalid ID");
     }
 
-    // Get current favorite status
-    const [recipe] = await db
-      .select({ favorite: recipes.favorite })
-      .from(recipes)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
+    // Optimized: Toggle favorite in a single operation and return the new value
+    const [result] = await db
+      .update(recipes)
+      .set({
+        favorite: sql`NOT ${recipes.favorite}`,
+      })
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .returning({ favorite: recipes.favorite });
 
-    if (!recipe) {
+    if (!result) {
       throw new NotFoundError("Recipe not found");
     }
 
-    // Toggle favorite
-    await db
-      .update(recipes)
-      .set({ favorite: !recipe.favorite })
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
-
-    return NextResponse.json({ favorite: !recipe.favorite });
+    return NextResponse.json({ favorite: result.favorite });
   } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error);
     return NextResponse.json({ error: errorMessage }, { status: statusCode });
