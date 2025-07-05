@@ -24,7 +24,12 @@ export default function RootLayout({
         <SearchProvider>
           <html lang="en" className={`${GeistSans.variable} dark`}>
             <body>
-              <Toaster closeButton position="top-center" />
+              <Toaster
+                closeButton
+                position="top-center"
+                duration={2000}
+                expand={false}
+              />
               <ErrorBoundary>
                 <div className="grid h-screen grid-rows-[auto,1fr]">
                   <TopNav />

@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Toaster } from "~/components/ui/sonner";
 import { RecipeError } from "~/lib/errors";
 import type { Recipe } from "~/types";
 import { Input } from "../../components/ui/input";
@@ -184,9 +183,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
             </motion.div>
           )}
         </CardContent>
-        <CardFooter>
-          <Toaster position="bottom-center" />
-        </CardFooter>
+        <CardFooter />
       </Card>
     </div>
   );

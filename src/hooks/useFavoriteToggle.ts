@@ -19,7 +19,7 @@ export function useFavoriteToggle() {
       // Update both the list and individual recipe cache
       const newFavoriteState = !recipe.favorite;
 
-      // Update recipes list if it exists
+      // Update recipes list if it exists - only update the specific recipe
       queryClient.setQueriesData<PaginatedRecipes>(
         { queryKey: ["recipes"] },
         (old) => {
@@ -34,14 +34,18 @@ export function useFavoriteToggle() {
       );
 
       // Update individual recipe if it exists
-      queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
-        ...recipe,
-        favorite: newFavoriteState,
+      queryClient.setQueryData<Recipe>(["recipe", recipe.id], (old) => {
+        if (!old) return old;
+        return { ...old, favorite: newFavoriteState };
       });
+
+      // Return context for rollback
+      return { previousRecipe: recipe };
     },
-    onError: (_, recipe) => {
+    onError: (_, recipe, context) => {
       // Revert both caches on error
-      const oldFavoriteState = recipe.favorite;
+      const oldFavoriteState =
+        context?.previousRecipe?.favorite ?? recipe.favorite;
 
       queryClient.setQueriesData<PaginatedRecipes>(
         { queryKey: ["recipes"] },
@@ -56,16 +60,20 @@ export function useFavoriteToggle() {
         }
       );
 
-      queryClient.setQueryData<Recipe>(["recipe", recipe.id], {
-        ...recipe,
-        favorite: oldFavoriteState,
+      queryClient.setQueryData<Recipe>(["recipe", recipe.id], (old) => {
+        if (!old) return old;
+        return { ...old, favorite: oldFavoriteState };
       });
 
       toast.error("Failed to update favorite status");
     },
     onSuccess: (data) => {
+      // Show toast with minimal delay
       toast.success(
-        data.favorite ? "Added to favorites" : "Removed from favorites"
+        data.favorite ? "Added to favorites" : "Removed from favorites",
+        {
+          duration: 2000,
+        }
       );
     },
   });
