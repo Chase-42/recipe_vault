@@ -235,7 +235,6 @@ export interface UploadResponse {
 export interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
   className?: string;
-  fullHeight?: boolean;
 }
 
 export interface ImageUploadProps {
