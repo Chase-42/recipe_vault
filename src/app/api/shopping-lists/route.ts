@@ -11,15 +11,7 @@ import {
   deleteShoppingItem,
   getShoppingItems,
 } from "~/server/queries/shopping-list";
-
-interface ShoppingItemRequest {
-  name: string;
-  recipeId: number;
-}
-
-interface DeleteItemRequest {
-  id: number;
-}
+import type { ShoppingItemRequest, DeleteItemRequest } from "~/types";
 
 // Create a shared rate limiter instance for the shopping lists endpoint
 const shoppingListsRateLimiter = {

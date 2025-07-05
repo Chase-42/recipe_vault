@@ -11,7 +11,8 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { RecipeError } from "~/lib/errors";
 import { schemas } from "~/lib/schemas";
-import type { Recipe } from "~/types";
+import type { Recipe, Category } from "~/types";
+import { MAIN_MEAL_CATEGORIES } from "~/types";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { type Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
 import LoadingSpinner from "./LoadingSpinner";
 
 type CreateRecipeInput = Omit<

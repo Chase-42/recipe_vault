@@ -1,14 +1,13 @@
-import {
-  type PaginatedRecipes,
-  type Recipe,
-  type UpdatedRecipe,
-  schemas,
-} from "~/lib/schemas";
+import { schemas } from "~/lib/schemas";
 import { RecipeError } from "~/lib/errors";
-import type { FavoriteResponse } from "~/types/api";
-import type { APIResponse } from "~/types/api";
-import type { CreateRecipeInput } from "~/types/recipe";
-import type { FetchRecipesParams } from "~/types";
+import type {
+  Recipe,
+  PaginatedRecipes,
+  UpdatedRecipe,
+  CreateRecipeInput,
+  FetchRecipesParams,
+  FavoriteResponse,
+} from "~/types";
 
 export const fetchRecipes = async ({
   offset = 0,

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipes } from "~/utils/recipeService";
-import type { Category } from "~/types/category";
-import type { PaginatedRecipes } from "~/lib/schemas";
+import type { Category, PaginatedRecipes, SortOption } from "~/types";
 
 const FUSE_OPTIONS = {
   keys: [
@@ -13,8 +12,6 @@ const FUSE_OPTIONS = {
   includeScore: true,
   includeMatches: true,
 };
-
-type SortOption = "favorite" | "newest" | "oldest";
 
 export function useRecipeFiltering(
   searchTerm: string,

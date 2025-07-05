@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import type { Recipe } from "~/types";
+import type { Recipe, Category } from "~/types";
 import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
 import {
   Select,
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { type Category, MAIN_MEAL_CATEGORIES } from "../../types/category";
+import { MAIN_MEAL_CATEGORIES } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 
 const ImageUpload = dynamic(() => import("./ImageUpload"), {

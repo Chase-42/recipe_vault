@@ -17,20 +17,16 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
+import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
+import type { Recipe, RecipeSearchMatch } from "~/types";
 import { useSearch } from "~/providers";
-import type { RecipeWithCategories } from "~/lib/schemas";
+import { cn } from "~/lib/utils";
 import { Badge } from "../../components/ui/badge";
 
-interface SearchMatch {
-  key: string;
-  value: string;
-  indices: Array<[number, number]>;
-}
-
 interface RecipeCardProps {
-  recipe: RecipeWithCategories;
-  searchMatches?: SearchMatch[];
+  recipe: Recipe;
+  searchMatches?: RecipeSearchMatch[];
   onDelete: (id: number) => void;
   onFavoriteToggle: (id: number) => void;
   priority?: boolean;
@@ -83,7 +79,7 @@ function RecipeCard({
     const result = [];
     let lastIndex = 0;
 
-    matches.forEach(([start, end]) => {
+    for (const [start, end] of matches) {
       // Add text before the match
       if (start > lastIndex) {
         result.push(text.slice(lastIndex, start));
@@ -95,7 +91,7 @@ function RecipeCard({
         </span>
       );
       lastIndex = end + 1;
-    });
+    }
 
     // Add remaining text
     if (lastIndex < text.length) {

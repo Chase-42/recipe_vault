@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
-import type { Recipe } from "~/lib/schemas";
+import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
 import LoadingSpinner from "./LoadingSpinner";
