@@ -9,9 +9,9 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
-import { type Category, MAIN_MEAL_CATEGORIES } from "~/types/category";
-
-type SortOption = "favorite" | "newest" | "oldest";
+import type { Category } from "~/types";
+import { MAIN_MEAL_CATEGORIES } from "~/types";
+import type { SortOption } from "~/types";
 
 interface RecipeFiltersProps {
   total: number;
@@ -70,6 +70,7 @@ export default function RecipeFilters({
             <SelectItem value="newest">Newest First</SelectItem>
             <SelectItem value="oldest">Oldest First</SelectItem>
             <SelectItem value="favorite">Favorites First</SelectItem>
+            <SelectItem value="relevance">Relevance</SelectItem>
           </SelectContent>
         </Select>
       </div>

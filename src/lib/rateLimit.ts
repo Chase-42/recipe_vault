@@ -37,19 +37,22 @@ class RateLimiter {
 
   private getKey(req: NextRequest): string {
     // Use a combination of IP and path for rate limiting
-    const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "unknown";
+    const ip =
+      req.headers.get("x-forwarded-for") ??
+      req.headers.get("x-real-ip") ??
+      "unknown";
     const path = this.config.path ?? req.nextUrl.pathname;
     return `${ip}-${path}`;
   }
 
   private cleanup(): void {
     const now = Date.now();
-    Object.keys(this.store).forEach((key) => {
+    for (const key of Object.keys(this.store)) {
       const entry = this.store[key];
       if (entry && entry.resetTime < now) {
         delete this.store[key];
       }
-    });
+    }
   }
 
   public async check(req: NextRequest): Promise<{

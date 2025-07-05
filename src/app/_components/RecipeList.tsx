@@ -10,15 +10,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { schemas } from "~/lib/schemas";
 import { cn } from "~/lib/utils";
 import { useSearch } from "~/providers";
-import type { Category } from "~/types/category";
-import type {
-  RecipeWithCategories,
-  PaginatedRecipes,
-  SortOption,
-} from "~/lib/schemas";
+import type { Category } from "~/types";
+import type { Recipe, PaginatedRecipes, SortOption } from "~/types";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 
@@ -50,7 +45,7 @@ function RecipeListContent({ initialData }: RecipeListProps) {
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
-  const sortOption = schemas.sortOption.parse(getParam("sort") ?? "newest");
+  const sortOption = (getParam("sort") ?? "newest") as SortOption;
 
   // Data fetching with new backend search implementation
   const { recipes, isLoading, pagination } = useRecipeFiltering(
@@ -79,7 +74,7 @@ function RecipeListContent({ initialData }: RecipeListProps) {
           if (!old) return old;
           return {
             ...old,
-            recipes: old.recipes.filter((recipe) => recipe.id !== id),
+            recipes: old.recipes.filter((recipe: Recipe) => recipe.id !== id),
             pagination: {
               ...old.pagination,
               total: old.pagination.total - 1,
@@ -127,7 +122,7 @@ function RecipeListContent({ initialData }: RecipeListProps) {
 
   // Smart preloading on hover with rate limiting
   const handleRecipeHover = useCallback(
-    (recipe: RecipeWithCategories) => {
+    (recipe: Recipe) => {
       const cacheKey = ["preloadedImages", recipe.id];
       if (!queryClient.getQueryData(cacheKey)) {
         // Load image

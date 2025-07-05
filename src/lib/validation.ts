@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CreateRecipeInput, UpdateRecipeInput } from "~/types";
 import { ValidationError } from "./errors";
 
 // Base schema for common string validation with length constraint
@@ -54,16 +55,12 @@ export const updateRecipeSchema = createRecipeSchema.partial().extend({
   link: z.string(),
 });
 
-// Types
-export type CreateRecipeInput = z.input<typeof createRecipeSchema>;
-export type UpdateRecipeInput = z.input<typeof updateRecipeSchema>;
-
 // Validation functions
-export const validateCreateRecipe = (data: unknown) => {
+export const validateCreateRecipe = (data: unknown): CreateRecipeInput => {
   return createRecipeSchema.parse(data);
 };
 
-export const validateUpdateRecipe = (data: unknown) => {
+export const validateUpdateRecipe = (data: unknown): UpdateRecipeInput => {
   return updateRecipeSchema.parse(data);
 };
 

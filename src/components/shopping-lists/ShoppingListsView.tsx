@@ -19,14 +19,7 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { RecipeError } from "~/lib/errors";
-
-interface ShoppingItem {
-  id: number;
-  name: string;
-  checked: boolean;
-  createdAt: string;
-  recipeId?: number;
-}
+import type { ShoppingItem } from "~/types";
 
 export function ShoppingListsView() {
   const [items, setItems] = useState<ShoppingItem[] | null>(null);

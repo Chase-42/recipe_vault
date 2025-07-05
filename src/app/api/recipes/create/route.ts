@@ -1,7 +1,8 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { AuthorizationError, handleApiError, RecipeError } from "~/lib/errors";
-import { type CreateRecipeInput, validateCreateRecipe } from "~/lib/validation";
+import { validateCreateRecipe } from "~/lib/validation";
+import type { CreateRecipeInput } from "~/types";
 import { withRateLimit } from "~/lib/rateLimit";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
@@ -35,8 +36,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const [recipe] = await db
           .insert(recipes)
           .values({
-            ...validatedData,
+            link: validatedData.link,
+            name: validatedData.name,
+            imageUrl: validatedData.imageUrl,
             blurDataUrl,
+            instructions: validatedData.instructions,
+            ingredients: validatedData.ingredients,
+            favorite: validatedData.favorite,
+            categories: validatedData.categories,
+            tags: validatedData.tags,
             userId,
           })
           .returning();

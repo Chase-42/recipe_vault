@@ -12,14 +12,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { RecipeError } from "~/lib/errors";
-
-interface AddToListModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  ingredients: string[];
-  recipeId: number;
-  recipeName: string;
-}
+import type { AddToListModalProps } from "~/types";
 
 const IngredientItem = memo(function IngredientItem({
   ingredient,

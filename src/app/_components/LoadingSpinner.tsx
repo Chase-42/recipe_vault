@@ -1,11 +1,6 @@
 import React from "react";
 import { cn } from "~/lib/utils";
-
-interface LoadingSpinnerProps {
-  className?: string;
-  size?: "sm" | "md" | "lg";
-  fullHeight?: boolean;
-}
+import type { LoadingSpinnerProps } from "~/types";
 
 const sizeClasses = {
   sm: "h-8 w-8",

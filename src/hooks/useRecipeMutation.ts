@@ -1,20 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { RecipeError, ValidationError } from "~/lib/errors";
-import type { Recipe, UpdatedRecipe } from "~/lib/schemas";
-import type { PaginatedRecipes } from "~/lib/schemas";
+import type {
+  Recipe,
+  PaginatedRecipes,
+  CreateRecipeInput,
+  UpdateRecipeInput,
+  MutationType,
+} from "~/types";
 import { updateRecipe } from "~/utils/recipeService";
-
-type MutationType = "create" | "update";
-
-type CreateRecipeInput = Omit<Recipe, "id">;
-type UpdateRecipeInput = UpdatedRecipe & { id: number };
 
 export function useRecipeMutation(type: MutationType) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateRecipeInput | UpdateRecipeInput) => {
+    mutationFn: async (
+      data: CreateRecipeInput | (UpdateRecipeInput & { id: number })
+    ) => {
       if (type === "create") {
         const response = await fetch("/api/recipes", {
           method: "POST",
@@ -27,12 +29,27 @@ export function useRecipeMutation(type: MutationType) {
         return response.json();
       }
 
-      const updateData = data as UpdateRecipeInput;
+      // For updates, we need to pass the ID separately
+      const updateData = data as UpdateRecipeInput & { id: number };
       if (!updateData.id)
         throw new ValidationError("Recipe ID is required for update");
-      return updateRecipe(updateData);
+
+      // Convert UpdateRecipeInput to UpdatedRecipe format
+      const { id, ...updateFields } = updateData;
+      const updatedRecipe = {
+        id,
+        favorite: updateFields.favorite ?? false,
+        name: updateFields.name ?? "",
+        instructions: updateFields.instructions ?? "",
+        ingredients: updateFields.ingredients ?? "",
+        imageUrl: updateFields.imageUrl ?? "",
+      };
+
+      return updateRecipe(updatedRecipe);
     },
-    onMutate: async (data: CreateRecipeInput | UpdateRecipeInput) => {
+    onMutate: async (
+      data: CreateRecipeInput | (UpdateRecipeInput & { id: number })
+    ) => {
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       if (type === "update" && "id" in data) {
         await queryClient.cancelQueries({ queryKey: ["recipe", data.id] });
@@ -53,10 +70,8 @@ export function useRecipeMutation(type: MutationType) {
             const newRecipe: Recipe = {
               id: -1,
               ...data,
-              link: data.link ?? "",
-              blurDataUrl: data.blurDataUrl ?? "",
-              favorite: data.favorite ?? false,
-              createdAt: data.createdAt ?? new Date().toISOString(),
+              blurDataUrl: "", // Will be set by the server
+              createdAt: new Date().toISOString(),
             };
             return {
               ...old,
@@ -70,7 +85,7 @@ export function useRecipeMutation(type: MutationType) {
           return {
             ...old,
             recipes: old.recipes.map((recipe) =>
-              recipe.id === (data as UpdateRecipeInput).id
+              recipe.id === (data as UpdateRecipeInput & { id: number }).id
                 ? { ...recipe, ...data }
                 : recipe
             ),
@@ -116,7 +131,7 @@ export function useRecipeMutation(type: MutationType) {
 
 // Type guard to ensure we have a complete CreateRecipeInput
 function isCreateRecipeInput(
-  data: CreateRecipeInput | UpdateRecipeInput
+  data: CreateRecipeInput | (UpdateRecipeInput & { id: number })
 ): data is CreateRecipeInput {
   return !("id" in data);
 }

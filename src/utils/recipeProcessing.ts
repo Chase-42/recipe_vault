@@ -1,9 +1,6 @@
 import { RecipeError } from "~/lib/errors";
-import {
-  type FlaskApiResponse,
-  type ProcessedData,
-  schemas,
-} from "~/lib/schemas";
+import { schemas } from "~/lib/schemas";
+import type { FlaskApiResponse, ProcessedData } from "~/types";
 import { dynamicBlurDataUrl } from "./dynamicBlurDataUrl";
 import sanitizeString from "./sanitizeString";
 import fetchRecipeImages from "./scraper";
