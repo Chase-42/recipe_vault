@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { Printer } from 'lucide-react';
-import Image from 'next/image';
-import LoadingSpinner from '~/app/_components/LoadingSpinner';
-import { Button } from '~/components/ui/button';
-import { fetchRecipe } from '~/utils/recipeService';
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { Printer } from "lucide-react";
+import Image from "next/image";
+import LoadingSpinner from "~/app/_components/LoadingSpinner";
+import { Button } from "~/components/ui/button";
+import { fetchRecipe } from "~/utils/recipeService";
 
 export default function PrintRecipeClient({ id }: { id: number }) {
   const { data: recipe, error } = useQuery({
-    queryKey: ['recipe', id],
+    queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
   });
 
@@ -41,7 +41,7 @@ export default function PrintRecipeClient({ id }: { id: number }) {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Added {format(new Date(recipe.createdAt), 'MMMM d, yyyy')}
+          Added {format(new Date(recipe.createdAt), "MMMM d, yyyy")}
         </div>
 
         <section>

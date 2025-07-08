@@ -8,13 +8,14 @@ import type { Recipe } from "~/types";
 export default async function ImageModal({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await auth();
   const userId = session?.userId;
   if (!userId) return null;
 
-  const idAsNumber = Number(params.id);
+  const { id } = await params;
+  const idAsNumber = Number(id);
   if (Number.isNaN(idAsNumber)) throw new ValidationError("Invalid photo id");
 
   const recipe: Recipe | null = await getRecipe(idAsNumber, userId);

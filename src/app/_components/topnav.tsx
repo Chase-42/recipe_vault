@@ -42,7 +42,7 @@ export const TopNav = () => {
   };
 
   return (
-    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row">
+    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
       <div className="mb-4 flex items-center gap-2 md:mb-0">
         <Image
           src="/recipe_vault_image.svg"
@@ -69,7 +69,7 @@ export const TopNav = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search recipes..."
-                    className="pl-9 w-44 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
+                    className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
                   />
                 </TooltipTrigger>
                 <TooltipContent>Search recipes</TooltipContent>

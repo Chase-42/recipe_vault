@@ -1,215 +1,148 @@
 import "server-only";
 import { getAuth } from "@clerk/nextjs/server";
-import { and, desc, eq, sql, or, count, ilike } from "drizzle-orm";
+import { and, desc, asc, eq, sql, or, count, ilike } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { AuthorizationError, NotFoundError, RecipeError } from "../lib/errors";
 import type { Category } from "~/types";
-import { MAIN_MEAL_CATEGORIES } from "~/types";
 import { db } from "./db";
 import { recipes } from "./db/schema";
-import type { InferSelectModel } from "drizzle-orm";
+import type { InferSelectModel, SQL } from "drizzle-orm";
 
 type Recipe = InferSelectModel<typeof recipes>;
+type SortOption = "newest" | "oldest" | "favorite" | "relevance";
 
-// Fetch user's recipes with pagination and total count
-export async function getMyRecipes(
-  userId: string,
-  offset: number,
-  limit: number,
-  options?: {
-    searchQuery?: string;
-    category?: Category;
-    sortBy?: "newest" | "oldest" | "favorite" | "relevance";
-  }
-) {
-  const timeLabel = `getMyRecipes ${JSON.stringify(options)} ${Date.now()}`;
-  try {
-    console.time(timeLabel);
-    // Build base conditions
-    const conditions = [eq(recipes.userId, userId)];
-
-    if (options?.searchQuery) {
-      const searchTerm = `%${options.searchQuery}%`;
-      const searchCondition = or(
-        ilike(recipes.name, searchTerm),
-        ilike(recipes.ingredients, searchTerm),
-        ilike(recipes.instructions, searchTerm),
-        sql`${recipes.categories}::text ILIKE ${searchTerm}`,
-        sql`${recipes.tags}::text ILIKE ${searchTerm}`
-      );
-      if (searchCondition) {
-        conditions.push(searchCondition);
-      }
-    }
-
-    if (options?.category && options.category !== "all") {
-      conditions.push(
-        sql`${recipes.categories} @> ARRAY[${options.category}]::text[]`
-      );
-    }
-
-    // Get total count
-    const countResult = await db
-      .select({ count: count() })
-      .from(recipes)
-      .where(and(...conditions));
-
-    const total = Number(countResult[0]?.count ?? 0);
-
-    // Build query based on sort option
-    let paginatedRecipes: Recipe[];
-
-    if (options?.sortBy === "favorite") {
-      paginatedRecipes = await db
-        .select({
-          id: recipes.id,
-          userId: recipes.userId,
-          name: recipes.name,
-          link: recipes.link,
-          ingredients: recipes.ingredients,
-          instructions: recipes.instructions,
-          imageUrl: recipes.imageUrl,
-          blurDataUrl: recipes.blurDataUrl,
-          favorite: recipes.favorite,
-          createdAt: recipes.createdAt,
-          categories: recipes.categories,
-          tags: recipes.tags,
-        })
-        .from(recipes)
-        .where(and(...conditions))
-        .orderBy(desc(recipes.favorite), desc(recipes.createdAt))
-        .offset(offset)
-        .limit(limit);
-    } else if (options?.sortBy === "oldest") {
-      paginatedRecipes = await db
-        .select({
-          id: recipes.id,
-          userId: recipes.userId,
-          name: recipes.name,
-          link: recipes.link,
-          ingredients: recipes.ingredients,
-          instructions: recipes.instructions,
-          imageUrl: recipes.imageUrl,
-          blurDataUrl: recipes.blurDataUrl,
-          favorite: recipes.favorite,
-          createdAt: recipes.createdAt,
-          categories: recipes.categories,
-          tags: recipes.tags,
-        })
-        .from(recipes)
-        .where(and(...conditions))
-        .orderBy(recipes.createdAt)
-        .offset(offset)
-        .limit(limit);
-    } else if (options?.sortBy === "relevance" && options?.searchQuery) {
-      const similarityExpr = sql`similarity(${recipes.name}, ${options.searchQuery}) + 
-          similarity(${recipes.instructions}, ${options.searchQuery}) + 
-          similarity(${recipes.ingredients}, ${options.searchQuery}) +
-          similarity(${recipes.categories}::text, ${options.searchQuery}) +
-          similarity(${recipes.tags}::text, ${options.searchQuery})`;
-      paginatedRecipes = await db
-        .select({
-          id: recipes.id,
-          userId: recipes.userId,
-          name: recipes.name,
-          link: recipes.link,
-          ingredients: recipes.ingredients,
-          instructions: recipes.instructions,
-          imageUrl: recipes.imageUrl,
-          blurDataUrl: recipes.blurDataUrl,
-          favorite: recipes.favorite,
-          createdAt: recipes.createdAt,
-          categories: recipes.categories,
-          tags: recipes.tags,
-        })
-        .from(recipes)
-        .where(and(...conditions))
-        .orderBy(desc(similarityExpr))
-        .offset(offset)
-        .limit(limit);
-    } else {
-      // Default: newest
-      paginatedRecipes = await db
-        .select({
-          id: recipes.id,
-          userId: recipes.userId,
-          name: recipes.name,
-          link: recipes.link,
-          ingredients: recipes.ingredients,
-          instructions: recipes.instructions,
-          imageUrl: recipes.imageUrl,
-          blurDataUrl: recipes.blurDataUrl,
-          favorite: recipes.favorite,
-          createdAt: recipes.createdAt,
-          categories: recipes.categories,
-          tags: recipes.tags,
-        })
-        .from(recipes)
-        .where(and(...conditions))
-        .orderBy(desc(recipes.createdAt))
-        .offset(offset)
-        .limit(limit);
-    }
-
-    const result = {
-      recipes: paginatedRecipes.map((recipe) => ({
-        ...recipe,
-        createdAt: recipe.createdAt.toISOString(),
-        categories: recipe.categories,
-        tags: recipe.tags,
-      })),
-      total,
-    };
-    console.timeEnd(timeLabel);
-    return result;
-  } catch (error) {
-    console.error("Failed to fetch recipes:", error);
-    throw new RecipeError("Failed to fetch recipes", 500);
-  }
+interface RecipeQueryOptions {
+  searchQuery?: string;
+  category?: Category;
+  sortBy?: SortOption;
 }
 
-export const getRecipe = async (id: number, userId: string) => {
-  const timeLabel = `getRecipe ${id} ${Date.now()}`;
-  console.time(timeLabel);
+interface PaginationOptions {
+  offset: number;
+  limit: number;
+}
+
+function getUserIdFromRequest(req: NextRequest): string {
+  const { userId } = getAuth(req);
+  if (!userId) throw new AuthorizationError();
+  return userId;
+}
+
+function serializeRecipe(recipe: Recipe) {
+  return {
+    ...recipe,
+    createdAt: recipe.createdAt.toISOString(),
+    categories: recipe.categories,
+    tags: recipe.tags,
+  };
+}
+
+const sortStrategies: Record<SortOption, SQL[]> = {
+  newest: [desc(recipes.createdAt)],
+  oldest: [asc(recipes.createdAt)],
+  favorite: [desc(recipes.favorite), desc(recipes.createdAt)],
+  relevance: [desc(recipes.createdAt)],
+};
+
+function getRelevanceSort(searchQuery: string): SQL[] {
+  const searchTerm = searchQuery.toLowerCase();
+  const relevanceScore = sql<number>`
+    CASE 
+      WHEN LOWER(${recipes.name}) LIKE ${`%${searchTerm}%`} THEN 3
+      WHEN LOWER(${recipes.categories}::text) LIKE ${`%${searchTerm}%`} THEN 2
+      WHEN LOWER(${recipes.tags}::text) LIKE ${`%${searchTerm}%`} THEN 1
+      ELSE 0
+    END
+  `;
+  return [desc(relevanceScore), desc(recipes.createdAt)];
+}
+
+function getSortOrder(sortBy?: SortOption, searchQuery?: string): SQL[] {
+  if (searchQuery?.trim()) {
+    return getRelevanceSort(searchQuery);
+  }
+  return sortStrategies[sortBy ?? "newest"];
+}
+
+export async function getMyRecipes(
+  userId: string,
+  { offset, limit }: PaginationOptions,
+  options?: RecipeQueryOptions
+) {
+  const conditions: SQL[] = [eq(recipes.userId, userId)];
+
+  if (options?.searchQuery?.trim()) {
+    const searchTerm = `%${options.searchQuery.toLowerCase()}%`;
+    const searchCondition = or(
+      ilike(recipes.name, searchTerm),
+      sql`${recipes.categories}::text ILIKE ${searchTerm}`,
+      sql`${recipes.tags}::text ILIKE ${searchTerm}`
+    );
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  if (options?.category && options.category !== "all") {
+    conditions.push(
+      sql`${recipes.categories} @> ${[options.category]}::text[]`
+    );
+  }
+
+  const whereClause =
+    conditions.length === 1 ? conditions[0] : and(...conditions);
+
+  const result = await db
+    .select({ total: count() })
+    .from(recipes)
+    .where(whereClause);
+
+  const total = result[0]?.total ?? 0;
+
+  const paginatedRecipes = await db
+    .select()
+    .from(recipes)
+    .where(whereClause)
+    .orderBy(...getSortOrder(options?.sortBy, options?.searchQuery))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    recipes: paginatedRecipes.map(serializeRecipe),
+    total: Number(total),
+  };
+}
+
+export async function getRecipe(id: number, userId: string) {
   if (!userId) throw new AuthorizationError();
 
   const recipe = await db
     .select()
     .from(recipes)
-    .where(eq(recipes.id, id))
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!recipe) throw new NotFoundError("Recipe not found");
-  if (recipe.userId !== userId) throw new AuthorizationError();
+  if (!recipe) {
+    throw new NotFoundError("Recipe not found");
+  }
 
-  const result = {
-    ...recipe,
-    link: recipe.link,
-    createdAt: recipe.createdAt.toISOString(),
-    categories: recipe.categories,
-    tags: recipe.tags,
-  };
-  console.timeEnd(timeLabel);
-  return result;
-};
+  return serializeRecipe(recipe);
+}
 
 export async function deleteRecipe(id: number, req: NextRequest) {
-  const timeLabel = `deleteRecipe ${id} ${Date.now()}`;
-  console.time(timeLabel);
-  const { userId } = getAuth(req);
+  const userId = getUserIdFromRequest(req);
 
-  if (!userId) throw new AuthorizationError();
+  const result = await db
+    .delete(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .returning();
 
-  try {
-    await db
-      .delete(recipes)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
-    console.timeEnd(timeLabel);
-  } catch (error) {
-    console.error("Failed to delete recipe:", error);
-    throw new RecipeError("Failed to delete recipe", 500);
+  if (result.length === 0) {
+    throw new NotFoundError("Recipe not found or unauthorized");
   }
+
+  return { success: true, id };
 }
 
 export async function updateRecipe(
@@ -217,33 +150,81 @@ export async function updateRecipe(
   data: Partial<typeof recipes.$inferInsert>,
   req: NextRequest
 ) {
-  const timeLabel = `updateRecipe ${id} ${Date.now()}`;
-  console.time(timeLabel);
-  const { userId } = getAuth(req);
+  const userId = getUserIdFromRequest(req);
+  const { userId: _, id: __, ...updateData } = data;
 
-  if (!userId) throw new AuthorizationError();
+  const [updatedRecipe] = await db
+    .update(recipes)
+    .set(updateData)
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .returning();
 
-  try {
-    const [updatedRecipe] = await db
-      .update(recipes)
-      .set(data)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-      .returning();
-
-    if (!updatedRecipe) {
-      throw new NotFoundError("Recipe not found or unauthorized");
-    }
-
-    const result = {
-      ...updatedRecipe,
-      createdAt: updatedRecipe.createdAt.toISOString(),
-      categories: updatedRecipe.categories,
-      tags: updatedRecipe.tags,
-    };
-    console.timeEnd(timeLabel);
-    return result;
-  } catch (error) {
-    console.error("Failed to update recipe:", error);
-    throw new RecipeError("Failed to update recipe", 500);
+  if (!updatedRecipe) {
+    throw new NotFoundError("Recipe not found or unauthorized");
   }
+
+  return serializeRecipe(updatedRecipe);
+}
+
+export async function createRecipe(
+  data: Omit<typeof recipes.$inferInsert, "userId">,
+  req: NextRequest
+) {
+  const userId = getUserIdFromRequest(req);
+
+  const result = await db
+    .insert(recipes)
+    .values({ ...data, userId })
+    .returning();
+
+  const newRecipe = result[0];
+  if (!newRecipe) {
+    throw new RecipeError("Failed to create recipe - no data returned");
+  }
+
+  return serializeRecipe(newRecipe);
+}
+
+export async function toggleFavorite(id: number, req: NextRequest) {
+  const userId = getUserIdFromRequest(req);
+
+  const recipe = await db
+    .select({ favorite: recipes.favorite })
+    .from(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!recipe) {
+    throw new NotFoundError("Recipe not found");
+  }
+
+  const result = await db
+    .update(recipes)
+    .set({ favorite: !recipe.favorite })
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .returning();
+
+  const updatedRecipe = result[0];
+  if (!updatedRecipe) {
+    throw new RecipeError("Failed to update recipe - no data returned");
+  }
+
+  return serializeRecipe(updatedRecipe);
+}
+
+export async function getUserRecipeStats(userId: string) {
+  const stats = await db
+    .select({
+      total: count(),
+      favorites: count(sql`CASE WHEN ${recipes.favorite} THEN 1 END`),
+    })
+    .from(recipes)
+    .where(eq(recipes.userId, userId))
+    .then((rows) => rows[0]);
+
+  return {
+    total: Number(stats?.total ?? 0),
+    favorites: Number(stats?.favorites ?? 0),
+  };
 }
