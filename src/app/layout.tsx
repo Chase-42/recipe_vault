@@ -31,7 +31,7 @@ export default function RootLayout({
                 expand={false}
               />
               <ErrorBoundary>
-                <div className="grid h-screen grid-rows-[auto,1fr]">
+                <div className="grid h-screen grid-rows-[auto,1fr] print:grid-rows-[1fr]">
                   <TopNav />
                   <main className="overflow-y-auto">{children}</main>
                 </div>

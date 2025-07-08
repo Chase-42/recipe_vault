@@ -48,13 +48,21 @@ function RecipeListContent({ initialData }: RecipeListProps) {
   const sortOption = (getParam("sort") ?? "newest") as SortOption;
 
   // Data fetching with new backend search implementation
-  const { recipes, isLoading, pagination } = useRecipeFiltering(
-    debouncedSearchTerm,
-    sortOption,
-    selectedCategory,
-    currentPage,
-    ITEMS_PER_PAGE
-  );
+  const { recipes, isLoading, pagination, shouldResetPage } =
+    useRecipeFiltering(
+      debouncedSearchTerm,
+      sortOption,
+      selectedCategory,
+      currentPage,
+      ITEMS_PER_PAGE
+    );
+
+  // Reset to page 1 if current page is invalid
+  useEffect(() => {
+    if (shouldResetPage) {
+      updateParam("page", "1");
+    }
+  }, [shouldResetPage, updateParam]);
 
   // Update the recipes type
   const totalPages = pagination?.totalPages ?? 0;

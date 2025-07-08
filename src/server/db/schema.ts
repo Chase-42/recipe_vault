@@ -31,6 +31,17 @@ export const recipes = createTable(
     userIdIdx: index("user_id_idx").on(table.userId),
     createdAtIdx: index("created_at_idx").on(table.createdAt),
     favoriteIdx: index("favorite_idx").on(table.favorite),
+
+    // Composite indexes for common query patterns
+    userCreatedAtIdx: index("user_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+    userFavoriteIdx: index("user_favorite_idx").on(
+      table.userId,
+      table.favorite
+    ),
+
     searchIdx: index("search_idx").on(
       table.name,
       table.instructions,

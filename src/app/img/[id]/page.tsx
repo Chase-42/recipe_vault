@@ -3,8 +3,8 @@ import FullImagePageClient from "~/app/_components/FullImagePageClient";
 export default async function ImagePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const awaitedParams = await params;
-  return <FullImagePageClient id={Number(awaitedParams.id)} />;
+  const { id } = await params;
+  return <FullImagePageClient id={Number(id)} />;
 }

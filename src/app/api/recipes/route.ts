@@ -236,8 +236,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
         const { recipes, total } = await getMyRecipes(
           userId,
-          params.offset,
-          params.limit,
+          { offset: params.offset, limit: params.limit },
           {
             searchQuery: params.search,
             category: params.category,

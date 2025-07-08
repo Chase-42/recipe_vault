@@ -21,29 +21,30 @@ export function useRecipeFiltering(
   itemsPerPage = 12
 ) {
   const queryKey = ["recipes", { searchTerm, sortOption, category, page }];
-  console.time(`useRecipeFiltering: ${JSON.stringify(queryKey)}`);
 
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.time(`fetchRecipes call: ${JSON.stringify(queryKey)}`);
-      const result = await fetchRecipes({
+      return await fetchRecipes({
         searchTerm,
         sortOption,
         category,
         offset: (page - 1) * itemsPerPage,
         limit: itemsPerPage,
       });
-      console.timeEnd(`fetchRecipes call: ${JSON.stringify(queryKey)}`);
-      return result;
     },
   });
 
-  console.timeEnd(`useRecipeFiltering: ${JSON.stringify(queryKey)}`);
+  // If we have no results and we're not on page 1, the page is likely invalid
+  const hasResults = data?.recipes && data.recipes.length > 0;
+  const totalPages = data?.pagination?.totalPages ?? 0;
+  const shouldResetPage =
+    !hasResults && page > 1 && totalPages > 0 && page > totalPages;
 
   return {
     recipes: data?.recipes ?? [],
     isLoading,
     pagination: data?.pagination,
+    shouldResetPage,
   };
 }
