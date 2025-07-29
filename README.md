@@ -1,137 +1,102 @@
-# 📗 Recipe Vault
+# Recipe Vault
 
-Recipe Vault is a web application built with Next.js, a Python Flask serverless function, Clerk for authentication, PostgreSQL database, Drizzle ORM, Tailwind CSS, and Shadcn UI. The application allows users to save recipes by pasting a recipe URL. It scrapes the webpage to find the recipe name, picture, ingredients, and instructions, and saves them for easy access in a centralized location.
+A modern recipe management application that helps you collect, organize, and cook from your favorite recipes. Built with Next.js, TanStack Query, and Tailwind CSS for the frontend, Python Flask for recipe scraping, and PostgreSQL with Drizzle ORM for data persistence. Recipe Vault offers a seamless experience for managing your digital recipe collection, featuring Clerk authentication, Uploadcare for image hosting, and Shadcn UI components.
 
-🌐 Hosted on Vercel: https://recipe-vault-pied.vercel.app/
+[Try Recipe Vault →](https://recipe-vault-pied.vercel.app/)
 
-## ✨ Features
+## Features
 
-### 🔑 Authentication & Security
-- User authentication with Clerk
-- Secure data handling
-- Protected API routes
+### Recipe Management
+- Import recipes directly from any cooking website
+- Create and edit custom recipes with rich formatting
+- Organize recipes with tags and categories
+- Mark favorites for quick access
+- Print-optimized recipe views
 
-### 📝 Recipe Management
-- Save recipes by pasting a URL of a recipe page
-- Create your own by entering ingredients, instructions, and an image
-- Edit and delete recipes
-- Mark recipes as favorites
-- Print-friendly recipe views
+### Smart Organization
+- Powerful search across ingredients and instructions
+- Shopping list generation from ingredients
+- Interactive ingredient checklist while cooking
+- Tag-based categorization
+- Responsive layout optimized for kitchen use
 
-### 🤖 Automation
-- Web scraping to extract recipe details
-- Automatic image optimization
-- Generates blurred placeholders for images while loading
+### Technical Features
+- Fast, modern UI built with Next.js and React
+- Secure authentication via Clerk
+- PostgreSQL database with Drizzle ORM
+- Optimized image handling and caching
+- Parallel routes for modal views
+- Server-side recipe scraping
 
-### 💾 Data Storage
-- Store recipe name, picture, ingredients, and instructions in PostgreSQL DB
-- Uploads image to UploadCare
-- Efficient data caching
-
-### 🎯 User Experience
-- Search functionality
-- Checkbox for recipe ingredients for shopping (local storage)
-- Prefetch recipes on hover
-- Responsive design using Tailwind CSS and Shadcn UI
-- Parallel routes for Modal Views
-- Pagination with customizable page size
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **📱 Framework:** Next.js
-- **🎨 Styling:** Tailwind CSS, Shadcn UI
-- **📊 State Management:** TanStack Query
-
-### Backend
-- **⚙️ Runtime:** Node.js
-- **🐍 Scraping:** Python Flask (serverless function)
-- **🔐 Auth:** Clerk
-- **📦 Database:** PostgreSQL
-- **🗄️ ORM:** Drizzle ORM
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+- Python 3.8+ (for recipe scraping)
 
-- Node.js and npm
-- Python
-- PostgreSQL
-- Clerk account
-
-### Installation
-
-1. **Clone the repository:**
-
+### Quick Start
+1. Clone the repository
    ```bash
    git clone https://github.com/Chase-42/recipe_vault.git
    cd recipe-vault
    ```
 
-2. **Install dependencies:**
-
+2. Install dependencies
    ```bash
    npm install
    ```
 
-3. **Set up the PostgreSQL database:**
-
-   Create a PostgreSQL database and update the connection string in your environment variables.
-
-4. **Configure Clerk:**
-
-   Set up your Clerk project and update the Clerk configuration in your environment variables.
-
-5. **Environment Variables:**
-
-   Create a `.env.local` file in the root directory and add the necessary environment variables:
-
-   ```env
-   DATABASE_URL=your_postgresql_connection_string
-   CLERK_FRONTEND_API=your_clerk_frontend_api
-   CLERK_API_KEY=your_clerk_api_key
+3. Set up environment variables
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your configuration
    ```
 
-6. **Run the development server:**
-
+4. Start the development server
    ```bash
    npm run dev
    ```
 
-   The application will be available at [http://localhost:3000](http://localhost:3000).
+Visit `http://localhost:3000` to see your local instance.
 
-### Deployment
+### Environment Variables
+Required environment variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- `CLERK_FRONTEND_API`: Clerk Frontend API key
+- `CLERK_API_KEY`: Clerk API key
+- `UPLOADCARE_PUBLIC_KEY`: Uploadcare public key for image hosting
 
-To deploy the application, follow the deployment instructions for your hosting provider. Ensure that all environment variables are set up correctly on the hosting platform.
+## Recent Updates
 
-## 💡 Usage Tips
-
-### Recipe Import
-1. Find a recipe you love on any cooking website
-2. Copy the URL
-3. Paste it into Recipe Vault
-4. Review and save the automatically extracted details
-
-### Recipe Organization
-- Use favorites for quick access to frequent recipes
-- Utilize search to find specific recipes
-- Print recipes for offline use
-- Check off ingredients while cooking
-
-## 🔄 Recent Updates
+- Improved recipe view layout and modal interactions
+- Enhanced search functionality with categories and tags
+- Added shopping list feature
+- Optimized performance and image handling
+- Implemented comprehensive error handling
 - Added print-friendly recipe views
-- Implemented pagination system
-- Enhanced image loading performance
-- Improved recipe editing interface
-- Added error handling and error pages
 
+## Development
 
-## Acknowledgements
+### Architecture
+Recipe Vault follows a modern web architecture:
+- Next.js for the frontend and API routes
+- PostgreSQL with Drizzle ORM for data persistence
+- Python Flask serverless function for recipe scraping
+- Clerk for authentication and user management
 
-- [Next.js](https://nextjs.org/)
-- [Flask](https://flask.palletsprojects.com/)
-- [Clerk](https://clerk.dev/)
-- [PostgreSQL](https://www.postgresql.org/)
-- [Drizzle ORM](https://drizzle-orm.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Shadcn UI](https://shadcn.dev/)
+### Key Technologies
+- [Next.js](https://nextjs.org/) - React framework
+- [PostgreSQL](https://www.postgresql.org/) - Database
+- [Drizzle ORM](https://drizzle-orm.com/) - TypeScript ORM
+- [Clerk](https://clerk.dev/) - Authentication
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Shadcn UI](https://shadcn.dev/) - UI components
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
