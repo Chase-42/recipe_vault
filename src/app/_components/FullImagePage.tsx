@@ -1,14 +1,25 @@
 "use client";
 
+import { useState } from "react";
+import {
+  X,
+  ExternalLink,
+  Clock,
+  Users,
+  ChefHat,
+  Edit,
+  ShoppingCart,
+} from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { Edit, ShoppingCart } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
+import Image from "next/image";
+
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
+import { Badge } from "~/components/ui/badge";
+import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
@@ -19,88 +30,13 @@ interface FullPageImageViewProps {
   id: number;
 }
 
-function RecipeImage({
-  recipe,
-  onEdit,
-  onAddToList,
-  onFavoriteToggle,
-}: {
-  recipe: Recipe;
-  onEdit: () => void;
-  onAddToList: () => void;
-  onFavoriteToggle: () => void;
-}) {
-  return (
-    <div className="relative w-full bg-black">
-      <div className="aspect-[3/1] md:aspect-[3.5/1] lg:aspect-[4/1] relative overflow-hidden">
-        <Image
-          src={recipe.imageUrl}
-          alt={`Image of ${recipe.name}`}
-          fill
-          priority
-          unoptimized
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black/10" />
-      </div>
-
-      {/* Overlapping card */}
-      <div className="absolute inset-x-0 bottom-0 transform translate-y-1/2">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="bg-background rounded-lg shadow-lg border p-4 md:p-6 flex items-center justify-between gap-4">
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-medium">
-              {recipe.name}
-            </h1>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onEdit}
-                className="h-9 w-9 rounded-full hover:bg-accent"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onAddToList}
-                className="h-9 w-9 rounded-full hover:bg-accent"
-              >
-                <ShoppingCart className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onFavoriteToggle}
-                className="h-9 w-9 rounded-full hover:bg-accent"
-              >
-                <IconHeart
-                  size={16}
-                  className={cn(
-                    "transition-colors duration-300",
-                    recipe.favorite
-                      ? "text-[hsl(var(--recipe-red))] fill-current"
-                      : "text-foreground"
-                  )}
-                  strokeWidth={2}
-                />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function FullPageImageView({ id }: FullPageImageViewProps) {
+export default function FullImageView({ id }: FullPageImageViewProps) {
   const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
   const { toggleFavorite } = useFavoriteToggle();
-  const [checkedIngredients, setCheckedIngredients] = useState<
-    Record<number, boolean>
-  >({});
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(
+    new Set()
+  );
 
   const {
     data: recipe,
@@ -111,83 +47,191 @@ export default function FullPageImageView({ id }: FullPageImageViewProps) {
     queryFn: () => fetchRecipe(id),
   });
 
-  if (isLoading) return <LoadingSpinner size="lg" />;
-  if (error || !recipe) return <div>Failed to load recipe.</div>;
+  const toggleIngredient = (index: number) => {
+    const newChecked = new Set(checkedIngredients);
+    if (newChecked.has(index)) {
+      newChecked.delete(index);
+    } else {
+      newChecked.add(index);
+    }
+    setCheckedIngredients(newChecked);
+  };
 
-  const ingredients = recipe.ingredients.split("\n");
-  const instructions = recipe.instructions.split("\n");
+  if (isLoading) return <LoadingSpinner size="lg" />;
+  if (error ?? !recipe) return <div>Failed to load recipe.</div>;
+
+  const ingredients = recipe.ingredients
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+  const instructions = recipe.instructions
+    .split("\n")
+    .filter((line) => line.trim() !== "");
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <div className="flex-none">
-        <RecipeImage
-          recipe={recipe}
-          onEdit={() => router.push(`/edit/${recipe.id}`)}
-          onAddToList={() => setShowAddToList(true)}
-          onFavoriteToggle={() => toggleFavorite(recipe)}
-        />
+    <div className="h-screen w-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 h-14 border-b border-border">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <ChefHat className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-semibold text-foreground">
+              {recipe.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push(`/edit/${recipe.id}`)}
+              className="h-8 w-8 rounded-full"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAddToList(true)}
+              className="h-8 w-8 rounded-full"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleFavorite(recipe)}
+              className="h-8 w-8 rounded-full"
+            >
+              <IconHeart
+                size={16}
+                className={cn(
+                  "transition-colors duration-300",
+                  recipe.favorite
+                    ? "text-destructive fill-current"
+                    : "text-foreground"
+                )}
+                strokeWidth={2}
+              />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-visible">
-        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+      {/* Content */}
+      <div className="flex h-[calc(100vh-7rem)]">
+        {/* Left Column - Image + Ingredients */}
+        <div className="w-[45%] border-r border-border flex flex-col">
+          {/* Image */}
+          <div className="aspect-[16/9] relative">
+            <Image
+              src={recipe.imageUrl}
+              alt={`Image of ${recipe.name}`}
+              fill
+              priority
+              sizes="45vw"
+              className="object-cover"
+            />
+          </div>
+
+          <div className="flex flex-col min-h-0 flex-1 p-4">
+            {recipe.tags && recipe.tags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {recipe.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
             {/* Ingredients */}
-            <div>
-              <h2 className="text-lg font-medium mb-4">Ingredients</h2>
-              <ul className="space-y-3">
-                {ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start gap-3">
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-lg font-semibold text-foreground">
+                Ingredients
+              </h2>
+              <Badge variant="outline">{ingredients.length}</Badge>
+            </div>
+            <div className="overflow-y-auto min-h-0 flex-1 space-y-2.5">
+              {ingredients.map((ingredient, index) => {
+                const key = `ingredient-${index}-${ingredient.trim().toLowerCase().replace(/\s+/g, "-")}`;
+                return (
+                  <div key={key} className="flex items-start gap-2">
                     <Checkbox
-                      id={`ingredient-${index}`}
-                      checked={checkedIngredients[index] ?? false}
-                      onCheckedChange={() => {
-                        setCheckedIngredients((prev) => ({
-                          ...prev,
-                          [index]: !prev[index],
-                        }));
-                      }}
-                      className="mt-1"
+                      id={key}
+                      checked={checkedIngredients.has(index)}
+                      onCheckedChange={() => toggleIngredient(index)}
                     />
                     <label
-                      htmlFor={`ingredient-${index}`}
+                      htmlFor={key}
                       className={cn(
-                        "flex-1 text-base leading-tight",
-                        checkedIngredients[index] &&
-                          "text-muted-foreground line-through"
+                        "text-sm leading-relaxed cursor-pointer",
+                        checkedIngredients.has(index)
+                          ? "line-through text-muted-foreground"
+                          : "text-foreground"
                       )}
                     >
                       {ingredient}
                     </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Instructions */}
-            <div className="border-t md:border-t-0 md:border-l border-border md:pl-12 pt-8 md:pt-0">
-              <h2 className="text-lg font-medium mb-4">Instructions</h2>
-              <ol className="list-decimal space-y-4 pl-4">
-                {instructions.map((instruction, index) => (
-                  <li key={index} className="pl-2 text-base leading-relaxed">
-                    {instruction}
-                  </li>
-                ))}
-              </ol>
-
-              {recipe.link && (
-                <div className="mt-8">
-                  <a
-                    href={recipe.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    View Original Recipe →
-                  </a>
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
           </div>
+        </div>
+
+        {/* Right Column - Instructions */}
+        <div className="w-[55%]">
+          <div className="p-4 h-full overflow-y-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-lg font-semibold text-foreground">
+                Instructions
+              </h2>
+              <Badge variant="outline">{instructions.length} steps</Badge>
+            </div>
+            <div className="space-y-4">
+              {instructions.map((instruction) => {
+                const key = `instruction-${instruction.trim().toLowerCase().slice(0, 32).replace(/\s+/g, "-")}`;
+                return (
+                  <div key={key} className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                      {instructions.indexOf(instruction) + 1}
+                    </div>
+                    <p className="text-sm leading-relaxed text-foreground/90">
+                      {instruction}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="h-14 px-4 border-t border-border flex items-center justify-between">
+        {recipe.link && (
+          <Button
+            variant="ghost"
+            className="text-sm h-8"
+            onClick={() => window.open(recipe.link, "_blank")}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            View Original Recipe
+          </Button>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => window.print()}
+            className="text-sm h-8"
+          >
+            Print Recipe
+          </Button>
+          <Button
+            onClick={() => setShowAddToList(true)}
+            className="text-sm h-8"
+          >
+            Add to Shopping List
+          </Button>
         </div>
       </div>
 
