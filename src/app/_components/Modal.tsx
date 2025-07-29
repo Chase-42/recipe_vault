@@ -65,16 +65,30 @@ export function Modal({ children, onClose }: ModalProps) {
           exit={{ opacity: 0, y: 50 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          <button
-            onClick={handleClose}
-            className="absolute right-1 top-0 z-50 animate-fade-in-down text-xl text-[hsl(var(--recipe-red))] transition-all duration-200 hover:scale-110 hover:opacity-80 sm:right-2 sm:top-1 sm:text-3xl"
-            aria-label="Close"
-            type="button"
-          >
-            &times;
-          </button>
-
-          <div className="h-full w-full">{children}</div>
+          <div className="relative h-full w-full">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="absolute right-2 top-2 z-[100] flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+              aria-label="Close modal"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            {children}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>,
