@@ -95,8 +95,11 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
       ingredients: validatedData.ingredients ?? undefined,
     };
 
-    return data.name && data.instructions && data.ingredients?.length
-      ? data
+    // Ensure ingredients is always an array
+    const ingredients = Array.isArray(data.ingredients) ? data.ingredients : [];
+
+    return data.name && data.instructions && ingredients.length > 0
+      ? { ...data, ingredients }
       : schemas.flaskApiResponse.parse({});
   } catch {
     return schemas.flaskApiResponse.parse({});

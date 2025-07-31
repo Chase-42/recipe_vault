@@ -63,7 +63,7 @@ const recipeInstruction = z.union([
 
 const flaskApiResponse = z.object({
   name: z.string().optional(),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
   instructions: z.string().optional(),
   ingredients: z.array(z.string()).optional(),
 });
