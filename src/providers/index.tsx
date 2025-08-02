@@ -5,7 +5,6 @@ import {
   QueryClientProvider,
   type QueryKey,
 } from "@tanstack/react-query";
-import { AnimatePresence } from "framer-motion";
 import type React from "react";
 import {
   type ReactNode,
@@ -95,26 +94,4 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-};
-
-const AnimatePresenceContext = createContext<ReactNode | undefined>(undefined);
-
-export const AnimatePresenceProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  return (
-    <AnimatePresenceContext.Provider value={children}>
-      <AnimatePresence>{children}</AnimatePresence>
-    </AnimatePresenceContext.Provider>
-  );
-};
-
-export const useAnimatePresence = (): ReactNode => {
-  const context = useContext(AnimatePresenceContext);
-  if (!context) {
-    throw new ValidationError(
-      "useAnimatePresence must be used within an AnimatePresenceProvider"
-    );
-  }
-  return context;
 };
