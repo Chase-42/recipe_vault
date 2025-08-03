@@ -17,8 +17,6 @@ const createRecipeRateLimiter = {
 };
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  console.time("POST /api/recipes/create");
-
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -53,7 +51,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           throw new RecipeError("Failed to create recipe", 500);
         }
 
-        console.timeEnd("POST /api/recipes/create");
         return NextResponse.json({
           data: {
             ...recipe,
@@ -62,7 +59,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        console.timeEnd("POST /api/recipes/create");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }

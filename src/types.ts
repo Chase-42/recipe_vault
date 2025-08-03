@@ -101,7 +101,7 @@ export interface RecipeResponse {
 // API response types for external services
 export interface FlaskApiResponse {
   name?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   instructions?: string;
   ingredients?: string[];
 }

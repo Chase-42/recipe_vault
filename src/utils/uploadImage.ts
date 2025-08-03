@@ -14,8 +14,6 @@ interface UploadResponse extends UploadcareFile {
 }
 
 export const uploadImage = async (imageUrl: string): Promise<string> => {
-  const timeLabel = `uploadImage: ${imageUrl} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     // Download the image
     const response = await fetch(imageUrl);
@@ -48,11 +46,9 @@ export const uploadImage = async (imageUrl: string): Promise<string> => {
     // Apply transformations to ensure optimal quality and size
     const transformedUrl = `${file.cdnUrl}-/quality/best/-/format/auto/`;
 
-    console.timeEnd(timeLabel);
     return transformedUrl;
   } catch (error) {
     console.error("Failed to upload image to Uploadcare", error);
-    console.timeEnd(timeLabel);
     throw new RecipeError("Failed to upload image", 500);
   }
 };
