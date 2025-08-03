@@ -216,7 +216,6 @@ const recipesRateLimiter = {
 
 // API Route Handlers
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  console.time("GET /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -263,11 +262,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           },
         };
 
-        console.timeEnd("GET /api/recipes");
         return NextResponse.json(response);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        console.timeEnd("GET /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }
@@ -279,7 +276,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  console.time("POST /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -312,11 +308,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           })
           .returning();
 
-        console.timeEnd("POST /api/recipes");
         return NextResponse.json(recipe);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        console.timeEnd("POST /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }
@@ -328,7 +322,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
-  console.time("DELETE /api/recipes");
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -340,11 +333,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
         await deleteRecipe(id, req);
 
-        console.timeEnd("DELETE /api/recipes");
         return NextResponse.json({ success: true });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        console.timeEnd("DELETE /api/recipes");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }

@@ -26,8 +26,6 @@ const uploadRateLimiter = {
 };
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  console.time("POST /api/upload");
-
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
@@ -64,11 +62,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         const cdnUrl = await uploadImage(dataUrl);
 
-        console.timeEnd("POST /api/upload");
         return NextResponse.json({ url: cdnUrl });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        console.timeEnd("POST /api/upload");
         return NextResponse.json(
           { error: errorMessage },
           { status: statusCode }

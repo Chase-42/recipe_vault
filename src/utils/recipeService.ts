@@ -26,8 +26,6 @@ export const fetchRecipes = async ({
   if (sortOption) params.append("sort", sortOption);
 
   const url = `/api/recipes?${params.toString()}`;
-  const timeLabel = `fetchRecipes: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url);
     if (!response.ok) throw new RecipeError("Failed to fetch recipes", 500);
@@ -37,15 +35,11 @@ export const fetchRecipes = async ({
   } catch (error) {
     console.error("fetchRecipes error:", error);
     throw error;
-  } finally {
-    console.timeEnd(timeLabel);
   }
 };
 
 export const fetchRecipe = async (id: number): Promise<Recipe> => {
   const url = `/api/recipes/${id}`;
-  const timeLabel = `fetchRecipe: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url);
     if (!response.ok) throw new RecipeError("Failed to fetch recipe", 500);
@@ -54,8 +48,6 @@ export const fetchRecipe = async (id: number): Promise<Recipe> => {
   } catch (error) {
     console.error("Validation error:", error);
     throw error;
-  } finally {
-    console.timeEnd(timeLabel);
   }
 };
 
@@ -65,8 +57,6 @@ export const updateRecipe = async (
 ): Promise<Recipe> => {
   const { id, ...updateData } = recipe;
   const url = `/api/recipes/${id}`;
-  const timeLabel = `updateRecipe: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "PUT",
@@ -76,28 +66,26 @@ export const updateRecipe = async (
     if (!response.ok) throw new RecipeError("Failed to update recipe", 500);
     const data = await response.json();
     return schemas.recipe.parse(data);
-  } finally {
-    console.timeEnd(timeLabel);
+  } catch (error) {
+    console.error("updateRecipe error:", error);
+    throw error;
   }
 };
 
 // Delete a recipe by ID
 export const deleteRecipe = async (id: number): Promise<void> => {
   const url = `/api/recipes?id=${id}`;
-  const timeLabel = `deleteRecipe: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url, { method: "DELETE" });
     if (!response.ok) throw new RecipeError("Failed to delete recipe", 500);
-  } finally {
-    console.timeEnd(timeLabel);
+  } catch (error) {
+    console.error("deleteRecipe error:", error);
+    throw error;
   }
 };
 
 export const toggleFavorite = async (id: number): Promise<boolean> => {
   const url = `/api/recipes/${id}/favorite`;
-  const timeLabel = `toggleFavorite: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "PUT",
@@ -110,8 +98,9 @@ export const toggleFavorite = async (id: number): Promise<boolean> => {
     const data = await response.json();
     const validatedData = schemas.favoriteResponse.parse(data);
     return validatedData.favorite;
-  } finally {
-    console.timeEnd(timeLabel);
+  } catch (error) {
+    console.error("toggleFavorite error:", error);
+    throw error;
   }
 };
 
@@ -119,8 +108,6 @@ export const createRecipe = async (
   recipe: CreateRecipeInput
 ): Promise<Recipe> => {
   const url = "/api/recipes/create";
-  const timeLabel = `createRecipe: ${url} ${Date.now()}`;
-  console.time(timeLabel);
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -145,7 +132,8 @@ export const createRecipe = async (
     }
 
     return validatedData.data;
-  } finally {
-    console.timeEnd(timeLabel);
+  } catch (error) {
+    console.error("createRecipe error:", error);
+    throw error;
   }
 };
