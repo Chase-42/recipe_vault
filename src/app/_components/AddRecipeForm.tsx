@@ -1,10 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImageIcon, X } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,6 +19,7 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import LoadingSpinner from "./LoadingSpinner";
+import ImageUpload from "./ImageUpload";
 
 type CreateRecipeInput = Omit<
   Recipe,
@@ -54,7 +53,6 @@ const CreateRecipeClient = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [uploadLoading, setUploadLoading] = useState(false);
-  const previousBlobUrl = useRef<string | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -64,23 +62,6 @@ const CreateRecipeClient = () => {
   const [instructions, setInstructions] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string>("");
-
-  // Clean up blob URLs when they're replaced
-  useEffect(() => {
-    if (previousBlobUrl.current && !imageUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(previousBlobUrl.current);
-      previousBlobUrl.current = null;
-    }
-  }, [imageUrl]);
-
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (previousBlobUrl.current) {
-        URL.revokeObjectURL(previousBlobUrl.current);
-      }
-    };
-  }, []);
 
   const mutation = useMutation({
     mutationFn: createRecipe,
@@ -100,49 +81,6 @@ const CreateRecipeClient = () => {
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
   });
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadLoading(true);
-      // Only create object URL on the client side
-      if (typeof window !== "undefined") {
-        const previewUrl = URL.createObjectURL(file);
-        previousBlobUrl.current = previewUrl;
-        setImageUrl(previewUrl);
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = (await response.json()) as
-        | { url: string }
-        | { error: string };
-
-      if (!response.ok || "error" in result) {
-        throw new RecipeError(
-          "error" in result ? result.error : "Upload failed",
-          500
-        );
-      }
-
-      setImageUrl(result.url);
-      toast("Image uploaded successfully!");
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error("Error uploading image");
-      setImageUrl("");
-    } finally {
-      setUploadLoading(false);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,11 +120,11 @@ const CreateRecipeClient = () => {
   return (
     <div className="flex h-full w-full flex-col md:flex-row">
       <div className="flex flex-col border-b p-4 md:w-1/2 md:border-b-0 md:border-r">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label
               htmlFor="name"
-              className="text-md m-1 block font-medium text-white"
+              className="text-md mb-1 block font-medium text-white"
             >
               Recipe Name
             </label>
@@ -201,7 +139,7 @@ const CreateRecipeClient = () => {
           <div>
             <label
               htmlFor="link"
-              className="text-md m-1 block font-medium text-white"
+              className="text-md mb-1 block font-medium text-white"
             >
               Recipe Link
             </label>
@@ -217,17 +155,12 @@ const CreateRecipeClient = () => {
           <div>
             <label
               htmlFor="ingredients"
-              className="text-md m-1 block font-medium"
+              className="text-md mb-1 block font-medium"
             >
               Ingredients
             </label>
-            <div className="mb-2 text-sm text-muted-foreground">
-              Enter each ingredient on a new line, starting with the amount:
-              <pre className="mt-1 rounded bg-muted p-2 text-xs">
-                {`2 tablespoons olive oil
-1 lemon, juiced
-4 cloves garlic, minced`}
-              </pre>
+            <div className="mb-1 text-sm text-muted-foreground">
+              Enter each ingredient on a new line:
             </div>
             <Textarea
               id="ingredients"
@@ -238,17 +171,17 @@ const CreateRecipeClient = () => {
 1 lemon, juiced
 4 cloves garlic, minced`}
               className="mt-1 block w-full font-mono text-sm"
-              rows={10}
+              rows={4}
             />
           </div>
           <div>
             <label
               htmlFor="instructions"
-              className="text-md m-1 block font-medium"
+              className="text-md mb-1 block font-medium"
             >
               Instructions
             </label>
-            <div className="mb-2 text-sm text-muted-foreground">
+            <div className="mb-1 text-sm text-muted-foreground">
               Enter each step on a new line:
             </div>
             <Textarea
@@ -259,12 +192,12 @@ const CreateRecipeClient = () => {
               placeholder={`Preheat the oven to 400°F
 In a large bowl, combine ingredients
 Bake for 25-30 minutes`}
-              className="mt-1 block min-h-[200px] w-full"
-              rows={10}
+              className="mt-1 block w-full"
+              rows={4}
             />
           </div>
           <div>
-            <label className="text-md m-1 block font-medium">Category</label>
+            <label className="text-md mb-1 block font-medium">Category</label>
             <Select
               value={categories[0] ?? ""}
               onValueChange={(v) => setCategories(v ? [v as Category] : [])}
@@ -291,7 +224,7 @@ Bake for 25-30 minutes`}
               className="mt-1 block w-full"
             />
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-2 border-t mt-2">
             <Button variant="secondary" type="button" onClick={handleCancel}>
               Cancel
             </Button>
@@ -306,53 +239,12 @@ Bake for 25-30 minutes`}
         </form>
       </div>
 
-      <div className="flex h-full w-full items-center justify-center p-4 md:w-1/2">
-        <div className="w-full">
-          {imageUrl ? (
-            <div className="relative aspect-square w-full overflow-hidden rounded-lg border-2 border-gray-600">
-              <Image
-                src={imageUrl}
-                alt="Recipe preview"
-                fill
-                className="rounded-lg object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setImageUrl("")}
-                className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-600 bg-black/20 p-8 transition-all hover:border-gray-500 hover:bg-black/30">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <ImageIcon className="h-16 w-16 text-gray-400" />
-                <div className="text-center">
-                  <p className="text-sm text-gray-400">
-                    Click or drag image to upload
-                  </p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    PNG, JPG up to 10MB
-                  </p>
-                </div>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleImageUpload}
-                accept="image/*"
-                disabled={uploadLoading}
-              />
-            </label>
-          )}
-          {uploadLoading && (
-            <div className="mt-4 text-center text-sm text-gray-400">
-              Uploading image...
-            </div>
-          )}
-        </div>
-      </div>
+      <ImageUpload
+        imageUrl={imageUrl}
+        onImageChange={setImageUrl}
+        uploadLoading={uploadLoading}
+        onUploadLoadingChange={setUploadLoading}
+      />
     </div>
   );
 };

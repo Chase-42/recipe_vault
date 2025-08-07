@@ -4,7 +4,7 @@ import { IconHeart } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,44 +69,51 @@ function RecipeCard({
 
   const shouldPrioritize = priority || recipe.id <= 4;
 
-  // Helper function to highlight matches
-  const highlightMatches = (
-    text: string,
-    matches?: Array<[number, number]>
-  ) => {
-    if (!matches || !searchTerm) return text;
+  // Helper function to highlight matches - now memoized
+  const highlightMatches = useCallback(
+    (text: string, matches?: Array<[number, number]>) => {
+      if (!matches || !searchTerm) return text;
 
-    const result = [];
-    let lastIndex = 0;
+      const result = [];
+      let lastIndex = 0;
 
-    for (const [start, end] of matches) {
-      // Add text before the match
-      if (start > lastIndex) {
-        result.push(text.slice(lastIndex, start));
+      for (const [start, end] of matches) {
+        // Add text before the match
+        if (start > lastIndex) {
+          result.push(text.slice(lastIndex, start));
+        }
+        // Add the highlighted match
+        result.push(
+          <span key={start} className="bg-yellow-500/30">
+            {text.slice(start, end + 1)}
+          </span>
+        );
+        lastIndex = end + 1;
       }
-      // Add the highlighted match
-      result.push(
-        <span key={start} className="bg-yellow-500/30">
-          {text.slice(start, end + 1)}
-        </span>
-      );
-      lastIndex = end + 1;
-    }
 
-    // Add remaining text
-    if (lastIndex < text.length) {
-      result.push(text.slice(lastIndex));
-    }
+      // Add remaining text
+      if (lastIndex < text.length) {
+        result.push(text.slice(lastIndex));
+      }
 
-    return result;
-  };
+      return result;
+    },
+    [searchTerm]
+  );
 
-  // Get matches for each field
-  const nameMatches = searchMatches?.find((m) => m.key === "name")?.indices;
-  const categoryMatches = searchMatches?.find(
-    (m) => m.key === "categories"
-  )?.indices;
-  const tagMatches = searchMatches?.find((m) => m.key === "tags")?.indices;
+  // Get matches for each field - now memoized (only if searchMatches is provided)
+  const nameMatches = useMemo(
+    () => searchMatches?.find((m) => m.key === "name")?.indices,
+    [searchMatches]
+  );
+  const categoryMatches = useMemo(
+    () => searchMatches?.find((m) => m.key === "categories")?.indices,
+    [searchMatches]
+  );
+  const tagMatches = useMemo(
+    () => searchMatches?.find((m) => m.key === "tags")?.indices,
+    [searchMatches]
+  );
 
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
@@ -261,6 +268,8 @@ export default memo(RecipeCard, (prevProps, nextProps) => {
   return (
     prevProps.recipe.id === nextProps.recipe.id &&
     prevProps.recipe.favorite === nextProps.recipe.favorite &&
-    prevProps.priority === nextProps.priority
+    prevProps.priority === nextProps.priority &&
+    JSON.stringify(prevProps.searchMatches) ===
+      JSON.stringify(nextProps.searchMatches)
   );
 });

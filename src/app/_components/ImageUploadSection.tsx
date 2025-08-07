@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { RecipeError, ERROR_MESSAGES } from "~/lib/errors";
 import { useErrorHandler } from "~/hooks/useErrorHandler";
+import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadSectionProps {
   imageUrl: string;
@@ -26,15 +27,30 @@ export default function ImageUploadSection({
 
     try {
       setUploadLoading(true);
+
+      // Compress image before upload (only on client side)
+      let fileToUpload = file;
+      if (typeof window !== "undefined") {
+        try {
+          fileToUpload = await compressImage(file);
+        } catch (compressionError) {
+          console.warn(
+            "Image compression failed, using original file:",
+            compressionError
+          );
+          // Keep original file if compression fails
+        }
+      }
+
       // Only create object URL on the client side
       if (typeof window !== "undefined") {
-        const previewUrl = URL.createObjectURL(file);
+        const previewUrl = URL.createObjectURL(fileToUpload);
         previousBlobUrl.current = previewUrl;
         onImageUrlChange(previewUrl);
       }
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
 
       const response = await fetch("/api/upload", {
         method: "POST",

@@ -1,74 +1,25 @@
+"use client";
+
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { RecipeError } from "~/lib/errors";
+import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadProps {
   imageUrl: string;
   onImageChange: (url: string) => void;
+  uploadLoading?: boolean;
+  onUploadLoadingChange?: (loading: boolean) => void;
 }
 
-// Simple image compression function
-const compressImage = (
-  file: File,
-  maxWidth = 1200,
-  quality = 0.8
-): Promise<File> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      resolve(file);
-      return;
-    }
-
-    const img = new window.Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    img.onload = () => {
-      const { width, height } = img;
-      const ratio = Math.min(maxWidth / width, maxWidth / height);
-
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
-
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          } else {
-            resolve(file);
-          }
-        },
-        "image/jpeg",
-        quality
-      );
-
-      // Clean up the object URL after compression
-      URL.revokeObjectURL(objectUrl);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-
-    img.src = objectUrl;
-  });
-};
-
-const ImageUpload: React.FC<ImageUploadProps> = ({
+export default function ImageUpload({
   imageUrl,
   onImageChange,
-}) => {
-  const [isUploading, setIsUploading] = useState(false);
+  uploadLoading = false,
+  onUploadLoadingChange,
+}: ImageUploadProps) {
   const previousBlobUrl = useRef<string | null>(null);
 
   // Clean up blob URLs when they're replaced
@@ -88,21 +39,36 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     };
   }, []);
 
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsUploading(true);
-      const previewUrl = URL.createObjectURL(file);
-      previousBlobUrl.current = previewUrl;
-      onImageChange(previewUrl);
+      onUploadLoadingChange?.(true);
 
-      // Compress image before upload
-      const compressedFile = await compressImage(file);
+      // Compress image before upload (only on client side)
+      let fileToUpload = file;
+      if (typeof window !== "undefined") {
+        try {
+          fileToUpload = await compressImage(file);
+        } catch (compressionError) {
+          console.warn(
+            "Image compression failed, using original file:",
+            compressionError
+          );
+          // Keep original file if compression fails
+        }
+      }
+
+      // Only create object URL on the client side
+      if (typeof window !== "undefined") {
+        const previewUrl = URL.createObjectURL(fileToUpload);
+        previousBlobUrl.current = previewUrl;
+        onImageChange(previewUrl);
+      }
 
       const formData = new FormData();
-      formData.append("file", compressedFile);
+      formData.append("file", fileToUpload);
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -124,12 +90,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       toast("Image uploaded successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload image"
-      );
-      onImageChange(imageUrl);
+      toast.error("Error uploading image");
+      onImageChange("");
     } finally {
-      setIsUploading(false);
+      onUploadLoadingChange?.(false);
     }
   };
 
@@ -148,7 +112,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               type="button"
               onClick={() => onImageChange("")}
               className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70"
-              aria-label="Remove image"
             >
               <X className="h-5 w-5" />
             </button>
@@ -171,11 +134,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               className="hidden"
               onChange={handleImageUpload}
               accept="image/*"
-              disabled={isUploading}
+              disabled={uploadLoading}
             />
           </label>
         )}
-        {isUploading && (
+        {uploadLoading && (
           <div className="mt-4 text-center text-sm text-gray-400">
             Uploading image...
           </div>
@@ -183,6 +146,4 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
     </div>
   );
-};
-
-export default ImageUpload;
+}
