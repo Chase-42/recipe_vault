@@ -1,5 +1,6 @@
 import { schemas } from "~/lib/schemas";
 import { RecipeError } from "~/lib/errors";
+import { handleError, ERROR_MESSAGES } from "~/lib/errorHandler";
 import type {
   Recipe,
   PaginatedRecipes,
@@ -28,12 +29,18 @@ export const fetchRecipes = async ({
   const url = `/api/recipes?${params.toString()}`;
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new RecipeError("Failed to fetch recipes", 500);
+    if (!response.ok) {
+      throw new RecipeError(
+        response.status === 404
+          ? ERROR_MESSAGES.NOT_FOUND
+          : ERROR_MESSAGES.SERVER_ERROR,
+        response.status
+      );
+    }
     const data = await response.json();
-    const parsedData = schemas.paginatedRecipes.parse(data);
-    return parsedData;
+    return schemas.paginatedRecipes.parse(data);
   } catch (error) {
-    console.error("fetchRecipes error:", error);
+    handleError(error, "fetchRecipes", { showToast: false });
     throw error;
   }
 };
@@ -42,11 +49,18 @@ export const fetchRecipe = async (id: number): Promise<Recipe> => {
   const url = `/api/recipes/${id}`;
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new RecipeError("Failed to fetch recipe", 500);
+    if (!response.ok) {
+      throw new RecipeError(
+        response.status === 404
+          ? ERROR_MESSAGES.NOT_FOUND
+          : ERROR_MESSAGES.SERVER_ERROR,
+        response.status
+      );
+    }
     const data = await response.json();
     return schemas.recipe.parse(data);
   } catch (error) {
-    console.error("Validation error:", error);
+    handleError(error, "fetchRecipe", { showToast: false });
     throw error;
   }
 };
@@ -63,11 +77,18 @@ export const updateRecipe = async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updateData),
     });
-    if (!response.ok) throw new RecipeError("Failed to update recipe", 500);
+    if (!response.ok) {
+      throw new RecipeError(
+        response.status === 404
+          ? ERROR_MESSAGES.NOT_FOUND
+          : ERROR_MESSAGES.SERVER_ERROR,
+        response.status
+      );
+    }
     const data = await response.json();
     return schemas.recipe.parse(data);
   } catch (error) {
-    console.error("updateRecipe error:", error);
+    handleError(error, "updateRecipe", { showToast: false });
     throw error;
   }
 };
@@ -77,9 +98,16 @@ export const deleteRecipe = async (id: number): Promise<void> => {
   const url = `/api/recipes?id=${id}`;
   try {
     const response = await fetch(url, { method: "DELETE" });
-    if (!response.ok) throw new RecipeError("Failed to delete recipe", 500);
+    if (!response.ok) {
+      throw new RecipeError(
+        response.status === 404
+          ? ERROR_MESSAGES.NOT_FOUND
+          : ERROR_MESSAGES.SERVER_ERROR,
+        response.status
+      );
+    }
   } catch (error) {
-    console.error("deleteRecipe error:", error);
+    handleError(error, "deleteRecipe", { showToast: false });
     throw error;
   }
 };
@@ -92,14 +120,19 @@ export const toggleFavorite = async (id: number): Promise<boolean> => {
     });
 
     if (!response.ok) {
-      throw new RecipeError("Failed to toggle favorite", 500);
+      throw new RecipeError(
+        response.status === 404
+          ? ERROR_MESSAGES.NOT_FOUND
+          : ERROR_MESSAGES.SERVER_ERROR,
+        response.status
+      );
     }
 
     const data = await response.json();
     const validatedData = schemas.favoriteResponse.parse(data);
     return validatedData.favorite;
   } catch (error) {
-    console.error("toggleFavorite error:", error);
+    handleError(error, "toggleFavorite", { showToast: false });
     throw error;
   }
 };
@@ -122,8 +155,8 @@ export const createRecipe = async (
 
     if (!response.ok || validatedData.error) {
       throw new RecipeError(
-        validatedData.error ?? "Failed to create recipe",
-        500
+        validatedData.error ?? ERROR_MESSAGES.SERVER_ERROR,
+        response.status
       );
     }
 
@@ -133,7 +166,7 @@ export const createRecipe = async (
 
     return validatedData.data;
   } catch (error) {
-    console.error("createRecipe error:", error);
+    handleError(error, "createRecipe", { showToast: false });
     throw error;
   }
 };

@@ -26,8 +26,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           throw new AuthorizationError();
         }
 
-        const body = (await req.json()) as CreateRecipeInput;
-        const validatedData = validateCreateRecipe(body);
+        const body: unknown = await req.json();
+        const validatedData = validateCreateRecipe(body as CreateRecipeInput);
 
         const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
 

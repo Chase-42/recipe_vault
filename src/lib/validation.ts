@@ -72,3 +72,43 @@ export const validateId = (id: unknown): number => {
   }
   return result.data;
 };
+
+// Additional validation utilities
+export function validateUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateImageUrl(url: string): boolean {
+  if (!validateUrl(url)) return false;
+  const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+  return (
+    imageExtensions.test(url) ||
+    url.includes("ucarecdn.com") ||
+    url.includes("utfs.io")
+  );
+}
+
+export function validatePaginationParams(
+  offset: unknown,
+  limit: unknown
+): { offset: number; limit: number } {
+  const offsetNum = Number(offset);
+  const limitNum = Number(limit);
+
+  if (Number.isNaN(offsetNum) || offsetNum < 0) {
+    throw new ValidationError("Invalid offset parameter");
+  }
+
+  if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    throw new ValidationError(
+      "Invalid limit parameter (must be between 1 and 100)"
+    );
+  }
+
+  return { offset: offsetNum, limit: limitNum };
+}

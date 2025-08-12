@@ -4,8 +4,8 @@ import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { RecipeError, ERROR_MESSAGES } from "~/lib/errors";
-import { useErrorHandler } from "~/hooks/useErrorHandler";
+import { RecipeError } from "~/lib/errors";
+import { handleError, ERROR_MESSAGES } from "~/lib/errorHandler";
 import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadSectionProps {
@@ -17,7 +17,6 @@ export default function ImageUploadSection({
   imageUrl,
   onImageUrlChange,
 }: ImageUploadSectionProps) {
-  const { handleError } = useErrorHandler();
   const [uploadLoading, setUploadLoading] = useState(false);
   const previousBlobUrl = useRef<string | null>(null);
 
@@ -63,7 +62,7 @@ export default function ImageUploadSection({
 
       if (!response.ok || "error" in result) {
         throw new RecipeError(
-          "error" in result ? result.error : ERROR_MESSAGES.IMAGE_UPLOAD_FAILED,
+          "error" in result ? result.error : "Failed to upload image",
           500
         );
       }
@@ -71,8 +70,8 @@ export default function ImageUploadSection({
       onImageUrlChange(result.data.url);
       toast("Image uploaded successfully!");
     } catch (error) {
-      handleError(error, {
-        fallbackMessage: ERROR_MESSAGES.IMAGE_UPLOAD_FAILED,
+      handleError(error, "ImageUploadSection", {
+        fallbackMessage: "Failed to upload image",
       });
       onImageUrlChange("");
     } finally {

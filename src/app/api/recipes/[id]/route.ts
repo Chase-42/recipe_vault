@@ -22,10 +22,11 @@ export async function PUT(
 
     const { id: idParam } = await params;
     const id = validateId(idParam);
-    const body = (await request.json()) as UpdateRecipeInput;
+    const body: unknown = await request.json();
+    const updateData = body as UpdateRecipeInput;
 
     // Validate and sanitize the update data
-    const validatedData = validateUpdateRecipe(body);
+    const validatedData = validateUpdateRecipe(updateData);
 
     if (Object.keys(validatedData).length === 0) {
       throw new ValidationError("No valid fields provided for update");
