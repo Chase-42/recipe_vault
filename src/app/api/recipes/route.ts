@@ -85,7 +85,7 @@ async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
       return schemas.flaskApiResponse.parse({});
     }
 
-    const rawData = (await response.json()) as unknown;
+    const rawData: unknown = await response.json();
     const validatedData = schemas.flaskApiResponse.parse(rawData);
 
     const data = {
@@ -283,7 +283,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const { userId } = getAuth(req);
         if (!userId) throw new AuthorizationError();
 
-        const { link } = (await req.json()) as { link?: string };
+        const body: unknown = await req.json();
+        const { link } = body as { link?: string };
         if (!link?.trim()) throw new ValidationError("Valid link required");
 
         const recipeData = await fetchDataFromFlask(link).catch((error) => {

@@ -4,10 +4,12 @@ const config = {
     remotePatterns: [{ hostname: "utfs.io" }, { hostname: "ucarecdn.com" }],
   },
   typescript: {
-    ignoreBuildErrors: true,
+    // Enable strict type checking during builds
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    // Enable linting during builds
+    ignoreDuringBuilds: false,
   },
   async headers() {
     return [

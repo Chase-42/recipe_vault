@@ -25,7 +25,10 @@ async function RecipeListContainer() {
 
   try {
     // Fetch initial data on server
-    const { recipes, total } = await getMyRecipes(userId, 0, ITEMS_PER_PAGE);
+    const { recipes, total } = await getMyRecipes(userId, {
+      offset: 0,
+      limit: ITEMS_PER_PAGE,
+    });
 
     const initialData = {
       recipes,
