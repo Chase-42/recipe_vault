@@ -12,6 +12,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { RecipeError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 import type { AddToListModalProps } from "~/types";
 
 const IngredientItem = memo(function IngredientItem({
@@ -74,14 +75,14 @@ export function AddToListModal({
   }, []);
 
   const handleAddToList = async () => {
+    const selectedItems = Array.from(selectedIngredients).map((index) => ({
+      name: ingredients[index],
+      recipeId,
+    }));
+
+    if (selectedItems.length === 0) return;
+
     try {
-      const selectedItems = Array.from(selectedIngredients).map((index) => ({
-        name: ingredients[index],
-        recipeId,
-      }));
-
-      if (selectedItems.length === 0) return;
-
       const response = await fetch("/api/shopping-lists/items", {
         method: "POST",
         headers: {
@@ -105,7 +106,16 @@ export function AddToListModal({
 
       onClose();
     } catch (error) {
-      console.error("Error adding items to list:", error);
+      logger.error(
+        "Error adding items to shopping list",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "AddToListModal",
+          action: "addToList",
+          recipeId,
+          selectedCount: selectedItems.length,
+        }
+      );
       toast.error("Failed to add items to shopping list");
     }
   };

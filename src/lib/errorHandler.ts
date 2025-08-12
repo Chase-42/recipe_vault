@@ -5,6 +5,7 @@ import {
   AuthorizationError,
   NotFoundError,
 } from "./errors";
+import { logger } from "./logger";
 
 export interface ErrorHandlerOptions {
   showToast?: boolean;
@@ -43,7 +44,13 @@ export function handleError(
 
   // Log error for debugging
   if (logError) {
-    console.error(`[${context}] Error:`, error);
+    logger.error(
+      `Error in ${context}`,
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: context,
+      }
+    );
   }
 
   // Show toast notification

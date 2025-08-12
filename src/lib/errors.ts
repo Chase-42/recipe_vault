@@ -30,12 +30,20 @@ export class NotFoundError extends RecipeError {
   }
 }
 
+import { logger } from "./logger";
+
 // Error handling utilities
 export function handleApiError(error: unknown): {
   error: string;
   statusCode: number;
 } {
-  console.error("API Error:", error);
+  logger.error(
+    "API Error occurred",
+    error instanceof Error ? error : new Error(String(error)),
+    {
+      component: "ApiErrorHandler",
+    }
+  );
 
   if (error instanceof RecipeError) {
     return {

@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { RecipeError } from "../../lib/errors";
+import { logger } from "../../lib/logger";
 import { db } from "../db";
 import { shoppingItems } from "../db/schema";
 
@@ -11,7 +12,15 @@ export async function getShoppingItems(userId: string) {
       .where(eq(shoppingItems.userId, userId))
       .orderBy(desc(shoppingItems.createdAt));
   } catch (error) {
-    console.error("Failed to fetch shopping items:", error);
+    logger.error(
+      "Failed to fetch shopping items",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "ShoppingListQueries",
+        action: "getShoppingItems",
+        userId,
+      }
+    );
     throw new RecipeError("Failed to fetch shopping items", 500);
   }
 }
@@ -32,7 +41,16 @@ export async function updateShoppingItem(
 
     return updatedItem;
   } catch (error) {
-    console.error("Failed to update shopping item:", error);
+    logger.error(
+      "Failed to update shopping item",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "ShoppingListQueries",
+        action: "updateShoppingItem",
+        userId,
+        itemId,
+      }
+    );
     throw new RecipeError("Failed to update shopping item", 500);
   }
 }
@@ -48,7 +66,16 @@ export async function deleteShoppingItem(userId: string, itemId: number) {
 
     return deletedItem;
   } catch (error) {
-    console.error("Failed to delete shopping item:", error);
+    logger.error(
+      "Failed to delete shopping item",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "ShoppingListQueries",
+        action: "deleteShoppingItem",
+        userId,
+        itemId,
+      }
+    );
     throw new RecipeError("Failed to delete shopping item", 500);
   }
 }
@@ -67,7 +94,16 @@ export async function addShoppingItems(
 
     return await db.insert(shoppingItems).values(itemsToInsert).returning();
   } catch (error) {
-    console.error("Failed to add shopping items:", error);
+    logger.error(
+      "Failed to add shopping items",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "ShoppingListQueries",
+        action: "addShoppingItems",
+        userId,
+        itemCount: items.length,
+      }
+    );
     throw new RecipeError("Failed to add shopping items", 500);
   }
 }

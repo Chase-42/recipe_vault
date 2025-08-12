@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { RecipeError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadProps {
@@ -52,10 +53,16 @@ export default function ImageUpload({
         try {
           fileToUpload = await compressImage(file);
         } catch (compressionError) {
-          console.warn(
-            "Image compression failed, using original file:",
-            compressionError
-          );
+          logger.warn("Image compression failed, using original file", {
+            component: "ImageUpload",
+            action: "compressImage",
+            fileName: file.name,
+            fileSize: file.size,
+            error:
+              compressionError instanceof Error
+                ? compressionError.message
+                : String(compressionError),
+          });
           // Keep original file if compression fails
         }
       }
@@ -89,7 +96,16 @@ export default function ImageUpload({
       onImageChange(result.url);
       toast("Image uploaded successfully!");
     } catch (error) {
-      console.error("Upload failed:", error);
+      logger.error(
+        "Image upload failed",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "ImageUpload",
+          action: "uploadImage",
+          fileName: file.name,
+          fileSize: file.size,
+        }
+      );
       toast.error("Error uploading image");
       onImageChange("");
     } finally {

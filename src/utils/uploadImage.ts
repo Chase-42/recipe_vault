@@ -1,5 +1,6 @@
 import { UploadClient, type UploadcareFile } from "@uploadcare/upload-client";
 import { RecipeError, ValidationError } from "../lib/errors";
+import { logger } from "../lib/logger";
 
 const publicKey = process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY;
 
@@ -48,7 +49,16 @@ export const uploadImage = async (imageUrl: string): Promise<string> => {
 
     return transformedUrl;
   } catch (error) {
-    console.error("Failed to upload image to Uploadcare", error);
+    logger.error(
+      "Failed to upload image to Uploadcare",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "UploadImage",
+        action: "uploadImage",
+        imageUrl,
+        bufferSize: buffer?.length,
+      }
+    );
     throw new RecipeError("Failed to upload image", 500);
   }
 };
