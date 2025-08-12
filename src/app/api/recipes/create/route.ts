@@ -6,7 +6,7 @@ import type { CreateRecipeInput } from "~/types";
 import { withRateLimit } from "~/lib/rateLimit";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
-import type { APIResponse, Recipe } from "~/types";
+import type { Recipe } from "~/types";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 
 // Rate limiter for recipe creation

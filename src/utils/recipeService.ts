@@ -7,7 +7,6 @@ import type {
   UpdatedRecipe,
   CreateRecipeInput,
   FetchRecipesParams,
-  FavoriteResponse,
 } from "~/types";
 
 export const fetchRecipes = async ({

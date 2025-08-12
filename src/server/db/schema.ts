@@ -6,7 +6,6 @@ import {
   text,
   timestamp,
   varchar,
-  pgEnum,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator((name) => `recipe_vault_${name}`);

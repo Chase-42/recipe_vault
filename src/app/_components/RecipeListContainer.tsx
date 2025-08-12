@@ -21,7 +21,7 @@ interface RecipeListContainerProps {
 }
 
 export default function RecipeListContainer({
-  initialData,
+  initialData: _initialData,
 }: RecipeListContainerProps) {
   const { debouncedSearchTerm } = useSearch();
   const queryClient = useQueryClient();

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { RecipeError } from "~/lib/errors";
-import { handleError, ERROR_MESSAGES } from "~/lib/errorHandler";
+import { handleError } from "~/lib/errorHandler";
 import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadSectionProps {

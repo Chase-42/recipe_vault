@@ -22,7 +22,6 @@ import type {
   FallbackApiResponse,
   FlaskApiResponse,
   ProcessedData,
-  SearchParams,
 } from "~/types";
 // import { z } from "zod";
 // import { rateLimit } from "~/lib/rateLimit";
@@ -45,14 +44,6 @@ interface RecipeStep {
   "@type"?: string;
   name?: string;
   itemListElement?: RecipeStep[];
-}
-
-interface RawFlaskResponse {
-  name?: string;
-  image?: string;
-  imageUrl?: string;
-  instructions?: string;
-  ingredients?: string[];
 }
 
 // Utility Functions

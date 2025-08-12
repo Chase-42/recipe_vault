@@ -151,7 +151,7 @@ export async function updateRecipe(
   req: NextRequest
 ) {
   const userId = getUserIdFromRequest(req);
-  const { userId: _, id: __, ...updateData } = data;
+  const { userId: _userId, id: _id, ...updateData } = data;
 
   const [updatedRecipe] = await db
     .update(recipes)

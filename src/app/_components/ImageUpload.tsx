@@ -2,7 +2,7 @@
 
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { RecipeError } from "~/lib/errors";
 import { compressImage } from "~/utils/imageCompression";
