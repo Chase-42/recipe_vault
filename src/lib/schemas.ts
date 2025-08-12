@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Category } from "~/types";
 import { MAIN_MEAL_CATEGORIES } from "~/types";
 
 const DEFAULT_LIMIT = 12;

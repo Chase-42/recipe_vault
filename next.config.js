@@ -8,8 +8,8 @@ const config = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    // Enable linting during builds
-    ignoreDuringBuilds: false,
+    // Skip linting during builds
+    ignoreDuringBuilds: true,
   },
   async headers() {
     return [

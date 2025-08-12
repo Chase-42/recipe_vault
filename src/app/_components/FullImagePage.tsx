@@ -1,22 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import {
-  X,
-  ExternalLink,
-  Clock,
-  Users,
-  ChefHat,
-  Edit,
-  ShoppingCart,
-} from "lucide-react";
+import { ExternalLink, ChefHat, Edit, ShoppingCart } from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
