@@ -8,12 +8,6 @@ import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useSearch } from "../../providers";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "../../components/ui/tooltip";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -60,53 +54,36 @@ export const TopNav = () => {
           <SignInButton />
         </SignedOut>
         <SignedIn>
-          <TooltipProvider>
-            <div className="relative md:mr-6">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search recipes..."
-                    className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>Search recipes</TooltipContent>
-              </Tooltip>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
-            </div>
-            <div className="flex items-center gap-6">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleOpenModal}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Recipe
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Add a new recipe</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Link href="/shopping-lists">
-                      <ShoppingCart className="h-4 w-4" />
-                      Shopping Lists
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View your shopping lists</TooltipContent>
-              </Tooltip>
-              <UserButton />
-            </div>
-          </TooltipProvider>
+          <div className="relative md:mr-6">
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search recipes..."
+              className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
+            />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
+          </div>
+          <div className="flex items-center gap-6">
+            <Button
+              onClick={handleOpenModal}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Recipe
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Link href="/shopping-lists">
+                <ShoppingCart className="h-4 w-4" />
+                Shopping Lists
+              </Link>
+            </Button>
+            <UserButton />
+          </div>
         </SignedIn>
       </div>
 
