@@ -2,6 +2,7 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { ChefHat, Clock, Utensils } from "lucide-react";
 import RecipeList from "~/app/_components/RecipeList";
+import { logger } from "~/lib/logger";
 import { getMyRecipes } from "~/server/queries";
 
 const ITEMS_PER_PAGE = 12;
@@ -45,7 +46,15 @@ async function RecipeListContainer() {
 
     return <RecipeList initialData={initialData} />;
   } catch (error) {
-    console.error("Failed to fetch initial recipes:", error);
+    logger.error(
+      "Failed to fetch initial recipes for homepage",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "RecipeListContainer",
+        action: "fetchInitialRecipes",
+        userId,
+      }
+    );
     return <div>Failed to load recipes</div>;
   }
 }

@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { RecipeError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 import type { Recipe } from "~/types";
 import { Input } from "../../components/ui/input";
 
@@ -77,7 +78,11 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
       onSuccess();
     },
     onError: (error: Error) => {
-      console.error("Failed to save recipe:", error);
+      logger.error("Failed to save recipe from URL", error, {
+        component: "AddRecipe",
+        action: "saveRecipe",
+        url: link,
+      });
       toast.error(error.message || "Failed to save recipe.");
       onSuccess();
     },

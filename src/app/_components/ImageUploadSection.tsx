@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { RecipeError } from "~/lib/errors";
 import { handleError } from "~/lib/errorHandler";
+import { logger } from "~/lib/logger";
 import { compressImage } from "~/utils/imageCompression";
 
 interface ImageUploadSectionProps {
@@ -33,10 +34,16 @@ export default function ImageUploadSection({
         try {
           fileToUpload = await compressImage(file);
         } catch (compressionError) {
-          console.warn(
-            "Image compression failed, using original file:",
-            compressionError
-          );
+          logger.warn("Image compression failed, using original file", {
+            component: "ImageUploadSection",
+            action: "compressImage",
+            fileName: file.name,
+            fileSize: file.size,
+            error:
+              compressionError instanceof Error
+                ? compressionError.message
+                : String(compressionError),
+          });
           // Keep original file if compression fails
         }
       }

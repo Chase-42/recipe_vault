@@ -19,6 +19,7 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { RecipeError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 import type { ShoppingItem } from "~/types";
 
 export function ShoppingListsView() {
@@ -50,7 +51,14 @@ export function ShoppingListsView() {
         const data = (await response.json()) as ShoppingItem[];
         setItems(data);
       } catch (error) {
-        console.error("Error fetching items:", error);
+        logger.error(
+          "Error fetching shopping list items",
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            component: "ShoppingListsView",
+            action: "fetchItems",
+          }
+        );
         setItems([]); // Set empty array on error
       }
     };
@@ -94,7 +102,16 @@ export function ShoppingListsView() {
         );
       });
     } catch (error) {
-      console.error("Error updating item:", error);
+      logger.error(
+        "Error updating shopping list item",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "ShoppingListsView",
+          action: "toggleItem",
+          itemId,
+          checked,
+        }
+      );
     }
   };
 
@@ -114,7 +131,15 @@ export function ShoppingListsView() {
         return prev.filter((item) => item.id !== itemId);
       });
     } catch (error) {
-      console.error("Error deleting item:", error);
+      logger.error(
+        "Error deleting shopping list item",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "ShoppingListsView",
+          action: "deleteItem",
+          itemId,
+        }
+      );
     }
   };
 
@@ -126,7 +151,15 @@ export function ShoppingListsView() {
         await deleteItem(item.id);
       }
     } catch (error) {
-      console.error("Error deleting items:", error);
+      logger.error(
+        "Error deleting all shopping list items",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "ShoppingListsView",
+          action: "deleteAllItems",
+          itemCount: filteredItems.length,
+        }
+      );
     } finally {
       setIsDeleting(false);
     }

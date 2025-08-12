@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { logger } from "~/lib/logger";
 import type { Recipe, RecipesData } from "~/types";
 
 // Helper function to update recipes in the cache
@@ -33,7 +34,15 @@ export async function performMutationWithRollback(
     toast(successMessage);
   } catch (error) {
     queryClient.setQueryData(["recipes"], previousData);
-    console.error(errorMessage, error);
+    logger.error(
+      "Recipe mutation failed with rollback",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "RecipeCacheUtils",
+        action: "performMutationWithRollback",
+        errorMessage,
+      }
+    );
     toast.error(errorMessage);
   }
 }

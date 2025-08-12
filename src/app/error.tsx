@@ -3,6 +3,7 @@
 import { Home, RefreshCcw } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "~/components/ui/button";
+import { logger } from "~/lib/logger";
 
 export default function GlobalErrorPage({
   error,
@@ -12,7 +13,10 @@ export default function GlobalErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    logger.error("Global error boundary caught error", error, {
+      component: "GlobalErrorPage",
+      digest: error.digest,
+    });
   }, [error]);
 
   return (
