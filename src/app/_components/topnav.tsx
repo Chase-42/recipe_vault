@@ -49,24 +49,21 @@ export const TopNav = () => {
   };
 
   return (
-    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
-      <div className="mb-4 flex items-center gap-2 md:mb-0">
-        <Image
-          src="/recipe_vault_image.svg"
-          alt="Recipe Vault Icon"
-          width={28}
-          height={28}
-        />
-        <Link href="/" className="text-white hover:underline">
-          Recipe Vault
-        </Link>
-      </div>
+    <SignedIn>
+      <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
+        <div className="mb-4 flex items-center gap-2 md:mb-0">
+          <Image
+            src="/recipe_vault_image.svg"
+            alt="Recipe Vault Icon"
+            width={28}
+            height={28}
+          />
+          <Link href="/" className="text-white hover:underline">
+            Recipe Vault
+          </Link>
+        </div>
 
-      <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
-        <SignedOut>
-          <SignInButton />
-        </SignedOut>
-        <SignedIn>
+        <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
           <div className="relative md:mr-6">
             <Input
               type="text"
@@ -97,14 +94,14 @@ export const TopNav = () => {
             </Button>
             <UserButton />
           </div>
-        </SignedIn>
-      </div>
+        </div>
 
-      {isModalOpen && (
-        <Modal onClose={handleCloseModal}>
-          <AddRecipe onSuccess={handleCloseModal} />
-        </Modal>
-      )}
-    </nav>
+        {isModalOpen && (
+          <Modal onClose={handleCloseModal}>
+            <AddRecipe onSuccess={handleCloseModal} />
+          </Modal>
+        )}
+      </nav>
+    </SignedIn>
   );
 };
