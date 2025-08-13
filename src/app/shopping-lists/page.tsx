@@ -1,9 +1,9 @@
-import { ShoppingListsView } from "~/components/shopping-lists/ShoppingListsView";
+import { ShoppingListsViewWithBackButton } from "~/components/shopping-lists/ShoppingListsViewWithBackButton";
 
 export default function ShoppingListPage() {
   return (
     <div className="container py-8">
-      <ShoppingListsView />
+      <ShoppingListsViewWithBackButton />
     </div>
   );
 }

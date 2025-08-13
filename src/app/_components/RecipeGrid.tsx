@@ -46,7 +46,7 @@ export default function RecipeGrid({
         });
 
         // Prefetch related routes
-        void router.prefetch(`/image/${recipe.id}`);
+        void router.prefetch(`/img/${recipe.id}`);
         void router.prefetch(`/edit/${recipe.id}`);
       }
     },
