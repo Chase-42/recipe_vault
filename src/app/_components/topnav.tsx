@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useSearch } from "../../providers";
@@ -26,6 +27,18 @@ const AddRecipe = dynamic(() => import("./AddRecipe"), {
 export const TopNav = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
+  const pathname = usePathname();
+
+  // Hide topnav on focused pages (recipe viewing, editing, adding, printing)
+  if (
+    pathname?.startsWith("/img/") ||
+    pathname === "/add" ||
+    pathname?.startsWith("/edit/") ||
+    pathname?.startsWith("/print/") ||
+    pathname === "/shopping-lists"
+  ) {
+    return null;
+  }
 
   const handleOpenModal = () => {
     setIsModalOpen(true);

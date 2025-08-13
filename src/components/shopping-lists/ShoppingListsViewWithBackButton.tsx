@@ -1,6 +1,11 @@
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  PageTransition,
+  AnimatedBackButton,
+} from "~/components/ui/page-transition";
 import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
@@ -22,7 +27,8 @@ import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { ShoppingItem } from "~/types";
 
-export function ShoppingListsView() {
+export function ShoppingListsViewWithBackButton() {
+  const router = useRouter();
   const [items, setItems] = useState<ShoppingItem[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -55,7 +61,7 @@ export function ShoppingListsView() {
           "Error fetching shopping list items",
           error instanceof Error ? error : new Error(String(error)),
           {
-            component: "ShoppingListsView",
+            component: "ShoppingListsViewWithBackButton",
             action: "fetchItems",
           }
         );
@@ -71,7 +77,17 @@ export function ShoppingListsView() {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Shopping List</h2>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="h-8 w-8 rounded-full"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-2xl font-semibold">Shopping Lists</h2>
+          </div>
         </div>
         <div className="flex h-[calc(100vh-200px)] items-center justify-center rounded-md border p-4">
           <LoadingSpinner size="md" />
@@ -106,7 +122,7 @@ export function ShoppingListsView() {
         "Error updating shopping list item",
         error instanceof Error ? error : new Error(String(error)),
         {
-          component: "ShoppingListsView",
+          component: "ShoppingListsViewWithBackButton",
           action: "toggleItem",
           itemId,
           checked,
@@ -135,7 +151,7 @@ export function ShoppingListsView() {
         "Error deleting shopping list item",
         error instanceof Error ? error : new Error(String(error)),
         {
-          component: "ShoppingListsView",
+          component: "ShoppingListsViewWithBackButton",
           action: "deleteItem",
           itemId,
         }
@@ -155,7 +171,7 @@ export function ShoppingListsView() {
         "Error deleting all shopping list items",
         error instanceof Error ? error : new Error(String(error)),
         {
-          component: "ShoppingListsView",
+          component: "ShoppingListsViewWithBackButton",
           action: "deleteAllItems",
           itemCount: filteredItems.length,
         }
@@ -194,101 +210,108 @@ export function ShoppingListsView() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Shopping List</h2>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[200px] pl-9"
-            />
+    <PageTransition>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+              <ArrowLeft className="h-4 w-4" />
+            </AnimatedBackButton>
+            <h2 className="text-2xl font-semibold">Shopping Lists</h2>
           </div>
-          {filteredItems.length > 0 && (
-            <Button variant="outline" size="sm" onClick={toggleSelectAll}>
-              {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
-            </Button>
-          )}
-          {filteredItems.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={isDeleting}>
-                  {isDeleting ? "Deleting..." : "Delete All"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete All Items</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete {filteredItems.length}{" "}
-                    items?
-                    {searchQuery &&
-                      " (Only items matching your search will be deleted)"}{" "}
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={deleteAllItems}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px] pl-9"
+              />
+            </div>
+            {filteredItems.length > 0 && (
+              <Button variant="outline" size="sm" onClick={toggleSelectAll}>
+                {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
+              </Button>
+            )}
+            {filteredItems.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDeleting}>
+                    {isDeleting ? "Deleting..." : "Delete All"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete All Items</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {filteredItems.length}{" "}
+                      items?
+                      {searchQuery &&
+                        " (Only items matching your search will be deleted)"}{" "}
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={deleteAllItems}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
-      </div>
-      <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
-        <div className="space-y-2">
-          {filteredItems.length === 0 ? (
-            <p className="text-center text-muted-foreground">
-              {searchQuery
-                ? "No items match your search."
-                : "Your shopping list is empty. Add ingredients from recipes to get started."}
-            </p>
-          ) : (
-            filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-lg p-2 hover:bg-accent"
-              >
-                <div className="flex flex-1 items-center space-x-2">
-                  <Checkbox
-                    id={`item-${item.id}`}
-                    checked={item.checked}
-                    onCheckedChange={(checked) =>
-                      void toggleItem(item.id, checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor={`item-${item.id}`}
-                    className={`flex-1 cursor-pointer ${
-                      item.checked ? "text-muted-foreground line-through" : ""
-                    }`}
-                  >
-                    {item.name}
-                  </label>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void deleteItem(item.id)}
-                  className="h-8 w-8 p-0"
+        <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
+          <div className="space-y-2">
+            {filteredItems.length === 0 ? (
+              <p className="text-center text-muted-foreground">
+                {searchQuery
+                  ? "No items match your search."
+                  : "Your shopping list is empty. Add ingredients from recipes to get started."}
+              </p>
+            ) : (
+              filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded-lg p-2 hover:bg-accent"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+                  <div className="flex flex-1 items-center space-x-2">
+                    <Checkbox
+                      id={`item-${item.id}`}
+                      checked={item.checked}
+                      onCheckedChange={(checked) =>
+                        void toggleItem(item.id, checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor={`item-${item.id}`}
+                      className={`flex-1 cursor-pointer ${
+                        item.checked ? "text-muted-foreground line-through" : ""
+                      }`}
+                    >
+                      {item.name}
+                    </label>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void deleteItem(item.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </PageTransition>
   );
 }
