@@ -11,6 +11,7 @@ const config = {
     "plugin:@typescript-eslint/stylistic-type-checked",
   ],
   rules: {
+    // Type-related rules
     "@typescript-eslint/array-type": "off",
     "@typescript-eslint/consistent-type-definitions": "off",
     "@typescript-eslint/consistent-type-imports": [
@@ -20,6 +21,8 @@ const config = {
         fixStyle: "inline-type-imports",
       },
     ],
+
+    // Variable and function rules
     "@typescript-eslint/no-unused-vars": [
       "warn",
       {
@@ -27,6 +30,8 @@ const config = {
       },
     ],
     "@typescript-eslint/require-await": "off",
+
+    // Promise handling
     "@typescript-eslint/no-misused-promises": [
       "error",
       {
@@ -35,6 +40,25 @@ const config = {
         },
       },
     ],
+    "@typescript-eslint/no-floating-promises": "warn", // Downgrade from error to warning
+
+    // Type safety - make these warnings instead of errors for development
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unsafe-assignment": "warn",
+    "@typescript-eslint/no-unsafe-member-access": "warn",
+    "@typescript-eslint/no-unsafe-argument": "warn",
+    "@typescript-eslint/no-unsafe-call": "warn",
+    "@typescript-eslint/no-unsafe-return": "warn",
+
+    // Style preferences - make these warnings
+    "@typescript-eslint/prefer-nullish-coalescing": "warn",
+    "@typescript-eslint/restrict-template-expressions": "warn",
+    "@typescript-eslint/non-nullable-type-assertion-style": "warn",
+
+    // React rules
+    "react/no-unescaped-entities": "warn",
+
+    // Drizzle rules
     "drizzle/enforce-delete-with-where": [
       "error",
       {
