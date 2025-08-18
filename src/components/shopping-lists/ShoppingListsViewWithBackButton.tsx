@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowLeft, Search, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  Trash2,
+  ChefHat,
+  Filter,
+  Calendar,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   PageTransition,
@@ -23,22 +30,53 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { Badge } from "~/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { ShoppingItem } from "~/types";
+
+type FilterType = "all" | "meal-plan" | "manual";
 
 export function ShoppingListsViewWithBackButton() {
   const router = useRouter();
   const [items, setItems] = useState<ShoppingItem[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredItems = useMemo(() => {
     if (!items) return [];
-    return items.filter((item) =>
+
+    let filtered = items.filter((item) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [items, searchQuery]);
+
+    // Apply filter type
+    if (filterType === "meal-plan") {
+      filtered = filtered.filter((item) => item.fromMealPlan);
+    } else if (filterType === "manual") {
+      filtered = filtered.filter((item) => !item.fromMealPlan);
+    }
+
+    return filtered;
+  }, [items, searchQuery, filterType]);
+
+  const mealPlanItemsCount = useMemo(() => {
+    if (!items) return 0;
+    return items.filter((item) => item.fromMealPlan).length;
+  }, [items]);
+
+  const manualItemsCount = useMemo(() => {
+    if (!items) return 0;
+    return items.filter((item) => !item.fromMealPlan).length;
+  }, [items]);
 
   const areAllFilteredItemsChecked = useMemo(
     () =>
@@ -87,6 +125,14 @@ export function ShoppingListsViewWithBackButton() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-2xl font-semibold">Shopping Lists</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <a href="/meal-planner">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Meal Planner
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
         <div className="flex h-[calc(100vh-200px)] items-center justify-center rounded-md border p-4">
@@ -218,6 +264,22 @@ export function ShoppingListsViewWithBackButton() {
               <ArrowLeft className="h-4 w-4" />
             </AnimatedBackButton>
             <h2 className="text-2xl font-semibold">Shopping Lists</h2>
+            {items && items.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {items.length} total
+                </Badge>
+                {mealPlanItemsCount > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <ChefHat className="h-3 w-3" />
+                    {mealPlanItemsCount} from meal plan
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -230,6 +292,20 @@ export function ShoppingListsViewWithBackButton() {
                 className="w-[200px] pl-9"
               />
             </div>
+            <Select
+              value={filterType}
+              onValueChange={(value: FilterType) => setFilterType(value)}
+            >
+              <SelectTrigger className="w-[140px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Items</SelectItem>
+                <SelectItem value="meal-plan">Meal Plan</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
             {filteredItems.length > 0 && (
               <Button variant="outline" size="sm" onClick={toggleSelectAll}>
                 {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
@@ -250,6 +326,8 @@ export function ShoppingListsViewWithBackButton() {
                       items?
                       {searchQuery &&
                         " (Only items matching your search will be deleted)"}{" "}
+                      {filterType !== "all" &&
+                        ` (Only ${filterType === "meal-plan" ? "meal plan" : "manual"} items will be deleted)`}{" "}
                       This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -270,11 +348,19 @@ export function ShoppingListsViewWithBackButton() {
         <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
           <div className="space-y-2">
             {filteredItems.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                {searchQuery
-                  ? "No items match your search."
-                  : "Your shopping list is empty. Add ingredients from recipes to get started."}
-              </p>
+              <div className="text-center text-muted-foreground space-y-2">
+                {searchQuery || filterType !== "all" ? (
+                  <p>No items match your current filters.</p>
+                ) : (
+                  <>
+                    <p>Your shopping list is empty.</p>
+                    <p className="text-sm">
+                      Add ingredients from recipes or create a meal plan to get
+                      started.
+                    </p>
+                  </>
+                )}
+              </div>
             ) : (
               filteredItems.map((item) => (
                 <div
@@ -289,14 +375,27 @@ export function ShoppingListsViewWithBackButton() {
                         void toggleItem(item.id, checked as boolean)
                       }
                     />
-                    <label
-                      htmlFor={`item-${item.id}`}
-                      className={`flex-1 cursor-pointer ${
-                        item.checked ? "text-muted-foreground line-through" : ""
-                      }`}
-                    >
-                      {item.name}
-                    </label>
+                    <div className="flex flex-1 items-center gap-2">
+                      <label
+                        htmlFor={`item-${item.id}`}
+                        className={`flex-1 cursor-pointer ${
+                          item.checked
+                            ? "text-muted-foreground line-through"
+                            : ""
+                        }`}
+                      >
+                        {item.name}
+                      </label>
+                      {item.fromMealPlan && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs flex items-center gap-1"
+                        >
+                          <ChefHat className="h-3 w-3" />
+                          Meal Plan
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

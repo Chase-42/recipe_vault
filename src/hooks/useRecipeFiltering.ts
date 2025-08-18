@@ -11,7 +11,7 @@ export function useRecipeFiltering(
 ) {
   const queryKey = ["recipes", { searchTerm, sortOption, category, page }];
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey,
     queryFn: async () => {
       return await fetchRecipes({
@@ -22,6 +22,18 @@ export function useRecipeFiltering(
         limit: itemsPerPage,
       });
     },
+    // Enhanced caching strategy
+    staleTime: 1000 * 60 * 5, // 5 minutes - data considered fresh
+    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    refetchOnMount: false, // Use cached data when possible
+    refetchOnReconnect: true, // Refetch when reconnecting
+    // Background refetching for better UX
+    refetchInterval: (data) => {
+      // Refetch every 10 minutes if data is stale
+      return data ? 1000 * 60 * 10 : false;
+    },
+    refetchIntervalInBackground: true,
   });
 
   // If we have no results and we're not on page 1, the page is likely invalid
@@ -33,6 +45,7 @@ export function useRecipeFiltering(
   return {
     recipes: data?.recipes ?? [],
     isLoading,
+    isFetching, // Expose fetching state for better UX
     pagination: data?.pagination,
     shouldResetPage,
   };

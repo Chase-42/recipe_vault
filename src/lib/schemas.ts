@@ -108,7 +108,7 @@ const searchParamsSchema = z.object({
   offset: z.number().min(0).default(0),
   limit: z.number().min(1).max(100).default(DEFAULT_LIMIT),
   search: z.string().optional(),
-  category: z.enum(["all", ...MAIN_MEAL_CATEGORIES]).default("all"),
+  category: z.enum(["All", ...MAIN_MEAL_CATEGORIES]).default("All"),
   sort: z.enum(["newest", "oldest", "favorite", "relevance"]).default("newest"),
 });
 
