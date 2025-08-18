@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Recipe } from "~/types";
@@ -25,33 +25,98 @@ export default function RecipeGrid({
 }: RecipeGridProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const preloadQueue = useRef<Set<number>>(new Set());
+  const isProcessing = useRef(false);
 
-  // Smart preloading on hover with rate limiting
-  const handleRecipeHover = useCallback(
-    (recipe: Recipe) => {
-      const cacheKey = ["preloadedImages", recipe.id];
+  // Process preload queue with rate limiting
+  const processPreloadQueue = useCallback(async () => {
+    if (isProcessing.current || preloadQueue.current.size === 0) return;
+
+    isProcessing.current = true;
+    const recipeId = Array.from(preloadQueue.current)[0];
+    if (recipeId === undefined) {
+      isProcessing.current = false;
+      return;
+    }
+    preloadQueue.current.delete(recipeId);
+
+    try {
+      const cacheKey = ["preloadedImages", recipeId];
       if (!queryClient.getQueryData(cacheKey)) {
-        // Load image
+        // Preload image
         const img = new Image();
-        img.src = recipe.imageUrl;
+        img.src = recipes.find((r) => r.id === recipeId)?.imageUrl || "";
         img.onload = () => {
           queryClient.setQueryData(cacheKey, true);
         };
 
-        // Prefetch recipe data
+        // Prefetch recipe data with better caching
         void queryClient.prefetchQuery({
-          queryKey: ["recipe", recipe.id],
-          queryFn: () => fetchRecipe(recipe.id),
-          staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+          queryKey: ["recipe", recipeId],
+          queryFn: () => fetchRecipe(recipeId),
+          staleTime: 1000 * 60 * 5, // 5 minutes
+          gcTime: 1000 * 60 * 30, // 30 minutes
         });
 
-        // Prefetch related routes
-        void router.prefetch(`/img/${recipe.id}`);
-        void router.prefetch(`/edit/${recipe.id}`);
+        // Prefetch routes
+        void router.prefetch(`/img/${recipeId}`);
+        void router.prefetch(`/edit/${recipeId}`);
+      }
+    } catch (error) {
+      console.warn("Failed to preload recipe:", recipeId, error);
+    } finally {
+      isProcessing.current = false;
+      // Process next item after a small delay
+      setTimeout(() => {
+        if (preloadQueue.current.size > 0) {
+          processPreloadQueue();
+        }
+      }, 100);
+    }
+  }, [queryClient, router, recipes]);
+
+  // Smart preloading on hover with queue management
+  const handleRecipeHover = useCallback(
+    (recipe: Recipe) => {
+      if (!preloadQueue.current.has(recipe.id)) {
+        preloadQueue.current.add(recipe.id);
+        processPreloadQueue();
       }
     },
-    [queryClient, router]
+    [processPreloadQueue]
   );
+
+  // Intersection Observer for lazy loading optimization
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const recipeId = Number.parseInt(
+              entry.target.getAttribute("data-recipe-id") || "0",
+              10
+            );
+            if (recipeId && !preloadQueue.current.has(recipeId)) {
+              preloadQueue.current.add(recipeId);
+              processPreloadQueue();
+            }
+          }
+        }
+      },
+      {
+        rootMargin: "100px", // Start loading 100px before visible
+        threshold: 0.1,
+      }
+    );
+
+    // Observe all recipe cards
+    const cards = document.querySelectorAll("[data-recipe-id]");
+    for (const card of cards) {
+      observer.observe(card);
+    }
+
+    return () => observer.disconnect();
+  }, [processPreloadQueue]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -66,21 +131,24 @@ export default function RecipeGrid({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-wrap justify-center gap-6 pb-8">
-      {recipes.map((recipe) => (
-        <div
-          key={recipe.id}
-          onMouseEnter={() => handleRecipeHover(recipe)}
-          className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]"
-        >
-          <RecipeCard
-            recipe={recipe}
-            onDelete={onDelete}
-            onFavoriteToggle={onFavoriteToggle}
-            priority={currentPage === 1 && recipe.id <= 4}
-          />
-        </div>
-      ))}
+    <div className="relative">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-wrap justify-center gap-6 pb-8">
+        {recipes.map((recipe) => (
+          <div
+            key={recipe.id}
+            data-recipe-id={recipe.id}
+            onMouseEnter={() => handleRecipeHover(recipe)}
+            className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)]"
+          >
+            <RecipeCard
+              recipe={recipe}
+              onDelete={onDelete}
+              onFavoriteToggle={onFavoriteToggle}
+              priority={currentPage === 1 && recipe.id <= 4}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

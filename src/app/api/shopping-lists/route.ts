@@ -61,7 +61,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         const items = await addShoppingItems(userId, [
-          { name: body.name, recipeId: body.recipeId },
+          { name: body.name, recipeId: body.recipeId, fromMealPlan: false },
         ]);
         return NextResponse.json(items);
       } catch (error) {

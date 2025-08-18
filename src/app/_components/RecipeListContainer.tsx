@@ -36,7 +36,7 @@ export default function RecipeListContainer({
   const sortOption = (getParam("sort") ?? "newest") as SortOption;
 
   // Data fetching
-  const { recipes, isLoading, isFetching, pagination, shouldResetPage } =
+  const { recipes, isLoading, pagination, shouldResetPage } =
     useRecipeFiltering(
       debouncedSearchTerm,
       sortOption,
@@ -140,7 +140,6 @@ export default function RecipeListContainer({
         <RecipeGrid
           recipes={recipes}
           isLoading={isLoading}
-          isFetching={isFetching}
           currentPage={currentPage}
           onDelete={handleDelete}
           onFavoriteToggle={handleFavoriteToggle}

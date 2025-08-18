@@ -219,7 +219,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           offset: Number(searchParams.get("offset")) ?? 0,
           limit: Number(searchParams.get("limit")) ?? DEFAULT_LIMIT,
           search: searchParams.get("search") ?? undefined,
-          category: (searchParams.get("category") as Category) ?? "all",
+          category: searchParams.get("category") ?? "All",
           sort: searchParams.get("sort") ?? "newest",
         });
 
