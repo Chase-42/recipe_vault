@@ -20,7 +20,7 @@ import { Button } from "~/components/ui/button";
 import type { Recipe, RecipeSearchMatch } from "~/types";
 import { useSearch } from "~/providers";
 import { cn } from "~/lib/utils";
-import { Badge } from "../../components/ui/badge";
+import { Badge } from "~/components/ui/badge";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -113,6 +113,22 @@ function RecipeCard({
     [searchMatches]
   );
 
+  // Memoize the image loading state to prevent unnecessary re-renders
+  const imageLoadingState = useMemo(
+    () => ({
+      className: cn(
+        "h-full w-full object-cover transition-all duration-300",
+        !isImageLoaded && "blur-sm",
+        "group-hover:scale-105 group-active:scale-100"
+      ),
+      style: {
+        transform: "translateZ(0)",
+        willChange: "transform",
+      },
+    }),
+    [isImageLoaded]
+  );
+
   return (
     <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
       {recipe.favorite ? (
@@ -180,15 +196,8 @@ function RecipeCard({
             <Image
               ref={imageRef}
               src={recipe.imageUrl}
-              className={cn(
-                "h-full w-full object-cover transition-all duration-300",
-                !isImageLoaded && "blur-sm",
-                "group-hover:scale-105 group-active:scale-100"
-              )}
-              style={{
-                transform: "translateZ(0)",
-                willChange: "transform",
-              }}
+              className={imageLoadingState.className}
+              style={imageLoadingState.style}
               width={400}
               height={400}
               alt={recipe.name}

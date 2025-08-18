@@ -13,7 +13,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ValidationError } from "../lib/errors";
+import { ValidationError } from "~/lib/errors";
 
 interface SearchContextProps {
   searchTerm: string;

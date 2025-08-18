@@ -3,7 +3,7 @@
 import { useCallback, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { Recipe, PlannedMeal, MealType } from "../types";
+import type { Recipe, PlannedMeal, MealType } from "~/types";
 
 // Drag and drop state types
 export interface DragState {
@@ -38,7 +38,10 @@ async function addMealToWeekAPI(
   return response.json() as Promise<PlannedMeal>;
 }
 
-async function removeMealFromWeekAPI(date: string, mealType: MealType): Promise<void> {
+async function removeMealFromWeekAPI(
+  date: string,
+  mealType: MealType
+): Promise<void> {
   const params = new URLSearchParams({ date, mealType });
   const response = await fetch(`/api/meal-planner/current-week?${params}`, {
     method: "DELETE",
@@ -85,17 +88,20 @@ export function useDragAndDrop(weekStart: Date) {
   });
 
   // Query key for current week meals - memoized to prevent unnecessary re-renders
-  const currentWeekQueryKey = useMemo(() => [
-    "currentWeekMeals",
-    weekStart.toISOString().split("T")[0],
-  ], [weekStart]);
+  const currentWeekQueryKey = useMemo(
+    () => ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
+    [weekStart]
+  );
 
   // Optimistic update helper
   const updateCurrentWeekOptimistically = useCallback(
     (updater: (oldData: PlannedMeal[]) => PlannedMeal[]) => {
-      queryClient.setQueryData(currentWeekQueryKey, (oldData: PlannedMeal[] = []) => {
-        return updater(oldData);
-      });
+      queryClient.setQueryData(
+        currentWeekQueryKey,
+        (oldData: PlannedMeal[] = []) => {
+          return updater(oldData);
+        }
+      );
     },
     [queryClient, currentWeekQueryKey]
   );
@@ -121,10 +127,12 @@ export function useDragAndDrop(weekStart: Date) {
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
       // Snapshot the previous value
-      const previousMeals = queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+      const previousMeals =
+        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
 
       // Get the recipe from available recipes query
-      const availableRecipes = queryClient.getQueryData<Recipe[]>(["availableRecipes"]) ?? [];
+      const availableRecipes =
+        queryClient.getQueryData<Recipe[]>(["availableRecipes"]) ?? [];
       const recipe = availableRecipes.find((r) => r.id === recipeId);
 
       if (recipe) {
@@ -167,7 +175,8 @@ export function useDragAndDrop(weekStart: Date) {
       updateCurrentWeekOptimistically((oldMeals) => {
         // Remove the optimistic meal and add the real one
         const filteredMeals = oldMeals.filter(
-          (meal) => !(meal.date === newMeal.date && meal.mealType === newMeal.mealType)
+          (meal) =>
+            !(meal.date === newMeal.date && meal.mealType === newMeal.mealType)
         );
         return [...filteredMeals, newMeal];
       });
@@ -177,22 +186,27 @@ export function useDragAndDrop(weekStart: Date) {
     onSettled: () => {
       // Always refetch to ensure consistency
       void queryClient.invalidateQueries({ queryKey: currentWeekQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ["generatedShoppingList"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["generatedShoppingList"],
+      });
     },
   });
 
   // Remove meal mutation with optimistic updates
   const removeMealMutation = useMutation({
-    mutationFn: ({ date, mealType }: { date: string; mealType: MealType }) => 
+    mutationFn: ({ date, mealType }: { date: string; mealType: MealType }) =>
       removeMealFromWeekAPI(date, mealType),
     onMutate: async ({ date, mealType }) => {
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
-      const previousMeals = queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+      const previousMeals =
+        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
 
       // Optimistically remove the meal
       updateCurrentWeekOptimistically((oldMeals) =>
-        oldMeals.filter((meal) => !(meal.date === date && meal.mealType === mealType))
+        oldMeals.filter(
+          (meal) => !(meal.date === date && meal.mealType === mealType)
+        )
       );
 
       return { previousMeals };
@@ -212,7 +226,9 @@ export function useDragAndDrop(weekStart: Date) {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: currentWeekQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ["generatedShoppingList"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["generatedShoppingList"],
+      });
     },
   });
 
@@ -230,7 +246,8 @@ export function useDragAndDrop(weekStart: Date) {
     onMutate: async ({ mealId, newDate, newMealType }) => {
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
-      const previousMeals = queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+      const previousMeals =
+        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
 
       // Optimistically move the meal
       updateCurrentWeekOptimistically((oldMeals) =>
@@ -258,7 +275,9 @@ export function useDragAndDrop(weekStart: Date) {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: currentWeekQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ["generatedShoppingList"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["generatedShoppingList"],
+      });
     },
   });
 
@@ -357,12 +376,12 @@ export function useDragAndDrop(weekStart: Date) {
   return {
     // State
     dragState,
-    
+
     // Mutation states
     isAddingMeal: addMealMutation.isPending,
     isRemovingMeal: removeMealMutation.isPending,
     isMovingMeal: moveMealMutation.isPending,
-    
+
     // Event handlers
     handleDragStart,
     handleDragEnd,
@@ -371,12 +390,12 @@ export function useDragAndDrop(weekStart: Date) {
     handleDrop,
     handleMealRemove,
     handleMealMove,
-    
+
     // Helper functions
     isDraggedRecipe,
     isDragOverSlot,
     canDropOnSlot,
-    
+
     // Direct mutation access for advanced use cases
     addMealMutation,
     removeMealMutation,
@@ -403,13 +422,16 @@ export function useDragVisualFeedback() {
     }));
   }, []);
 
-  const setDragOverElement = useCallback((elementId: string | null, canDrop = true) => {
-    setDragFeedback((prev) => ({
-      ...prev,
-      dragOverElement: elementId,
-      canDrop,
-    }));
-  }, []);
+  const setDragOverElement = useCallback(
+    (elementId: string | null, canDrop = true) => {
+      setDragFeedback((prev) => ({
+        ...prev,
+        dragOverElement: elementId,
+        canDrop,
+      }));
+    },
+    []
+  );
 
   const resetDragFeedback = useCallback(() => {
     setDragFeedback({

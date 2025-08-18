@@ -1,5 +1,5 @@
 // Category types and constants
-export type Category = "Breakfast" | "Lunch" | "Dinner" | "Dessert" | "all";
+export type Category = "Breakfast" | "Lunch" | "Dinner" | "Dessert" | "All";
 
 export const MAIN_MEAL_CATEGORIES: Category[] = [
   "Breakfast",
@@ -196,6 +196,7 @@ export interface ShoppingItem {
   name: string;
   checked: boolean;
   recipeId?: number;
+  fromMealPlan: boolean;
   createdAt: string;
 }
 
@@ -285,4 +286,150 @@ export interface AddToListModalProps {
 
 export interface FullPageImageViewProps {
   recipe: Recipe;
+}
+
+// Meal Planning Types
+export type MealType = "breakfast" | "lunch" | "dinner";
+
+// Re-export for compatibility
+export type { MealType as MealTypeExport };
+
+export interface MealPlan {
+  id: number;
+  userId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlannedMeal {
+  id: number;
+  userId: string;
+  recipeId: number;
+  mealPlanId?: number; // null for current week planning
+  date: string; // ISO date string (YYYY-MM-DD)
+  mealType: MealType;
+  createdAt: string;
+  recipe?: Recipe; // Populated via join
+}
+
+export type WeeklyMealPlan = Record<
+  string,
+  {
+    breakfast?: PlannedMeal;
+    lunch?: PlannedMeal;
+    dinner?: PlannedMeal;
+  }
+>;
+
+export interface MealPlannerState {
+  currentWeek: WeeklyMealPlan;
+  selectedWeekStart: Date;
+  availableRecipes: Recipe[];
+  savedPlans: MealPlan[];
+  generatedShoppingList: ShoppingItem[];
+  draggedRecipe: Recipe | null;
+}
+
+// Meal Planning API Request/Response Types
+export interface CreateMealPlanRequest {
+  name: string;
+  description?: string;
+}
+
+export type UpdateMealPlanRequest = Partial<CreateMealPlanRequest>;
+
+export interface AddMealToWeekRequest {
+  recipeId: number;
+  date: string; // YYYY-MM-DD format
+  mealType: MealType;
+}
+
+export interface MoveMealRequest {
+  newDate: string; // YYYY-MM-DD format
+  newMealType: MealType;
+}
+
+export interface SaveCurrentWeekAsPlanRequest {
+  name: string;
+  description?: string;
+}
+
+// Ingredient parsing types for shopping list generation
+export interface ParsedIngredient {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  originalText: string;
+}
+
+// Drag and drop state types
+export interface DragState {
+  draggedRecipe: Recipe | null;
+  dragOverSlot: { date: string; mealType: MealType } | null;
+  isDragging: boolean;
+}
+
+// Meal Planning Component Props
+export interface WeeklyCalendarProps {
+  weekStart: Date;
+  meals: WeeklyMealPlan;
+  onMealDrop: (recipe: Recipe, date: string, mealType: MealType) => void;
+  onMealRemove: (plannedMeal: PlannedMeal) => void;
+  onMealMove?: (
+    meal: PlannedMeal,
+    newDate: string,
+    newMealType: MealType
+  ) => void;
+  onWeekChange?: (newWeekStart: Date) => void;
+  dragState?: DragState;
+  isDragOverSlot?: (date: string, mealType: MealType) => boolean;
+  canDropOnSlot?: (date: string, mealType: MealType) => boolean;
+  isMobile?: boolean;
+  swipeHandlers?: {
+    onTouchStart: (e: React.TouchEvent) => void;
+    onTouchMove: (e: React.TouchEvent) => void;
+    onTouchEnd: (e: React.TouchEvent) => void;
+  };
+}
+
+export interface MealSlotProps {
+  date: string;
+  mealType: MealType;
+  plannedMeal?: PlannedMeal;
+  onDrop: (recipe: Recipe, date: string, mealType: MealType) => void;
+  onRemove: (plannedMeal: PlannedMeal) => void;
+  isDragOver?: boolean;
+  canDrop?: boolean;
+  isMobile?: boolean;
+  gridRow?: number;
+  gridCol?: number;
+}
+
+export interface DraggableRecipeProps {
+  recipe: Recipe;
+  onDragStart: (recipe: Recipe) => void;
+  isDragging?: boolean;
+}
+
+export interface RecipePanelProps {
+  recipes: Recipe[];
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  selectedCategory: Category;
+  onCategoryChange: (category: Category) => void;
+  onRecipeDragStart: (recipe: Recipe) => void;
+  isMobile?: boolean;
+}
+
+export interface MealPlanActionsProps {
+  onSavePlan: (name: string, description?: string) => void;
+  onLoadPlan: (mealPlanId: number) => void;
+  savedPlans: MealPlan[];
+}
+
+export interface GeneratedShoppingListProps {
+  ingredients: ParsedIngredient[];
+  onAddToShoppingList: (ingredients: ParsedIngredient[]) => void;
 }

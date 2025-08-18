@@ -14,7 +14,7 @@ import {
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { Recipe } from "~/types";
-import { Input } from "../../components/ui/input";
+import { Input } from "~/components/ui/input";
 
 interface AddRecipeProps {
   onSuccess: () => void;

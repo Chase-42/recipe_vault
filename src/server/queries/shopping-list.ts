@@ -1,10 +1,10 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { RecipeError } from "../../lib/errors";
-import { logger } from "../../lib/logger";
+import { RecipeError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 import { db } from "../db";
 import { shoppingItems, recipes, currentWeekMeals } from "../db/schema";
-import { generateShoppingListFromIngredients } from "../../utils/ingredientParser";
-import type { ParsedIngredient } from "../../types";
+import { generateShoppingListFromIngredients } from "~/utils/ingredientParser";
+import type { ParsedIngredient } from "~/types";
 
 export async function getShoppingItems(userId: string) {
   try {

@@ -2,7 +2,7 @@ import "server-only";
 import { getAuth } from "@clerk/nextjs/server";
 import { and, desc, asc, eq, sql, or, count, ilike } from "drizzle-orm";
 import type { NextRequest } from "next/server";
-import { AuthorizationError, NotFoundError, RecipeError } from "../lib/errors";
+import { AuthorizationError, NotFoundError, RecipeError } from "~/lib/errors";
 import type { Category } from "~/types";
 import { db } from "./db";
 import { recipes } from "./db/schema";
@@ -83,7 +83,7 @@ export async function getMyRecipes(
     }
   }
 
-  if (options?.category && options.category !== "all") {
+  if (options?.category && options.category !== "All") {
     conditions.push(
       sql`${recipes.categories} @> ${[options.category]}::text[]`
     );

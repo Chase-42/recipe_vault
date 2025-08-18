@@ -1,6 +1,6 @@
 import { UploadClient, type UploadcareFile } from "@uploadcare/upload-client";
-import { RecipeError, ValidationError } from "../lib/errors";
-import { logger } from "../lib/logger";
+import { RecipeError, ValidationError } from "~/lib/errors";
+import { logger } from "~/lib/logger";
 
 const publicKey = process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY;
 
