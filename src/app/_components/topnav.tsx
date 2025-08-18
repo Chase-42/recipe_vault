@@ -1,14 +1,14 @@
 "use client";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { Plus, Search, ShoppingCart } from "lucide-react";
+import { Plus, Search, ShoppingCart, Calendar } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { useSearch } from "../../providers";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { useSearch } from "~/providers";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -29,13 +29,14 @@ export const TopNav = () => {
   const { searchTerm, setSearchTerm } = useSearch();
   const pathname = usePathname();
 
-  // Hide topnav on focused pages (recipe viewing, editing, adding, printing)
+  // Hide topnav on focused pages (recipe viewing, editing, adding, printing, meal planner)
   if (
     pathname?.startsWith("/img/") ||
     pathname === "/add" ||
     pathname?.startsWith("/edit/") ||
     pathname?.startsWith("/print/") ||
-    pathname === "/shopping-lists"
+    pathname === "/shopping-lists" ||
+    pathname === "/meal-planner"
   ) {
     return null;
   }
@@ -81,6 +82,16 @@ export const TopNav = () => {
             >
               <Plus className="h-4 w-4" />
               Add Recipe
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Link href="/meal-planner">
+                <Calendar className="h-4 w-4" />
+                Meal Planner
+              </Link>
             </Button>
             <Button
               asChild

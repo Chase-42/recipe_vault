@@ -6,7 +6,7 @@ import {
   currentWeekMeals,
   recipes,
 } from "~/server/db/schema";
-import type { MealType, WeeklyMealPlan, PlannedMeal } from "~/types";
+import type { WeeklyMealPlan, PlannedMeal, MealType } from "~/types";
 
 // Helper function to get week date range
 function getWeekDateRange(weekStart: Date): {
