@@ -29,14 +29,14 @@ export default function RecipeListContainer({
   const { toggleFavorite } = useFavoriteToggle();
 
   // State
-  const [selectedCategory, setSelectedCategory] = useState<Category>("all");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
 
   // URL params
   const currentPage = Number(getParam("page")) || 1;
   const sortOption = (getParam("sort") ?? "newest") as SortOption;
 
   // Data fetching
-  const { recipes, isLoading, pagination, shouldResetPage } =
+  const { recipes, isLoading, isFetching, pagination, shouldResetPage } =
     useRecipeFiltering(
       debouncedSearchTerm,
       sortOption,
@@ -140,6 +140,7 @@ export default function RecipeListContainer({
         <RecipeGrid
           recipes={recipes}
           isLoading={isLoading}
+          isFetching={isFetching}
           currentPage={currentPage}
           onDelete={handleDelete}
           onFavoriteToggle={handleFavoriteToggle}
