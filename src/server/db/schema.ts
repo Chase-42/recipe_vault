@@ -1,6 +1,8 @@
 import {
   boolean,
+  date,
   index,
+  integer,
   pgTableCreator,
   serial,
   text,
@@ -64,6 +66,10 @@ export const shoppingItems = createTable(
     recipeId: serial("recipe_id").references(() => recipes.id, {
       onDelete: "set null",
     }),
+    shoppingListId: text("shoppingListId"),
+    mealPlanId: text("mealPlanId"),
+    plannedMealId: text("plannedMealId"),
+    fromMealPlan: boolean("from_meal_plan").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
@@ -77,6 +83,99 @@ export const shoppingItems = createTable(
     userCreatedAtIdx: index("shopping_items_user_created_at_idx").on(
       table.userId,
       table.createdAt
+    ),
+  })
+);
+
+// Meal plans table for saving/loading meal plans
+export const mealPlans = createTable(
+  "meal_plans",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("userId", { length: 256 }).notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("meal_plans_user_id_idx").on(table.userId),
+    createdAtIdx: index("meal_plans_created_at_idx").on(table.createdAt),
+    userCreatedAtIdx: index("meal_plans_user_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+);
+
+// Planned meals table for individual meal assignments
+export const plannedMeals = createTable(
+  "planned_meals",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("userId", { length: 256 }).notNull(),
+    recipeId: integer("recipeId")
+      .references(() => recipes.id, { onDelete: "cascade" })
+      .notNull(),
+    mealPlanId: integer("mealPlanId").references(() => mealPlans.id, {
+      onDelete: "cascade",
+    }),
+    date: date("date").notNull(),
+    mealType: varchar("mealType", { length: 20 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("planned_meals_user_id_idx").on(table.userId),
+    recipeIdIdx: index("planned_meals_recipe_id_idx").on(table.recipeId),
+    mealPlanIdIdx: index("planned_meals_meal_plan_id_idx").on(table.mealPlanId),
+    dateIdx: index("planned_meals_date_idx").on(table.date),
+    mealTypeIdx: index("planned_meals_meal_type_idx").on(table.mealType),
+    userDateIdx: index("planned_meals_user_date_idx").on(
+      table.userId,
+      table.date
+    ),
+    userMealPlanIdx: index("planned_meals_user_meal_plan_idx").on(
+      table.userId,
+      table.mealPlanId
+    ),
+    uniqueMealSlotIdx: index("planned_meals_unique_meal_slot_idx").on(
+      table.userId,
+      table.date,
+      table.mealType,
+      table.mealPlanId
+    ),
+  })
+);
+
+// Current week planning (separate from saved meal plans)
+export const currentWeekMeals = createTable(
+  "current_week_meals",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("userId", { length: 256 }).notNull(),
+    recipeId: integer("recipeId")
+      .references(() => recipes.id, { onDelete: "cascade" })
+      .notNull(),
+    date: date("date").notNull(),
+    mealType: varchar("mealType", { length: 20 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    addedToShoppingList: boolean("addedToShoppingList")
+      .default(false)
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("current_week_meals_user_id_idx").on(table.userId),
+    recipeIdIdx: index("current_week_meals_recipe_id_idx").on(table.recipeId),
+    dateIdx: index("current_week_meals_date_idx").on(table.date),
+    mealTypeIdx: index("current_week_meals_meal_type_idx").on(table.mealType),
+    userDateIdx: index("current_week_meals_user_date_idx").on(
+      table.userId,
+      table.date
+    ),
+    uniqueMealSlotIdx: index("current_week_meals_unique_meal_slot_idx").on(
+      table.userId,
+      table.date,
+      table.mealType
     ),
   })
 );
