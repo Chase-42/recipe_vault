@@ -21,7 +21,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "analyze": "ANALYZE=true npm run build",
-    "bundle-report": "npm run build && npx @next/bundle-analyzer .next/static/chunks"
+    "bundle-report": "npm run build && npx @next/bundle-analyzer .next/static/chunks",
+    "prepare": "husky"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.0",

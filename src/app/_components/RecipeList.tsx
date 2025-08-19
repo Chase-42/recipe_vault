@@ -20,7 +20,7 @@ export default function RecipeList({ initialData }: RecipeListProps) {
     queryClient.setQueryData(
       [
         "recipes",
-        { searchTerm: "", sortOption: "newest", category: "all", page: 1 },
+        { searchTerm: "", sortOption: "newest", category: "All", page: 1 },
       ],
       initialData
     );

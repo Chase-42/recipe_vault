@@ -51,7 +51,7 @@ export default function RecipeFilters({
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="All">All Categories</SelectItem>
             {MAIN_MEAL_CATEGORIES.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
