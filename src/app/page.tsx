@@ -81,19 +81,13 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <Badge
-                variant="secondary"
-                className="mb-4 bg-red-600/20 text-red-400 border-red-600/30"
-              >
-                Built for Home Cooks
-              </Badge>
               <h1 className="text-5xl lg:text-7xl font-bold text-white mb-8 leading-[1.1] tracking-tight">
                 Recipe Vault
               </h1>
               <p className="mx-auto max-w-2xl text-xl leading-relaxed text-gray-400 mb-12">
-                Import recipes from any website, organize with smart tags,
-                generate shopping lists, and cook with kitchen-optimized
-                guidance. Your digital recipe collection, finally organized.
+                Import recipes from any website, organize with tags, generate
+                shopping lists, and plan meals. Your recipe collection, finally
+                organized and ready to cook. Stop scrolling, start cooking.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <SignInButton>
@@ -101,7 +95,7 @@ export default function HomePage() {
                     size="lg"
                     className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg rounded-lg border-0"
                   >
-                    Sign In to Start
+                    Start Cooking Now
                   </Button>
                 </SignInButton>
               </div>
@@ -121,12 +115,8 @@ export default function HomePage() {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-              Everything you need to organize recipes
+              What you can do
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Built for home cooks who want their recipes organized, accessible,
-              and clutter-free.
-            </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <motion.div
@@ -144,16 +134,10 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <Globe className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Smart Recipe Import
-                  </CardTitle>
+                  <CardTitle className="text-white">Import Recipes</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Paste any recipe URL from popular cooking sites like
-                    AllRecipes, Food Network, or NYT Cooking. Our parser
-                    automatically extracts ingredients, instructions, cooking
-                    times, and nutritional info. Works with 500+ recipe websites
-                    and handles complex formatting like ingredient ranges and
-                    optional steps.
+                    Paste a recipe URL and watch ingredients, instructions, and
+                    photos appear instantly.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -174,16 +158,10 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <Tags className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Flexible Organization System
-                  </CardTitle>
+                  <CardTitle className="text-white">Organize Recipes</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Create custom tags like "weeknight dinner," "dairy-free," or
-                    "under 30 minutes." Build collections for meal planning,
-                    special diets, or seasonal cooking. Auto-tagging suggests
-                    categories based on ingredients and cooking methods.
-                    Organize by cuisine, difficulty, prep time, or any system
-                    that works for you.
+                    Create tags and organize recipes by meal type or cooking
+                    time. Find what you need in seconds.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -204,16 +182,10 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <Search className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Intelligent Recipe Search
-                  </CardTitle>
+                  <CardTitle className="text-white">Search Recipes</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Search by ingredients you have on hand, dietary
-                    restrictions, cooking time, or cuisine type. Natural
-                    language queries like "chicken recipes under 45 minutes" or
-                    "what can I make with tomatoes and basil?" Advanced filters
-                    help you find exactly what you're craving when you're
-                    craving it.
+                    Find recipes by ingredients, cooking time, or cuisine type.
+                    Discover new favorites.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -234,15 +206,10 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <ShoppingCart className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Smart Shopping Lists
-                  </CardTitle>
+                  <CardTitle className="text-white">Shopping Lists</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Generate shopping lists from single recipes or entire meal
-                    plans. Automatically combines duplicate ingredients and
-                    organizes by grocery store sections. Scale recipes up or
-                    down and the shopping list adjusts accordingly. Share lists
-                    with family members and check off items in real-time.
+                    Generate shopping lists from recipes or meal plans. Never
+                    forget an ingredient again.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -263,15 +230,10 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <CheckCircle className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Kitchen-Optimized Cooking Mode
-                  </CardTitle>
+                  <CardTitle className="text-white">Cooking Mode</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Large, touch-friendly interface perfect for messy hands.
-                    Check off ingredients as you add them and steps as you
-                    complete them. Built-in timers for each cooking stage.
-                    Screen stays awake while cooking. Voice commands for
-                    hands-free navigation when your hands are full.
+                    Step-by-step cooking interface with ingredient checkoffs.
+                    Cook with confidence.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -292,15 +254,9 @@ export default function HomePage() {
               <Card className="bg-gray-900/50 border-gray-800/50 hover:border-red-600/30 transition-all duration-300 rounded-xl h-full">
                 <CardHeader>
                   <Printer className="h-12 w-12 text-red-600 mb-4" />
-                  <CardTitle className="text-white">
-                    Beautiful Recipe Cards
-                  </CardTitle>
+                  <CardTitle className="text-white">Print Recipes</CardTitle>
                   <CardDescription className="text-gray-400 text-base leading-relaxed">
-                    Print clean, professional recipe cards optimized for
-                    standard paper sizes. Customizable layouts include
-                    ingredient lists, step-by-step instructions, and cooking
-                    notes. Perfect for sharing with friends, creating physical
-                    recipe books, or keeping backup copies of family favorites.
+                    Print recipes for sharing or keeping physical copies.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -326,11 +282,8 @@ export default function HomePage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-              How It Actually Works
+              How It Works
             </h2>
-            <p className="text-xl text-gray-400">
-              Simple workflow, powerful results.
-            </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-12">
@@ -364,10 +317,7 @@ export default function HomePage() {
                 Import & Create
               </h3>
               <p className="text-gray-400 leading-relaxed">
-                Paste recipe URLs from any cooking website, or manually create
-                recipes with our structured editor. Import your existing recipe
-                collection from other apps or documents. Bulk import from
-                bookmarks or recipe emails.
+                Paste recipe URLs or manually create recipes.
               </p>
             </motion.div>
 
@@ -401,10 +351,7 @@ export default function HomePage() {
                 Organize & Discover
               </h3>
               <p className="text-gray-400 leading-relaxed">
-                Tag recipes with custom categories, rate your favorites, and add
-                personal notes. Use powerful search to find recipes by
-                ingredients, cooking time, or dietary needs. Build meal plans
-                and cooking schedules.
+                Tag recipes and search by ingredients or cooking time.
               </p>
             </motion.div>
 
@@ -438,10 +385,7 @@ export default function HomePage() {
                 Cook & Share
               </h3>
               <p className="text-gray-400 leading-relaxed">
-                Use kitchen mode for step-by-step cooking guidance. Generate
-                shopping lists for grocery trips. Scale recipes for different
-                serving sizes. Share favorite recipes with friends and family,
-                or print beautiful recipe cards.
+                Cook with step-by-step guidance and create shopping lists.
               </p>
             </motion.div>
           </div>
@@ -453,17 +397,17 @@ export default function HomePage() {
         <div className="container mx-auto px-6 text-center">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-              Ready to get started?
+              Ready to transform your cooking?
             </h2>
             <p className="text-xl text-gray-400 mb-12 leading-relaxed">
-              Sign in to start organizing your recipes.
+              Sign in and start building your recipe collection.
             </p>
             <SignInButton>
               <Button
                 size="lg"
                 className="bg-red-600 hover:bg-red-700 text-white px-12 py-4 text-lg rounded-lg border-0"
               >
-                Sign In
+                Get Started
               </Button>
             </SignInButton>
           </div>
