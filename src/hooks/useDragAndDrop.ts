@@ -3,6 +3,7 @@
 import { useCallback, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { logger } from "~/lib/logger";
 import type { Recipe, PlannedMeal, MealType } from "~/types";
 
 // Drag and drop state types
@@ -167,7 +168,10 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      console.error("Failed to add meal:", error);
+      logger.error("Failed to add meal to plan", {
+        error,
+        recipeId: recipe.id,
+      });
       toast.error("Failed to add meal to your plan");
     },
     onSuccess: (newMeal) => {
@@ -218,7 +222,7 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      console.error("Failed to remove meal:", error);
+      logger.error("Failed to remove meal from plan", { error, mealId });
       toast.error("Failed to remove meal from your plan");
     },
     onSuccess: () => {
@@ -267,7 +271,7 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      console.error("Failed to move meal:", error);
+      logger.error("Failed to move meal", { error, fromSlot, toSlot });
       toast.error("Failed to move meal");
     },
     onSuccess: () => {

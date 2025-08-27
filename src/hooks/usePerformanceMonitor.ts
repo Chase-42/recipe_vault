@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { logger } from "~/lib/logger";
 
 interface PerformanceMetrics {
   renderTime: number;
@@ -28,7 +29,7 @@ export function usePerformanceMonitor(componentName: string) {
 
       // Log performance metrics in development
       if (process.env.NODE_ENV === "development") {
-        console.log(`[Performance] ${componentName}:`, {
+        logger.debug(`Performance metrics for ${componentName}`, {
           renderTime: `${renderTime.toFixed(2)}ms`,
           averageRenderTime: `${metrics.current.averageRenderTime.toFixed(2)}ms`,
           renderCount: metrics.current.renderCount,
@@ -38,13 +39,13 @@ export function usePerformanceMonitor(componentName: string) {
       // Warn if render time is too high
       if (renderTime > 16) {
         // 16ms = 60fps threshold
-        console.warn(
-          `[Performance Warning] ${componentName} took ${renderTime.toFixed(2)}ms to render`
-        );
+        logger.warn(`Performance warning: ${componentName} slow render`, {
+          renderTime: `${renderTime.toFixed(2)}ms`,
+          threshold: "16ms",
+        });
       }
     };
   });
 
   return metrics.current;
 }
-

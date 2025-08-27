@@ -1,6 +1,7 @@
 /**
  * Performance monitoring utilities
  */
+import { logger } from "~/lib/logger";
 
 /**
  * Measures the execution time of a function
@@ -11,7 +12,9 @@ export function measurePerformance<T>(name: string, fn: () => T): T {
   const end = performance.now();
 
   if (process.env.NODE_ENV === "development") {
-    console.log(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
+    logger.debug(`Performance: ${name}`, {
+      duration: `${(end - start).toFixed(2)}ms`,
+    });
   }
 
   return result;
@@ -29,7 +32,9 @@ export async function measureAsyncPerformance<T>(
   const end = performance.now();
 
   if (process.env.NODE_ENV === "development") {
-    console.log(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
+    logger.debug(`Performance: ${name}`, {
+      duration: `${(end - start).toFixed(2)}ms`,
+    });
   }
 
   return result;
@@ -47,7 +52,9 @@ export function createTimer(name: string) {
       const duration = end - start;
 
       if (process.env.NODE_ENV === "development") {
-        console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
+        logger.debug(`Performance: ${name}`, {
+          duration: `${duration.toFixed(2)}ms`,
+        });
       }
 
       return duration;
@@ -57,9 +64,9 @@ export function createTimer(name: string) {
       const duration = lap - start;
 
       if (process.env.NODE_ENV === "development") {
-        console.log(
-          `[Performance] ${name} - ${lapName}: ${duration.toFixed(2)}ms`
-        );
+        logger.debug(`Performance: ${name} - ${lapName}`, {
+          duration: `${duration.toFixed(2)}ms`,
+        });
       }
 
       return duration;
