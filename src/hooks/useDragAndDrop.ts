@@ -168,10 +168,13 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      logger.error("Failed to add meal to plan", {
-        error,
-        recipeId: recipe.id,
-      });
+      logger.error(
+        "Failed to add meal to plan",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          recipeId: variables.recipeId,
+        }
+      );
       toast.error("Failed to add meal to your plan");
     },
     onSuccess: (newMeal) => {
@@ -222,7 +225,11 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      logger.error("Failed to remove meal from plan", { error, mealId });
+      logger.error(
+        "Failed to remove meal from plan",
+        error instanceof Error ? error : new Error(String(error)),
+        { date: variables.date, mealType: variables.mealType }
+      );
       toast.error("Failed to remove meal from your plan");
     },
     onSuccess: () => {
@@ -271,7 +278,15 @@ export function useDragAndDrop(weekStart: Date) {
         rollbackOptimisticUpdate();
       }
 
-      logger.error("Failed to move meal", { error, fromSlot, toSlot });
+      logger.error(
+        "Failed to move meal",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          mealId: variables.mealId,
+          newDate: variables.newDate,
+          newMealType: variables.newMealType,
+        }
+      );
       toast.error("Failed to move meal");
     },
     onSuccess: () => {
