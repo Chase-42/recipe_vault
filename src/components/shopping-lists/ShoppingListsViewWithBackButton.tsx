@@ -135,7 +135,7 @@ export function ShoppingListsViewWithBackButton() {
             </div>
           </div>
         </div>
-        <div className="flex h-[calc(100vh-200px)] items-center justify-center rounded-md border p-4">
+        <div className="flex h-64 items-center justify-center rounded-md border p-4">
           <LoadingSpinner size="md" />
         </div>
       </div>
