@@ -64,8 +64,7 @@ export function WeeklyCalendar({
     3, // rows (meal types)
     7, // cols (days)
     (row, col) => {
-      // Optional: Handle cell selection
-      console.log(`Selected meal slot: ${mealTypes[row]} on day ${col}`);
+      // Optional: Handle cell selection - could add functionality here
     },
     (row, col) => {
       // Handle cell activation (Enter/Space)

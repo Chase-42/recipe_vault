@@ -15,6 +15,7 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { RecipeDetailModal } from "./RecipeDetailModal";
+import { logger } from "~/lib/logger";
 import type { MealSlotProps, Recipe, MealType } from "~/types";
 
 // Drag states for visual feedback
@@ -96,7 +97,7 @@ export function MealSlot({
         onDrop(recipe, date, mealType);
       }
     } catch (error) {
-      console.error("Error parsing dropped recipe data:", error);
+      logger.error("Error parsing dropped recipe data", { error });
     }
   };
 
