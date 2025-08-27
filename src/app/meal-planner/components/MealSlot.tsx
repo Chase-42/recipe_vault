@@ -97,7 +97,10 @@ export function MealSlot({
         onDrop(recipe, date, mealType);
       }
     } catch (error) {
-      logger.error("Error parsing dropped recipe data", { error });
+      logger.error(
+        "Error parsing dropped recipe data",
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   };
 

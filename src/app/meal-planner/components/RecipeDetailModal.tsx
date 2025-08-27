@@ -64,7 +64,11 @@ export function RecipeDetailModal({
         setIsFavorite(!isFavorite);
       }
     } catch (error) {
-      logger.error("Failed to toggle favorite", { error, recipeId: recipe.id });
+      logger.error(
+        "Failed to toggle favorite",
+        error instanceof Error ? error : new Error(String(error)),
+        { recipeId: recipe.id }
+      );
     }
   };
 

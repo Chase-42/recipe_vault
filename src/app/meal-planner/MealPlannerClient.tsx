@@ -1110,9 +1110,10 @@ export function MealPlannerClient() {
                       } to your shopping list!`
                     );
                   } catch (error) {
-                    logger.error("Failed to add ingredients to shopping list", {
-                      error,
-                    });
+                    logger.error(
+                      "Failed to add ingredients to shopping list",
+                      error instanceof Error ? error : new Error(String(error))
+                    );
                     toast.error(
                       error instanceof Error
                         ? error.message

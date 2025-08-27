@@ -11,6 +11,7 @@ import { detectDuplicates } from "~/utils/duplicateDetection";
 import type {
   ParsedIngredient,
   EnhancedParsedIngredient,
+  ProcessedIngredient,
   GenerateEnhancedShoppingListResponse,
   DuplicateAnalysis,
   DuplicateMatch,
@@ -331,8 +332,7 @@ export async function generateEnhancedShoppingListFromWeek(
     } catch (error) {
       // If duplicate detection fails, continue without it
       logger.warn(
-        "Duplicate detection failed, continuing without duplicate analysis",
-        error
+        "Duplicate detection failed, continuing without duplicate analysis"
       );
       duplicateMap = new Map();
     }
