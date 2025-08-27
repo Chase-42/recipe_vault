@@ -356,12 +356,79 @@ export interface SaveCurrentWeekAsPlanRequest {
   description?: string;
 }
 
+// Enhanced shopping list generation API types
+export interface GenerateEnhancedShoppingListRequest {
+  weekStart: string;
+  includeExistingItems: boolean;
+  consolidationPreference: "aggressive" | "conservative" | "manual";
+}
+
+export interface AddProcessedIngredientsRequest {
+  ingredients: ProcessedIngredient[];
+  duplicateActions: Array<{
+    ingredientId: string;
+    action: DuplicateAction;
+  }>;
+}
+
 // Ingredient parsing types for shopping list generation
 export interface ParsedIngredient {
   name: string;
   quantity?: number;
-  unit?: string;
   originalText: string;
+}
+
+// Enhanced ingredient parsing types for improved shopping list generation
+export interface EnhancedParsedIngredient extends ParsedIngredient {
+  id: string;
+  sourceRecipes: Array<{
+    recipeId: number;
+    recipeName: string;
+  }>;
+  duplicateMatches: DuplicateMatch[];
+  userModifications?: {
+    quantity?: number;
+    notes?: string;
+  };
+}
+
+export interface DuplicateMatch {
+  existingItemId: number;
+  existingItemName: string;
+  matchConfidence: "high" | "medium" | "low";
+  suggestedAction: "skip" | "combine" | "add_separate";
+}
+
+export interface ProcessedIngredient extends ParsedIngredient {
+  id: string; // Unique identifier for UI
+  isSelected: boolean;
+  editedQuantity?: number;
+  duplicateMatches: DuplicateMatch[];
+  sourceRecipes: Array<{
+    recipeId: number;
+    recipeName: string;
+  }>; // Recipe source information
+}
+
+export interface DuplicateAction {
+  type: "skip" | "combine" | "add_separate";
+  existingItemId?: number;
+}
+
+export interface GenerateEnhancedShoppingListResponse {
+  ingredients: EnhancedParsedIngredient[];
+  existingItems: ShoppingItem[];
+  duplicateAnalysis: DuplicateAnalysis;
+}
+
+export interface DuplicateAnalysis {
+  totalDuplicates: number;
+  highConfidenceMatches: number;
+  suggestedActions: Array<{
+    ingredientId: string;
+    action: "skip" | "combine" | "add_separate";
+    reason: string;
+  }>;
 }
 
 // Drag and drop state types
@@ -431,5 +498,41 @@ export interface MealPlanActionsProps {
 
 export interface GeneratedShoppingListProps {
   ingredients: ParsedIngredient[];
-  onAddToShoppingList: (ingredients: ParsedIngredient[]) => void;
+  onAddToShoppingList: (ingredients: ParsedIngredient[]) => Promise<void>;
+  isLoading?: boolean;
+  isAddingToList?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+}
+
+// Enhanced shopping list component props
+export interface EnhancedGeneratedShoppingListProps {
+  ingredients: EnhancedParsedIngredient[];
+  existingItems: ShoppingItem[];
+  onAddToShoppingList: (ingredients: ProcessedIngredient[]) => Promise<void>;
+  isLoading?: boolean;
+  isAddingToList?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+}
+
+export interface ShoppingListIngredientItemProps {
+  ingredient: ProcessedIngredient;
+  onToggleSelection: (id: string) => void;
+  onQuantityChange: (id: string, quantity: number) => void;
+  onDuplicateAction: (id: string, action: DuplicateAction) => void;
+  isDisabled: boolean;
+}
+
+export interface ExistingItemsPanelProps {
+  items: ShoppingItem[];
+  highlightedItems: number[]; // Items that match new ingredients
+  onItemToggle?: (itemId: number, checked: boolean) => void;
+  isReadOnly?: boolean;
+}
+
+export interface QuantityEditorProps {
+  quantity?: number;
+  onQuantityChange: (quantity: number) => void;
+  isDisabled?: boolean;
 }

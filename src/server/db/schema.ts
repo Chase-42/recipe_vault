@@ -66,9 +66,6 @@ export const shoppingItems = createTable(
     recipeId: serial("recipe_id").references(() => recipes.id, {
       onDelete: "set null",
     }),
-    shoppingListId: text("shoppingListId"),
-    mealPlanId: text("mealPlanId"),
-    plannedMealId: text("plannedMealId"),
     fromMealPlan: boolean("from_meal_plan").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },

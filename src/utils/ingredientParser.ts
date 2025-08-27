@@ -1,5 +1,5 @@
 import { logger } from "~/lib/logger";
-import type { ParsedIngredient } from "~/types";
+import type { ParsedIngredient, EnhancedParsedIngredient } from "~/types";
 
 // Common units and their variations for normalization
 const UNIT_MAPPINGS: Record<string, string> = {
@@ -132,12 +132,12 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
           unitOrDescriptor?.toLowerCase().trim() || ""
         );
 
-        // If the unit is recognized, use it
+        // If the unit is recognized, include it in the name
         if (normalizedUnit && UNIT_MAPPINGS[normalizedUnit]) {
+          const unitName = UNIT_MAPPINGS[normalizedUnit];
           return {
-            name: cleanIngredientName(nameOrUnit || ""),
+            name: cleanIngredientName(`${unitName} ${nameOrUnit || ""}`),
             quantity,
-            unit: UNIT_MAPPINGS[normalizedUnit],
             originalText: ingredientText,
           };
         } else {
@@ -190,12 +190,11 @@ export function consolidateIngredients(
       consolidated.set(key, {
         ...existing,
         quantity: combinedQuantity.quantity,
-        unit: combinedQuantity.unit,
         originalText: `${existing.originalText}; ${ingredient.originalText}`,
       });
     } else if (existing) {
-      // Same ingredient name but incompatible units - create unique key
-      const uniqueKey = `${key}_${ingredient.unit || "no-unit"}_${consolidated.size}`;
+      // Same ingredient name but different quantities - create unique key
+      const uniqueKey = `${key}_${consolidated.size}`;
       consolidated.set(uniqueKey, { ...ingredient });
     } else {
       // New ingredient
@@ -235,6 +234,88 @@ export function generateShoppingListFromIngredients(
       {
         component: "IngredientParser",
         action: "generateShoppingListFromIngredients",
+        recipeCount: recipeIngredients.length,
+      }
+    );
+    throw error;
+  }
+}
+
+/**
+ * Generate enhanced shopping list from meal plan ingredients with recipe source tracking
+ */
+export function generateEnhancedShoppingListFromIngredients(
+  recipeIngredients: Array<{
+    recipeId: number;
+    recipeName: string;
+    ingredients: string[];
+  }>
+): EnhancedParsedIngredient[] {
+  try {
+    const allIngredients: (ParsedIngredient & {
+      recipeId: number;
+      recipeName: string;
+    })[] = [];
+
+    // Parse all ingredients from all recipes with source tracking
+    for (const { recipeId, recipeName, ingredients } of recipeIngredients) {
+      const parsed = parseIngredients(ingredients).map((ingredient) => ({
+        ...ingredient,
+        recipeId,
+        recipeName,
+      }));
+      allIngredients.push(...parsed);
+    }
+
+    // Group ingredients by name for consolidation while tracking sources
+    const ingredientGroups = new Map<
+      string,
+      (ParsedIngredient & { recipeId: number; recipeName: string })[]
+    >();
+
+    for (const ingredient of allIngredients) {
+      const key = generateConsolidationKey(ingredient);
+      const existing = ingredientGroups.get(key) || [];
+      existing.push(ingredient);
+      ingredientGroups.set(key, existing);
+    }
+
+    // Convert to enhanced ingredients with source tracking
+    const enhancedIngredients: EnhancedParsedIngredient[] = [];
+    let idCounter = 0;
+
+    for (const [, ingredientGroup] of ingredientGroups) {
+      // Consolidate quantities for ingredients that can be combined
+      const consolidatedIngredient = consolidateIngredients(ingredientGroup)[0];
+
+      if (consolidatedIngredient) {
+        // Collect unique source recipes
+        const sourceRecipes = Array.from(
+          new Map(
+            ingredientGroup.map((ing) => [
+              ing.recipeId,
+              { recipeId: ing.recipeId, recipeName: ing.recipeName },
+            ])
+          ).values()
+        );
+
+        enhancedIngredients.push({
+          ...consolidatedIngredient,
+          id: `ingredient_${idCounter++}`,
+          sourceRecipes,
+          duplicateMatches: [], // Will be populated by duplicate detection
+        });
+      }
+    }
+
+    return enhancedIngredients.sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    logger.error(
+      "Failed to generate enhanced shopping list from ingredients",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "IngredientParser",
+        action: "generateEnhancedShoppingListFromIngredients",
         recipeCount: recipeIngredients.length,
       }
     );
@@ -314,56 +395,26 @@ function canCombineIngredients(
   // If only one has a quantity, they cannot be combined
   if (!a.quantity || !b.quantity) return false;
 
-  // Both have quantities - check unit compatibility
-  if (!a.unit || !b.unit) return a.unit === b.unit; // Both must have no unit
-
-  // Check if units can be converted to same base
-  const aConversion = UNIT_CONVERSIONS[a.unit];
-  const bConversion = UNIT_CONVERSIONS[b.unit];
-
-  return Boolean(
-    aConversion && bConversion && aConversion.baseUnit === bConversion.baseUnit
-  );
+  // Both have quantities - they can be combined since units are now part of the name
+  return true;
 }
 
 function combineQuantities(
   a: ParsedIngredient,
   b: ParsedIngredient
-): { quantity?: number; unit?: string } {
+): { quantity?: number } {
   // If both have no quantities, return no quantity
   if (!a.quantity && !b.quantity) {
-    return { unit: a.unit || b.unit };
+    return {};
   }
 
   // If only one has a quantity, return the sum
   if (!a.quantity || !b.quantity) {
     return {
       quantity: (a.quantity || 0) + (b.quantity || 0),
-      unit: a.unit || b.unit,
     };
   }
 
-  const aConversion = UNIT_CONVERSIONS[a.unit || ""];
-  const bConversion = UNIT_CONVERSIONS[b.unit ?? ""];
-
-  if (
-    aConversion &&
-    bConversion &&
-    aConversion.baseUnit === bConversion.baseUnit
-  ) {
-    // Convert both to base unit and add
-    const aInBase = a.quantity * aConversion.factor;
-    const bInBase = b.quantity * bConversion.factor;
-    const totalInBase = aInBase + bInBase;
-
-    // Convert back to the more appropriate unit (prefer larger quantities in smaller units)
-    if (aConversion.factor >= bConversion.factor) {
-      return { quantity: totalInBase / aConversion.factor, unit: a.unit };
-    } else {
-      return { quantity: totalInBase / bConversion.factor, unit: b.unit };
-    }
-  }
-
-  // If units can't be combined, just add quantities and keep first unit
-  return { quantity: a.quantity + b.quantity, unit: a.unit };
+  // Both have quantities - just add them since units are now part of the name
+  return { quantity: a.quantity + b.quantity };
 }
