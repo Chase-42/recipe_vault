@@ -7,6 +7,7 @@ import type { Recipe } from "~/types";
 import RecipeCard from "./RecipeCard";
 import LoadingSpinner from "./LoadingSpinner";
 import { fetchRecipe } from "~/utils/recipeService";
+import { logger } from "~/lib/logger";
 
 interface RecipeGridProps {
   recipes: Recipe[];
@@ -63,7 +64,7 @@ export default function RecipeGrid({
         void router.prefetch(`/edit/${recipeId}`);
       }
     } catch (error) {
-      console.warn("Failed to preload recipe:", recipeId, error);
+      logger.warn("Failed to preload recipe", { recipeId, error });
     } finally {
       isProcessing.current = false;
       // Process next item after a small delay

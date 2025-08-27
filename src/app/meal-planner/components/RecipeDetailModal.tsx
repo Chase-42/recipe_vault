@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { logger } from "~/lib/logger";
 import type { Recipe, PlannedMeal } from "~/types";
 
 interface RecipeDetailModalProps {
@@ -63,7 +64,7 @@ export function RecipeDetailModal({
         setIsFavorite(!isFavorite);
       }
     } catch (error) {
-      console.error("Failed to toggle favorite:", error);
+      logger.error("Failed to toggle favorite", { error, recipeId: recipe.id });
     }
   };
 
