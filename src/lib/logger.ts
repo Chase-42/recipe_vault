@@ -183,9 +183,9 @@ class Logger {
   private logToRemote(_entry: LogEntry): void {
     if (!this.config.enableRemote) return;
 
-    // TODO: Implement remote logging integration
-    // This could be Sentry, LogRocket, CloudWatch, etc.
-    // For now, we'll just store it for future implementation
+    // Remote logging integration placeholder
+    // Configure with Sentry, LogRocket, CloudWatch, etc. when needed
+    // For now, local logging only
   }
 
   /**

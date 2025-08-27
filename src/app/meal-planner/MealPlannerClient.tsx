@@ -32,13 +32,16 @@ import {
 import { toast } from "sonner";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError, handleAsyncError } from "~/lib/errorHandler";
-import { debounce } from "~/utils/debounce";
+import { logger } from "~/lib/logger";
+
 import { withRetry } from "~/utils/retry";
 import { useLoadingStates } from "~/hooks/useLoadingStates";
-import { measureAsyncPerformance } from "~/utils/performance";
+
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
 import { ArrowLeft } from "lucide-react";
+import { GeneratedShoppingList } from "./components/GeneratedShoppingList";
+
 import type {
   Recipe,
   MealType,
@@ -46,6 +49,9 @@ import type {
   PlannedMeal,
   Category,
   MealPlan,
+  GenerateEnhancedShoppingListResponse,
+  ProcessedIngredient,
+  ParsedIngredient,
 } from "~/types";
 
 // Memoized recipe card component for better performance
@@ -246,6 +252,13 @@ export function MealPlannerClient() {
   // Dialog states
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showEnhancedShoppingList, setShowEnhancedShoppingList] =
+    useState(false);
+
+  // Enhanced shopping list state
+  const [enhancedShoppingListData, setEnhancedShoppingListData] =
+    useState<GenerateEnhancedShoppingListResponse | null>(null);
+  const [isAddingToShoppingList, setIsAddingToShoppingList] = useState(false);
   const [planName, setPlanName] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
 
@@ -253,51 +266,7 @@ export function MealPlannerClient() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
 
-  // Debounced shopping list generation to avoid excessive API calls
-  const debouncedGenerateShoppingList = useMemo(
-    () =>
-      debounce(async () => {
-        await measureAsyncPerformance(
-          "Auto-generate shopping list",
-          async () => {
-            try {
-              await withRetry(
-                async () => {
-                  const response = await fetch("/api/shopping-lists/generate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      weekStart: weekStart.toISOString().split("T")[0],
-                      addToList: true,
-                      clearExisting: true,
-                    }),
-                  });
-                  if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(
-                      errorText || "Failed to generate shopping list"
-                    );
-                  }
-                  return response.json();
-                },
-                { maxAttempts: 2, delay: 500 }
-              );
-
-              await queryClient.invalidateQueries({
-                queryKey: ["shoppingItems"],
-              });
-              toast.success("Shopping list updated automatically!");
-            } catch (error) {
-              handleError(error, "Auto-generate shopping list", {
-                showToast: false, // Don't show toast for automatic updates
-                logError: true,
-              });
-            }
-          }
-        );
-      }, 1000),
-    [weekStart, queryClient]
-  );
+  // Removed auto-generation of shopping lists - users must manually generate them
 
   // Fetch current week meals with error handling
   const {
@@ -429,7 +398,6 @@ export function MealPlannerClient() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
-      void debouncedGenerateShoppingList();
       toast.success("Meal added successfully!");
     },
   });
@@ -488,7 +456,6 @@ export function MealPlannerClient() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
-      void debouncedGenerateShoppingList();
       toast.success("Meal removed successfully!");
     },
   });
@@ -539,42 +506,12 @@ export function MealPlannerClient() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
-      void debouncedGenerateShoppingList();
       toast.success("Meal plan loaded successfully!");
       setShowLoadDialog(false);
       setSelectedPlanId(null);
     },
     onError: (error) => {
       handleError(error, "Load meal plan");
-    },
-  });
-
-  // Generate shopping list mutation with retry
-  const generateShoppingListMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/shopping-lists/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weekStart: weekStart.toISOString().split("T")[0],
-          addToList: true,
-          clearExisting: true,
-        }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate shopping list");
-      }
-      return response.json();
-    },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["shoppingItems"] });
-      toast.success("Shopping list generated successfully!");
-    },
-    onError: (error) => {
-      handleError(error, "Generate shopping list");
     },
   });
 
@@ -669,10 +606,37 @@ export function MealPlannerClient() {
     setShowLoadDialog(true);
   }, [savedPlans]);
 
-  // Handle generate shopping list - memoized
-  const handleGenerateShoppingList = useCallback(() => {
-    generateShoppingListMutation.mutate();
-  }, [generateShoppingListMutation]);
+  // Handle generate enhanced shopping list - open modal immediately, then fetch data
+  const handleGenerateEnhancedShoppingList = useCallback(() => {
+    if (!currentWeekMeals) return;
+
+    // Open modal immediately
+    setShowEnhancedShoppingList(true);
+    setEnhancedShoppingListData(null); // Clear previous data to show loading
+
+    // Fetch data in background
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `/api/shopping-lists/generate-enhanced?weekStart=${weekStart.toISOString().split("T")[0]}`
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Failed to generate shopping list");
+        }
+
+        const enhancedData: GenerateEnhancedShoppingListResponse =
+          await response.json();
+        setEnhancedShoppingListData(enhancedData);
+      } catch (error) {
+        handleError(error, "Generate shopping list");
+        setShowEnhancedShoppingList(false); // Close modal on error
+      }
+    };
+
+    fetchData();
+  }, [currentWeekMeals, weekStart]);
 
   // Sidebar resize handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -699,7 +663,7 @@ export function MealPlannerClient() {
 
   if (isLoadingMeals) {
     return (
-      <div className="h-screen">
+      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -789,8 +753,8 @@ export function MealPlannerClient() {
                 </Button>
               </div>
             ) : isLoadingRecipes ? (
-              <div className="py-8">
-                <LoadingSpinner size="lg" />
+              <div className="flex h-64 items-center justify-center">
+                <LoadingSpinner size="md" />
               </div>
             ) : filteredRecipes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -989,21 +953,14 @@ export function MealPlannerClient() {
                 <Button
                   variant="default"
                   size="sm"
-                  onClick={handleGenerateShoppingList}
+                  onClick={handleGenerateEnhancedShoppingList}
                   disabled={
-                    generateShoppingListMutation.isPending ||
                     !currentWeekMeals ||
                     Object.keys(currentWeekMeals).length === 0
                   }
                 >
-                  {generateShoppingListMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                  )}
-                  {generateShoppingListMutation.isPending
-                    ? "Generating..."
-                    : "Generate Shopping List"}
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Generate Shopping List
                 </Button>
               </div>
             </div>
@@ -1098,6 +1055,82 @@ export function MealPlannerClient() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Shopping List Modal */}
+      <Dialog
+        open={showEnhancedShoppingList}
+        onOpenChange={setShowEnhancedShoppingList}
+      >
+        <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Generate Shopping List</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 py-4 min-h-0">
+            {enhancedShoppingListData ? (
+              <GeneratedShoppingList
+                ingredients={enhancedShoppingListData.ingredients}
+                existingItems={enhancedShoppingListData.existingItems}
+                onAddToShoppingList={async (
+                  ingredients: ProcessedIngredient[]
+                ) => {
+                  try {
+                    setIsAddingToShoppingList(true);
+
+                    const response = await fetch(
+                      "/api/shopping-lists/add-from-meal-plan",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          ingredients: ingredients,
+                        }),
+                      }
+                    );
+
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(
+                        errorData.error ||
+                          "Failed to add items to shopping list"
+                      );
+                    }
+
+                    const result = await response.json();
+
+                    setShowEnhancedShoppingList(false);
+                    toast.success(
+                      `Successfully added ${result.addedItems.length} items${
+                        result.updatedItems.length > 0
+                          ? ` and updated ${result.updatedItems.length} existing items`
+                          : ""
+                      } to your shopping list!`
+                    );
+                  } catch (error) {
+                    logger.error("Failed to add ingredients to shopping list", {
+                      error,
+                    });
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to add ingredients to shopping list"
+                    );
+                  } finally {
+                    setIsAddingToShoppingList(false);
+                  }
+                }}
+                isLoading={false}
+                isAddingToList={isAddingToShoppingList}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center min-h-[400px]">
+                <LoadingSpinner size="lg" />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </ErrorBoundary>

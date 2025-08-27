@@ -163,8 +163,8 @@ export const VirtualizedRecipeList = memo(function VirtualizedRecipeList({
   // Loading state
   if (isLoading) {
     return (
-      <div className="py-8">
-        <LoadingSpinner size="lg" />
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
