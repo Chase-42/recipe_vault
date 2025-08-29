@@ -72,24 +72,6 @@ const UNIT_MAPPINGS: Record<string, string> = {
   bunches: "bunch",
 };
 
-// Conversion factors to base units (for combining similar units)
-const UNIT_CONVERSIONS: Record<string, { baseUnit: string; factor: number }> = {
-  // Volume conversions to cups
-  cup: { baseUnit: "cup", factor: 1 },
-  tbsp: { baseUnit: "cup", factor: 1 / 16 },
-  tsp: { baseUnit: "cup", factor: 1 / 48 },
-  "fl oz": { baseUnit: "cup", factor: 1 / 8 },
-  pint: { baseUnit: "cup", factor: 2 },
-  quart: { baseUnit: "cup", factor: 4 },
-  gallon: { baseUnit: "cup", factor: 16 },
-
-  // Weight conversions to ounces
-  oz: { baseUnit: "oz", factor: 1 },
-  lb: { baseUnit: "oz", factor: 16 },
-  g: { baseUnit: "g", factor: 1 },
-  kg: { baseUnit: "g", factor: 1000 },
-};
-
 // Regex patterns for parsing ingredients
 const INGREDIENT_PATTERNS = [
   // Pattern: "2 1/2 cups flour" (mixed fractions)
@@ -129,21 +111,21 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
       if (quantityStr && /^\d+/.test(quantityStr)) {
         const quantity = parseQuantity(quantityStr);
         const normalizedUnit = normalizeUnit(
-          unitOrDescriptor?.toLowerCase().trim() || ""
+          unitOrDescriptor?.toLowerCase().trim() ?? ""
         );
 
         // If the unit is recognized, include it in the name
         if (normalizedUnit && UNIT_MAPPINGS[normalizedUnit]) {
           const unitName = UNIT_MAPPINGS[normalizedUnit];
           return {
-            name: cleanIngredientName(`${unitName} ${nameOrUnit || ""}`),
+            name: cleanIngredientName(`${unitName} ${nameOrUnit ?? ""}`),
             quantity,
             originalText: ingredientText,
           };
         } else {
           // Unit not recognized, treat as part of ingredient name
           const fullName =
-            `${unitOrDescriptor || ""} ${nameOrUnit || ""}`.trim();
+            `${unitOrDescriptor ?? ""} ${nameOrUnit ?? ""}`.trim();
           return {
             name: cleanIngredientName(fullName),
             quantity,
@@ -275,7 +257,7 @@ export function generateEnhancedShoppingListFromIngredients(
 
     for (const ingredient of allIngredients) {
       const key = generateConsolidationKey(ingredient);
-      const existing = ingredientGroups.get(key) || [];
+      const existing = ingredientGroups.get(key) ?? [];
       existing.push(ingredient);
       ingredientGroups.set(key, existing);
     }
@@ -411,7 +393,7 @@ function combineQuantities(
   // If only one has a quantity, return the sum
   if (!a.quantity || !b.quantity) {
     return {
-      quantity: (a.quantity || 0) + (b.quantity || 0),
+      quantity: (a.quantity ?? 0) + (b.quantity ?? 0),
     };
   }
 
