@@ -26,7 +26,7 @@ vi.mock("~/lib/errors", () => ({
 }));
 
 vi.mock("~/lib/rateLimit", () => ({
-  withRateLimit: vi.fn((req, handler, config) => handler(req)),
+  withRateLimit: vi.fn((req, handler, _config) => handler(req)),
 }));
 
 vi.mock("~/server/queries/shopping-list", () => ({

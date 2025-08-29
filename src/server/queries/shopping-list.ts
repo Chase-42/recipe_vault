@@ -10,7 +10,6 @@ import {
 import { detectDuplicates } from "~/utils/duplicateDetection";
 import type {
   ParsedIngredient,
-  EnhancedParsedIngredient,
   ProcessedIngredient,
   GenerateEnhancedShoppingListResponse,
   DuplicateAnalysis,
@@ -361,7 +360,7 @@ export async function generateEnhancedShoppingListFromWeek(
           const bestMatch = ingredient.duplicateMatches[0]; // First match is highest confidence
           return {
             ingredientId: ingredient.id,
-            action: bestMatch?.suggestedAction || "add_separate",
+            action: bestMatch?.suggestedAction ?? "add_separate",
             reason: bestMatch
               ? `${bestMatch.matchConfidence} confidence match with "${bestMatch.existingItemName}"`
               : "No clear match found",
