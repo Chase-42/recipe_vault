@@ -85,7 +85,7 @@ export async function getMyRecipes(
 
   if (options?.category && options.category !== "All") {
     conditions.push(
-      sql`${recipes.categories} @> ${[options.category]}::text[]`
+      sql`${options.category} = ANY(${recipes.categories})`
     );
   }
 
