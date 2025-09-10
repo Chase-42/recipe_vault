@@ -84,9 +84,7 @@ export async function getMyRecipes(
   }
 
   if (options?.category && options.category !== "All") {
-    conditions.push(
-      sql`${options.category} = ANY(${recipes.categories})`
-    );
+    conditions.push(sql`${options.category} = ANY(${recipes.categories})`);
   }
 
   const whereClause =
