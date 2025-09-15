@@ -44,9 +44,13 @@ async function removeMealFromWeekAPI(
   mealType: MealType
 ): Promise<void> {
   const params = new URLSearchParams({ date, mealType });
-  const response = await fetch(`/api/meal-planner/current-week?${params}`, {
-    method: "DELETE",
-  });
+  const queryString = params.toString();
+  const response = await fetch(
+    `/api/meal-planner/current-week?${queryString}`,
+    {
+      method: "DELETE",
+    }
+  );
 
   if (!response.ok) {
     const error = await response.text();

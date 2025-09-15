@@ -11,6 +11,8 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    CLERK_SECRET_KEY: z.string().min(1),
+    UPLOADCARE_SECRET_KEY: z.string().min(1),
   },
 
   /**
@@ -21,6 +23,11 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY: z.string().min(1),
     NEXT_PUBLIC_DOMAIN: z.string().url(),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().min(1),
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().min(1),
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().min(1),
   },
 
   /**
@@ -30,9 +37,19 @@ export const env = createEnv({
   runtimeEnv: {
     POSTGRES_URL: process.env.POSTGRES_URL,
     NODE_ENV: process.env.NODE_ENV,
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    UPLOADCARE_SECRET_KEY: process.env.UPLOADCARE_SECRET_KEY,
     NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY:
       process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY,
     NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL:
+      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL:
+      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

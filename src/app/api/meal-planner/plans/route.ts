@@ -10,7 +10,6 @@ import {
   saveCurrentWeekAsPlan,
   loadMealPlanToCurrentWeek,
   getUserMealPlans,
-  deleteMealPlan,
 } from "~/server/queries/meal-planner";
 
 // Create a shared rate limiter instance for the meal plans endpoint
@@ -55,7 +54,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         const body = (await req.json()) as unknown;
-        const { name, description, weekStart } = body as {
+        const { name, description } = body as {
           name?: unknown;
           description?: unknown;
           weekStart?: unknown;

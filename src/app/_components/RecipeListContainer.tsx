@@ -12,7 +12,6 @@ import { deleteRecipe } from "~/utils/recipeService";
 import RecipeFilters from "./RecipeFilters";
 import RecipeGrid from "./RecipeGrid";
 import RecipePagination from "./RecipePagination";
-import { useState } from "react";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -28,12 +27,10 @@ export default function RecipeListContainer({
   const { updateParam, getParam } = useUrlParams();
   const { toggleFavorite } = useFavoriteToggle();
 
-  // State
-  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
-
   // URL params
   const currentPage = Number(getParam("page")) || 1;
   const sortOption = (getParam("sort") ?? "newest") as SortOption;
+  const selectedCategory = (getParam("category") ?? "All") as Category;
 
   // Data fetching
   const { recipes, isLoading, pagination, shouldResetPage } =
@@ -115,6 +112,16 @@ export default function RecipeListContainer({
     [currentPage, updateParam]
   );
 
+  const handleCategoryChange = useCallback(
+    (value: Category) => {
+      updateParam("category", value);
+      if (currentPage !== 1) {
+        updateParam("page", "1");
+      }
+    },
+    [currentPage, updateParam]
+  );
+
   const handleFavoriteToggle = useCallback(
     (id: number) => {
       const recipe = recipes.find((r) => r.id === id);
@@ -131,7 +138,7 @@ export default function RecipeListContainer({
         offset={(currentPage - 1) * ITEMS_PER_PAGE}
         itemsPerPage={ITEMS_PER_PAGE}
         selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+        setSelectedCategory={handleCategoryChange}
         sortOption={sortOption}
         onSortChange={handleSortChange}
       />
