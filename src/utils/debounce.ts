@@ -2,7 +2,7 @@
  * Creates a debounced function that delays invoking func until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked.
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -23,7 +23,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Creates a debounced function with immediate execution option
  */
-export function debounceImmediate<T extends (...args: any[]) => any>(
+export function debounceImmediate<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
   immediate = false

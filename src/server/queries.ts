@@ -84,9 +84,7 @@ export async function getMyRecipes(
   }
 
   if (options?.category && options.category !== "All") {
-    conditions.push(
-      sql`${recipes.categories} @> ${[options.category]}::text[]`
-    );
+    conditions.push(sql`${options.category} = ANY(${recipes.categories})`);
   }
 
   const whereClause =
@@ -151,7 +149,7 @@ export async function updateRecipe(
   req: NextRequest
 ) {
   const userId = getUserIdFromRequest(req);
-  const { userId: _userId, id: _id, ...updateData } = data;
+  const { userId: _, id: __, ...updateData } = data;
 
   const [updatedRecipe] = await db
     .update(recipes)

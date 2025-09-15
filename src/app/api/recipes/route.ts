@@ -17,7 +17,6 @@ import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
 import sanitizeString from "~/utils/sanitizeString";
 import fetchRecipeImages from "~/utils/scraper";
 import { uploadImage } from "~/utils/uploadImage";
-import type { Category } from "~/types";
 import type {
   FallbackApiResponse,
   FlaskApiResponse,

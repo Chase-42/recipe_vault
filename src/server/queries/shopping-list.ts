@@ -10,7 +10,6 @@ import {
 import { detectDuplicates } from "~/utils/duplicateDetection";
 import type {
   ParsedIngredient,
-  EnhancedParsedIngredient,
   ProcessedIngredient,
   GenerateEnhancedShoppingListResponse,
   DuplicateAnalysis,
@@ -205,15 +204,49 @@ export async function addMealPlanItemsToShoppingList(
   try {
     if (ingredients.length === 0) return;
 
+    // Get recipe categories for meal plan items
+    const recipeIds = ingredients
+      .map(
+        (ingredient) =>
+          (ingredient as ParsedIngredient & { recipeId?: number }).recipeId
+      )
+      .filter((id): id is number => id !== undefined);
+
+    let recipeCategories = new Map<number, string>();
+    if (recipeIds.length > 0) {
+      const recipesWithCategories = await db
+        .select({
+          id: recipes.id,
+          categories: recipes.categories,
+        })
+        .from(recipes)
+        .where(inArray(recipes.id, recipeIds));
+
+      recipeCategories = new Map(
+        recipesWithCategories.map((recipe) => [
+          recipe.id,
+          recipe.categories.length > 0 ? recipe.categories[0]! : "Other",
+        ])
+      );
+    }
+
     // Convert parsed ingredients to shopping items
-    const items = ingredients.map((ingredient) => ({
-      name: ingredient.quantity
-        ? `${ingredient.quantity} ${ingredient.name}`
-        : ingredient.name,
-      recipeId: (ingredient as ParsedIngredient & { recipeId?: number })
-        .recipeId,
-      fromMealPlan: true,
-    }));
+    const items = ingredients.map((ingredient) => {
+      const recipeId = (ingredient as ParsedIngredient & { recipeId?: number })
+        .recipeId;
+      const category = recipeId
+        ? recipeCategories.get(recipeId) ?? "Other"
+        : "Other";
+
+      return {
+        name: ingredient.quantity
+          ? `${ingredient.quantity} ${ingredient.name}`
+          : ingredient.name,
+        recipeId,
+        fromMealPlan: true,
+        category,
+      };
+    });
 
     await addShoppingItems(userId, items);
   } catch (error) {
@@ -361,7 +394,7 @@ export async function generateEnhancedShoppingListFromWeek(
           const bestMatch = ingredient.duplicateMatches[0]; // First match is highest confidence
           return {
             ingredientId: ingredient.id,
-            action: bestMatch?.suggestedAction || "add_separate",
+            action: bestMatch?.suggestedAction ?? "add_separate",
             reason: bestMatch
               ? `${bestMatch.matchConfidence} confidence match with "${bestMatch.existingItemName}"`
               : "No clear match found",
