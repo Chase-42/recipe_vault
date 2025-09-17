@@ -3,6 +3,11 @@ import { AuthorizationError } from "./lib/errors";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
+  "/add(.*)",
+  "/edit(.*)",
+  "/meal-planner(.*)",
+  "/shopping-lists(.*)",
+  "/print(.*)",
   "/api/shopping-lists(.*)",
   "/api/recipes(.*)",
   "/api/upload(.*)",
