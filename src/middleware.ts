@@ -1,24 +1,21 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { AuthorizationError } from "./lib/errors";
 
 const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
   "/add(.*)",
   "/edit(.*)",
+  "/img(.*)",
   "/meal-planner(.*)",
   "/shopping-lists(.*)",
   "/print(.*)",
   "/api/shopping-lists(.*)",
   "/api/recipes(.*)",
   "/api/upload(.*)",
+  "/api/meal-planner(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    const authObj = await auth();
-    if (!authObj.userId) {
-      throw new AuthorizationError();
-    }
+    await auth.protect();
   }
 });
 

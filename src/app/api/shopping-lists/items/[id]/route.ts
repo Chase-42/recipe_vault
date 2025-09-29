@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -34,7 +34,7 @@ export async function PATCH(
     async (req: NextRequest): Promise<NextResponse> => {
       const params = await context.params;
       try {
-        const { userId } = getAuth(req);
+        const { userId } = await auth();
         if (!userId) {
           throw new AuthorizationError();
         }
@@ -74,7 +74,7 @@ export async function DELETE(
     async (req: NextRequest): Promise<NextResponse> => {
       const params = await context.params;
       try {
-        const { userId } = getAuth(req);
+        const { userId } = await auth();
         if (!userId) {
           throw new AuthorizationError();
         }

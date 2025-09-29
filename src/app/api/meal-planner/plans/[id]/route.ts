@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthorizationError,
@@ -23,7 +23,7 @@ export async function DELETE(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(req);
+        const { userId } = await auth();
         if (!userId) {
           throw new AuthorizationError();
         }

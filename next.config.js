@@ -33,9 +33,13 @@ const config = {
             value: "1; mode=block",
           },
           {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; img-src 'self' data: https://ucarecdn.com https://utfs.io; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.dev; style-src 'self' 'unsafe-inline'; connect-src 'self' https://clerk.dev https://api.clerk.dev; frame-src https://clerk.dev;",
+              "default-src 'self'; img-src 'self' data: https://ucarecdn.com https://utfs.io https://img.clerk.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' https: data: blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https:;",
           },
         ],
       },

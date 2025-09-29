@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { and, eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import {
@@ -25,7 +25,7 @@ export async function PUT(
     request,
     async (request: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(request);
+        const { userId } = await auth();
         if (!userId) {
           throw new AuthorizationError();
         }

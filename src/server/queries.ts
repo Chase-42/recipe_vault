@@ -1,5 +1,5 @@
 import "server-only";
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { and, desc, asc, eq, sql, or, count, ilike } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { AuthorizationError, NotFoundError, RecipeError } from "~/lib/errors";
@@ -22,8 +22,8 @@ interface PaginationOptions {
   limit: number;
 }
 
-function getUserIdFromRequest(req: NextRequest): string {
-  const { userId } = getAuth(req);
+async function getUserIdFromRequest(req: NextRequest): Promise<string> {
+  const { userId } = await auth();
   if (!userId) throw new AuthorizationError();
   return userId;
 }
@@ -131,7 +131,7 @@ export async function getRecipe(id: number, userId: string) {
 }
 
 export async function deleteRecipe(id: number, req: NextRequest) {
-  const userId = getUserIdFromRequest(req);
+  const userId = await getUserIdFromRequest(req);
 
   const result = await db
     .delete(recipes)
@@ -150,7 +150,7 @@ export async function updateRecipe(
   data: Partial<typeof recipes.$inferInsert>,
   req: NextRequest
 ) {
-  const userId = getUserIdFromRequest(req);
+  const userId = await getUserIdFromRequest(req);
   const { userId: _userId, id: _id, ...updateData } = data;
 
   const [updatedRecipe] = await db
@@ -170,7 +170,7 @@ export async function createRecipe(
   data: Omit<typeof recipes.$inferInsert, "userId">,
   req: NextRequest
 ) {
-  const userId = getUserIdFromRequest(req);
+  const userId = await getUserIdFromRequest(req);
 
   const result = await db
     .insert(recipes)
@@ -186,7 +186,7 @@ export async function createRecipe(
 }
 
 export async function toggleFavorite(id: number, req: NextRequest) {
-  const userId = getUserIdFromRequest(req);
+  const userId = await getUserIdFromRequest(req);
 
   const recipe = await db
     .select({ favorite: recipes.favorite })
