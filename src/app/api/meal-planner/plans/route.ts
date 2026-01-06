@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthorizationError,
@@ -25,10 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(req);
-        if (!userId) {
-          throw new AuthorizationError();
-        }
+        const userId = await getServerUserIdFromRequest(req);
 
         const plans = await getUserMealPlans(userId);
         return NextResponse.json(plans);
@@ -49,10 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(req);
-        if (!userId) {
-          throw new AuthorizationError();
-        }
+        const userId = await getServerUserIdFromRequest(req);
 
         const body = (await req.json()) as unknown;
         const { name, description, weekStart } = body as {
@@ -88,10 +82,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
     req,
     async (req: NextRequest): Promise<NextResponse> => {
       try {
-        const { userId } = getAuth(req);
-        if (!userId) {
-          throw new AuthorizationError();
-        }
+        const userId = await getServerUserIdFromRequest(req);
 
         const body = (await req.json()) as unknown;
         const { mealPlanId } = body as {

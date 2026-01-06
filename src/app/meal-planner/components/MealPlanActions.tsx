@@ -43,7 +43,7 @@ function formatDateForAPI(date: Date): string {
 async function saveMealPlan(
   name: string,
   description: string | undefined,
-  weekStart: Date
+  weekStart: Date,
 ): Promise<MealPlan> {
   const response = await fetch("/api/meal-planner/plans", {
     method: "POST",
@@ -112,8 +112,10 @@ export function MealPlanActions({
     mutationFn: ({
       name,
       description,
-    }: { name: string; description?: string }) =>
-      saveMealPlan(name, description, weekStart),
+    }: {
+      name: string;
+      description?: string;
+    }) => saveMealPlan(name, description, weekStart),
     onSuccess: (savedPlan) => {
       queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
       toast.success(`Meal plan "${savedPlan.name}" saved successfully!`);
