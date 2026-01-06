@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -34,10 +34,7 @@ export async function PATCH(
     async (req: NextRequest): Promise<NextResponse> => {
       const params = await context.params;
       try {
-        const { userId } = getAuth(req);
-        if (!userId) {
-          throw new AuthorizationError();
-        }
+        const userId = await getServerUserIdFromRequest(req);
 
         const itemId = Number.parseInt(params.id);
         if (isNaN(itemId)) {
@@ -74,10 +71,7 @@ export async function DELETE(
     async (req: NextRequest): Promise<NextResponse> => {
       const params = await context.params;
       try {
-        const { userId } = getAuth(req);
-        if (!userId) {
-          throw new AuthorizationError();
-        }
+        const userId = await getServerUserIdFromRequest(req);
 
         const itemId = Number.parseInt(params.id);
         if (isNaN(itemId)) {
