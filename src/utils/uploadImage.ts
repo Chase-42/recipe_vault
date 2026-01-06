@@ -22,7 +22,7 @@ export const uploadImage = async (imageUrl: string): Promise<string> => {
     const response = await fetch(imageUrl);
     if (!response.ok) throw new RecipeError("Failed to download image", 500);
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(new Uint8Array(arrayBuffer));
+    const buffer = Buffer.from(arrayBuffer) as Buffer;
     bufferSize = buffer.length;
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
