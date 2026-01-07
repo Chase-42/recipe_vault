@@ -66,33 +66,40 @@ export async function tryJsPackageScraper(
     // Transform instructions to the expected format
     const transformedInstructions: Array<{ "@type": "HowToStep"; text: string }> = [];
     
-    if (data.recipeInstructions) {
-      if (Array.isArray(data.recipeInstructions)) {
-        for (const instruction of data.recipeInstructions) {
-          if (typeof instruction === "string") {
-            const trimmed = instruction.trim();
-            if (trimmed) {
+    const recipeInstructions = data.recipeInstructions;
+    if (recipeInstructions) {
+      if (Array.isArray(recipeInstructions)) {
+        for (const instruction of recipeInstructions) {
+          // Handle HowToStep
+          if (instruction && typeof instruction === "object" && "text" in instruction) {
+            const text = instruction.text;
+            if (typeof text === "string" && text.trim()) {
               transformedInstructions.push({
                 "@type": "HowToStep",
-                text: trimmed,
-              });
-            }
-          } else if (
-            typeof instruction === "object" &&
-            instruction !== null &&
-            "text" in instruction
-          ) {
-            const text = String((instruction as { text?: unknown }).text ?? "").trim();
-            if (text) {
-              transformedInstructions.push({
-                "@type": "HowToStep",
-                text,
+                text: text.trim(),
               });
             }
           }
+          // Handle HowToSection
+          if (instruction && typeof instruction === "object" && "itemListElement" in instruction) {
+            const items = instruction.itemListElement;
+            if (Array.isArray(items)) {
+              for (const item of items) {
+                if (item && typeof item === "object" && "text" in item) {
+                  const text = item.text;
+                  if (typeof text === "string" && text.trim()) {
+                    transformedInstructions.push({
+                      "@type": "HowToStep",
+                      text: text.trim(),
+                    });
+                  }
+                }
+              }
+            }
+          }
         }
-      } else if (typeof data.recipeInstructions === "string") {
-        const steps = data.recipeInstructions.split("\n");
+      } else if (typeof recipeInstructions === "string") {
+        const steps = (recipeInstructions as string).split("\n");
         for (const step of steps) {
           const trimmed = step.trim();
           if (trimmed) {

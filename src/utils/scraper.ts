@@ -90,7 +90,7 @@ export const tryHtmlScraper = async (
 
     const instructions: string[] = [];
     
-    const extractCleanText = ($elem: cheerio.Cheerio<cheerio.Element>): string => {
+    const extractCleanText = ($elem: cheerio.Cheerio): string => {
       $elem.find('img, script, style, noscript, iframe, svg, picture, source').remove();
       $elem.find('[class*="image"], [class*="img"], [class*="photo"], [class*="picture"], [itemprop="image"]').remove();
       
@@ -154,7 +154,7 @@ export const tryHtmlScraper = async (
         );
         
         while ((match = globalPattern.exec(text)) !== null) {
-          if (match[0] && match[0][0] === match[0][0].toUpperCase()) {
+          if (match[0] && match.index !== undefined && match[0]![0] === match[0]![0]!.toUpperCase()) {
             splitPoints.push(match.index);
           }
         }
@@ -282,7 +282,7 @@ export const tryHtmlScraper = async (
             if (steps.length > 1) {
               instructions.push(...steps);
               break;
-            } else if (steps.length === 1) {
+            } else if (steps.length === 1 && steps[0]) {
               instructions.push(steps[0]);
               break;
             }
