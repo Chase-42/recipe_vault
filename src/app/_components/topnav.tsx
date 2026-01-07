@@ -1,5 +1,5 @@
 "use client";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { authClient } from "~/lib/auth-client";
 import { Plus, Search, ShoppingCart, Calendar } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -28,6 +28,7 @@ export const TopNav = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
 
   // Hide topnav on focused pages (recipe viewing, editing, adding, printing, meal planner)
   if (
@@ -49,70 +50,71 @@ export const TopNav = () => {
     setIsModalOpen(false);
   };
 
+  if (!session) {
+    return null;
+  }
+
   return (
-    <SignedIn>
-      <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
-        <div className="mb-4 flex items-center gap-2 md:mb-0">
-          <Image
-            src="/recipe_vault_image.svg"
-            alt="Recipe Vault Icon"
-            width={28}
-            height={28}
+    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
+      <div className="mb-4 flex items-center gap-2 md:mb-0">
+        <Image
+          src="/recipe_vault_image.svg"
+          alt="Recipe Vault Icon"
+          width={28}
+          height={28}
+        />
+        <Link href="/" className="text-white hover:underline">
+          Recipe Vault
+        </Link>
+      </div>
+
+      <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
+        <div className="relative md:mr-6">
+          <Input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search recipes..."
+            className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
           />
-          <Link href="/" className="text-white hover:underline">
-            Recipe Vault
-          </Link>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
         </div>
-
-        <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
-          <div className="relative md:mr-6">
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search recipes..."
-              className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
-            />
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
-          </div>
-          <div className="flex items-center gap-6">
-            <Button
-              onClick={handleOpenModal}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Recipe
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Link href="/meal-planner">
-                <Calendar className="h-4 w-4" />
-                Meal Planner
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Link href="/shopping-lists">
-                <ShoppingCart className="h-4 w-4" />
-                Shopping Lists
-              </Link>
-            </Button>
-            <UserButton />
-          </div>
+        <div className="flex items-center gap-6">
+          <Button
+            onClick={handleOpenModal}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Recipe
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Link href="/meal-planner">
+              <Calendar className="h-4 w-4" />
+              Meal Planner
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Link href="/shopping-lists">
+              <ShoppingCart className="h-4 w-4" />
+              Shopping Lists
+            </Link>
+          </Button>
         </div>
+      </div>
 
-        {isModalOpen && (
-          <Modal onClose={handleCloseModal}>
-            <AddRecipe onSuccess={handleCloseModal} />
-          </Modal>
-        )}
-      </nav>
-    </SignedIn>
+      {isModalOpen && (
+        <Modal onClose={handleCloseModal}>
+          <AddRecipe onSuccess={handleCloseModal} />
+        </Modal>
+      )}
+    </nav>
   );
 };
