@@ -1,5 +1,5 @@
 "use client";
-import { SignedIn } from "@clerk/nextjs";
+import { authClient } from "~/lib/auth-client";
 import { TopNav } from "~/app/_components/topnav";
 
 interface MainLayoutProps {
@@ -7,12 +7,12 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  const { data: session } = authClient.useSession();
+
   return (
     <div className="grid h-screen grid-rows-[auto,1fr] print:grid-rows-[1fr]">
-      <SignedIn>
-        <TopNav />
-      </SignedIn>
-      <div className="overflow-y-auto">{children}</div>
+      {session && <TopNav />}
+      <main className="overflow-y-auto">{children}</main>
     </div>
   );
 }
