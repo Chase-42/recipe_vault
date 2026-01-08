@@ -117,7 +117,7 @@ export function MealPlanActions({
       description?: string;
     }) => saveMealPlan(name, description, weekStart),
     onSuccess: (savedPlan) => {
-      queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
+      void queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
       toast.success(`Meal plan "${savedPlan.name}" saved successfully!`);
       setShowSaveDialog(false);
       setPlanName("");
@@ -132,7 +132,7 @@ export function MealPlanActions({
   const loadMutation = useMutation({
     mutationFn: loadMealPlan,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
+      void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
       toast.success("Meal plan loaded successfully!");
       setShowLoadDialog(false);
     },
@@ -145,7 +145,7 @@ export function MealPlanActions({
   const deleteMutation = useMutation({
     mutationFn: deleteMealPlan,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
+      void queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
       toast.success("Meal plan deleted successfully!");
       setShowDeleteDialog(false);
       setSelectedPlanForDeletion(null);
@@ -171,14 +171,14 @@ export function MealPlanActions({
       return;
     }
 
-    saveMutation.mutate({
+    void saveMutation.mutate({
       name: planName.trim(),
       description: planDescription.trim() || undefined,
     });
   };
 
   const handleLoadPlan = (planId: number) => {
-    loadMutation.mutate(planId);
+    void loadMutation.mutate(planId);
   };
 
   const handleDeletePlan = (plan: MealPlan) => {
@@ -188,7 +188,7 @@ export function MealPlanActions({
 
   const confirmDeletePlan = () => {
     if (selectedPlanForDeletion) {
-      deleteMutation.mutate(selectedPlanForDeletion.id);
+      void deleteMutation.mutate(selectedPlanForDeletion.id);
     }
   };
 
@@ -219,7 +219,7 @@ export function MealPlanActions({
             Save Current Week as Plan
           </Button>
           <div id="save-plan-description" className="sr-only">
-            Save your current week's meal schedule as a reusable meal plan
+            Save your current week&apos;s meal schedule as a reusable meal plan
           </div>
 
           <Button
@@ -257,7 +257,7 @@ export function MealPlanActions({
           <DialogHeader>
             <DialogTitle>Save Meal Plan</DialogTitle>
             <DialogDescription>
-              Save your current week's meal plan to reuse later.
+              Save your current week&apos;s meal plan to reuse later.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -398,7 +398,7 @@ export function MealPlanActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Meal Plan</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedPlanForDeletion?.name}"?
+              Are you sure you want to delete &quot;{selectedPlanForDeletion?.name}&quot;?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

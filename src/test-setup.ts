@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import "@testing-library/jest-dom";
 
 // Mock server-only module
 vi.mock("server-only", () => ({}));
@@ -13,6 +14,12 @@ vi.mock("~/lib/auth-helpers", () => ({
 }));
 
 // Mock Next.js request
-(global as any).NextRequest = class MockNextRequest {
+interface MockNextRequest {
+  url: string;
+}
+
+(
+  global as unknown as { NextRequest: new (url: string) => MockNextRequest }
+).NextRequest = class MockNextRequest {
   constructor(public url: string) {}
-} as any;
+};

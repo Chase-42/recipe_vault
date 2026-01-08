@@ -1,5 +1,4 @@
 import { getServerUserId } from "~/lib/auth-helpers";
-import EditRecipeForm from "~/app/_components/EditRecipeForm";
 import { ValidationError } from "~/lib/errors";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
