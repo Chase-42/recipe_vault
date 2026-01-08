@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Recipe } from "~/types";
 
 interface TouchDragState {
@@ -28,12 +28,10 @@ export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
     dragOffset: null,
   });
 
-  const dragElementRef = useRef<HTMLElement | null>(null);
-
   const handleTouchStart = useCallback(
     (e: React.TouchEvent, recipe: Recipe) => {
       e.preventDefault();
-      
+
       const touch = e.touches[0];
       if (!touch) return;
 
@@ -65,7 +63,7 @@ export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
       if (!dragState.isDragging) return;
 
       e.preventDefault();
-      
+
       const touch = e.touches[0];
       if (!touch) return;
 
@@ -74,7 +72,7 @@ export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
         y: touch.clientY,
       };
 
-      setDragState(prev => ({
+      setDragState((prev) => ({
         ...prev,
         dragPosition: position,
       }));
@@ -94,17 +92,20 @@ export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
       if (!touch) return;
 
       // Find the element under the touch point
-      const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-      
+      const elementBelow = document.elementFromPoint(
+        touch.clientX,
+        touch.clientY
+      );
+
       // Look for a meal slot drop target
       let dropTarget: { date: string; mealType: string } | undefined;
-      
+
       if (elementBelow) {
-        const mealSlot = elementBelow.closest('[data-meal-slot]');
+        const mealSlot = elementBelow.closest("[data-meal-slot]");
         if (mealSlot) {
-          const date = mealSlot.getAttribute('data-date');
-          const mealType = mealSlot.getAttribute('data-meal-type');
-          
+          const date = mealSlot.getAttribute("data-date");
+          const mealType = mealSlot.getAttribute("data-meal-type");
+
           if (date && mealType) {
             dropTarget = { date, mealType };
           }
@@ -124,7 +125,11 @@ export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
   );
 
   const getDragElementStyle = useCallback(() => {
-    if (!dragState.isDragging || !dragState.dragPosition || !dragState.dragOffset) {
+    if (
+      !dragState.isDragging ||
+      !dragState.dragPosition ||
+      !dragState.dragOffset
+    ) {
       return {};
     }
 

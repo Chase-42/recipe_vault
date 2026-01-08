@@ -1,7 +1,5 @@
 "use client";
 import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Button } from "~/components/ui/button";
 import EditRecipeForm from "~/app/_components/EditRecipeForm";
 import type { Recipe } from "~/types";
 import {
@@ -14,8 +12,6 @@ interface EditPageClientProps {
 }
 
 export default function EditPageClient({ recipe }: EditPageClientProps) {
-  const router = useRouter();
-
   return (
     <PageTransition>
       <div className="flex h-full w-full flex-col">

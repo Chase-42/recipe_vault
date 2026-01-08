@@ -59,9 +59,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Audit
-AUDIT.md
-
-.md
+# Audit and report files
+*_AUDIT*.md
+*_REPORT*.md
+*_ANALYSIS*.md
+*_SUMMARY*.md
+*_PLAN*.md
+*_GUIDE*.md
+scripts/*.md
+docs/*.md
 
 .kiro
