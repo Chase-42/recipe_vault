@@ -46,7 +46,7 @@ export default function RecipeGrid({
       if (!queryClient.getQueryData(cacheKey)) {
         // Preload image
         const img = new Image();
-        img.src = recipes.find((r) => r.id === recipeId)?.imageUrl || "";
+        img.src = recipes.find((r) => r.id === recipeId)?.imageUrl ?? "";
         img.onload = () => {
           queryClient.setQueryData(cacheKey, true);
         };
@@ -70,7 +70,7 @@ export default function RecipeGrid({
       // Process next item after a small delay
       setTimeout(() => {
         if (preloadQueue.current.size > 0) {
-          processPreloadQueue();
+          void processPreloadQueue();
         }
       }, 100);
     }
@@ -81,7 +81,7 @@ export default function RecipeGrid({
     (recipe: Recipe) => {
       if (!preloadQueue.current.has(recipe.id)) {
         preloadQueue.current.add(recipe.id);
-        processPreloadQueue();
+        void processPreloadQueue();
       }
     },
     [processPreloadQueue]
@@ -94,12 +94,12 @@ export default function RecipeGrid({
         for (const entry of entries) {
           if (entry.isIntersecting) {
             const recipeId = Number.parseInt(
-              entry.target.getAttribute("data-recipe-id") || "0",
+              entry.target.getAttribute("data-recipe-id") ?? "0",
               10
             );
             if (recipeId && !preloadQueue.current.has(recipeId)) {
               preloadQueue.current.add(recipeId);
-              processPreloadQueue();
+              void processPreloadQueue();
             }
           }
         }

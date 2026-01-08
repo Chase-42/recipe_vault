@@ -120,7 +120,7 @@ export const GeneratedShoppingList = memo(function GeneratedShoppingList(
   if ("existingItems" in props && isEnhancedIngredients(props.ingredients)) {
     return (
       <EnhancedGeneratedShoppingList
-        {...(props as EnhancedGeneratedShoppingListProps)}
+        {...props}
       />
     );
   }

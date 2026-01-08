@@ -15,6 +15,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    UPLOADCARE_SECRET_KEY: z.string().min(1),
   },
 
   /**
@@ -39,6 +40,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_DOMAIN,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    UPLOADCARE_SECRET_KEY: process.env.UPLOADCARE_SECRET_KEY,
     NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY:
       process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY,
     NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN,

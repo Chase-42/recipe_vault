@@ -73,10 +73,7 @@ export function ShoppingListsViewWithBackButton() {
     return items.filter((item) => item.fromMealPlan).length;
   }, [items]);
 
-  const manualItemsCount = useMemo(() => {
-    if (!items) return 0;
-    return items.filter((item) => !item.fromMealPlan).length;
-  }, [items]);
+
 
   const areAllFilteredItemsChecked = useMemo(
     () =>
