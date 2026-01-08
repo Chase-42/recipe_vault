@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "next-dev": "NODE_ENV=development next dev",
-    "dev": "npm run next-dev",
+    "flask-dev": "cd api && python3 index.py",
+    "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\" --names \"next,flask\" --prefix-colors \"blue,green\"",
     "build": "NODE_ENV=production next build",
     "start": "NODE_ENV=production next start",
     "lint": "next lint",
