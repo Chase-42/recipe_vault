@@ -10,6 +10,70 @@ const FLASK_API_TIMEOUT_MS = 10_000; // 10 seconds
 const SCRAPER_TIMEOUT_MS = 15_000; // 15 seconds
 
 /**
+ * Fixes instruction strings that were incorrectly split by the scraper.
+ * Merges continuation lines (starting with lowercase) and short headers with their content.
+ */
+function fixInstructionString(instructions: string): string {
+  const lines = instructions
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return instructions;
+
+  const fixedSteps: string[] = [];
+  let currentStep = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+
+    const nextLine = i < lines.length - 1 ? lines[i + 1] ?? null : null;
+
+    // If line starts with lowercase, it's a continuation of the previous step
+    const startsWithLowercase = /^[a-z]/.test(line);
+    const isContinuation = startsWithLowercase && currentStep.length > 0;
+
+    // Short header-like lines (1-4 words, title case, no punctuation)
+    const words = line.split(/\s+/);
+    const isShortHeader =
+      words.length <= 4 &&
+      words[0]?.[0] &&
+      /^[A-Z]/.test(words[0]) &&
+      !line.match(/[.!?]$/) &&
+      line.length < 50;
+
+    // Next line is substantial (likely content for the header)
+    const hasSubstantialNextLine = nextLine && nextLine.length > 30;
+
+    if (isContinuation) {
+      // Merge continuation with current step (space separator)
+      currentStep = currentStep ? `${currentStep} ${line}` : line;
+    } else if (isShortHeader && hasSubstantialNextLine && nextLine) {
+      // Merge short header with next line (space separator)
+      if (currentStep) {
+        fixedSteps.push(currentStep);
+      }
+      currentStep = `${line} ${nextLine}`;
+      i++; // Skip next line since we merged it
+    } else {
+      // Normal line - save current and start new
+      if (currentStep) {
+        fixedSteps.push(currentStep);
+      }
+      currentStep = line;
+    }
+  }
+
+  // Don't forget the last step
+  if (currentStep) {
+    fixedSteps.push(currentStep);
+  }
+
+  return fixedSteps.join("\n");
+}
+
+/**
  * Creates a timeout promise that rejects after the specified duration
  */
 function createTimeout<T>(ms: number, message: string): Promise<T> {
@@ -64,14 +128,21 @@ export async function tryJsPackageScraper(
     }
 
     // Transform instructions to the expected format
-    const transformedInstructions: Array<{ "@type": "HowToStep"; text: string }> = [];
-    
+    const transformedInstructions: Array<{
+      "@type": "HowToStep";
+      text: string;
+    }> = [];
+
     const recipeInstructions = data.recipeInstructions;
     if (recipeInstructions) {
       if (Array.isArray(recipeInstructions)) {
         for (const instruction of recipeInstructions) {
           // Handle HowToStep
-          if (instruction && typeof instruction === "object" && "text" in instruction) {
+          if (
+            instruction &&
+            typeof instruction === "object" &&
+            "text" in instruction
+          ) {
             const text = instruction.text;
             if (typeof text === "string" && text.trim()) {
               transformedInstructions.push({
@@ -81,7 +152,11 @@ export async function tryJsPackageScraper(
             }
           }
           // Handle HowToSection
-          if (instruction && typeof instruction === "object" && "itemListElement" in instruction) {
+          if (
+            instruction &&
+            typeof instruction === "object" &&
+            "itemListElement" in instruction
+          ) {
             const items = instruction.itemListElement;
             if (Array.isArray(items)) {
               for (const item of items) {
@@ -132,10 +207,22 @@ export async function tryJsPackageScraper(
       recipeIngredient: ingredients,
     };
   } catch (error) {
-    log.warn("Scraper failed", {
-      error: error instanceof Error ? error.message : String(error),
-      link,
-    });
+    // Handle specific error from @rethora/url-recipe-scraper when step.image is not an array
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (
+      errorMessage.includes("step.image") &&
+      errorMessage.includes("map is not a function")
+    ) {
+      log.warn("Scraper failed due to malformed instruction image data", {
+        error: errorMessage,
+        link,
+      });
+    } else {
+      log.warn("Scraper failed", {
+        error: errorMessage,
+        link,
+      });
+    }
     return null;
   }
 }
@@ -177,11 +264,16 @@ export async function tryFlaskApiScraper(
     // Normalize instructions format
     const rawInstructions = (rawData as { instructions?: unknown })
       ?.instructions;
-    const processedInstructions = Array.isArray(rawInstructions)
-      ? (rawInstructions as string[]).join("\n")
-      : typeof rawInstructions === "string"
-        ? rawInstructions
-        : undefined;
+
+    let processedInstructions: string | undefined;
+
+    if (Array.isArray(rawInstructions)) {
+      // If it's an array, join with newlines (already structured)
+      processedInstructions = (rawInstructions as string[]).join("\n");
+    } else if (typeof rawInstructions === "string") {
+      // If it's a string, fix incorrectly split instructions
+      processedInstructions = fixInstructionString(rawInstructions);
+    }
 
     const validatedData = schemas.flaskApiResponse.parse({
       ...(rawData as Record<string, unknown>),
@@ -233,7 +325,7 @@ export interface ScrapedRecipeData {
 }
 
 /**
- * Orchestrates recipe scraping with main scraper and two fallbacks
+ * Orchestrates recipe scraping with Flask as primary scraper and two fallbacks
  * Returns the first successful result
  */
 export async function scrapeRecipe(
@@ -242,28 +334,14 @@ export async function scrapeRecipe(
 ): Promise<ScrapedRecipeData> {
   const log = logger.forComponent("RecipeScraper");
 
-  // Try main scraper first
-  log.debug("Attempting JS package scraper", { link });
-  const mainResult = await tryJsPackageScraper(link);
-  if (mainResult?.name && mainResult.recipeInstructions && mainResult.recipeIngredient.length) {
-    log.info("JS package scraper succeeded", { link });
-    let imageUrl = mainResult.image?.url;
-    if (!imageUrl) {
-      const imageUrls = await fetchRecipeImages(link);
-      imageUrl = imageUrls[0] ?? undefined;
-    }
-    return {
-      name: mainResult.name,
-      instructions: processInstructions(mainResult.recipeInstructions),
-      ingredients: mainResult.recipeIngredient,
-      imageUrl,
-    };
-  }
-
-  // Try Flask API fallback
+  // Try Flask API first (primary scraper)
   log.debug("Attempting Flask API scraper", { link });
   const flaskResult = await tryFlaskApiScraper(link, flaskBaseUrl);
-  if (flaskResult.name && flaskResult.instructions && flaskResult.ingredients?.length) {
+  if (
+    flaskResult.name &&
+    flaskResult.instructions &&
+    flaskResult.ingredients?.length
+  ) {
     log.info("Flask API scraper succeeded", { link });
     let imageUrl = flaskResult.imageUrl ?? undefined;
     if (!imageUrl) {
@@ -274,6 +352,28 @@ export async function scrapeRecipe(
       name: flaskResult.name,
       instructions: flaskResult.instructions,
       ingredients: flaskResult.ingredients,
+      imageUrl,
+    };
+  }
+
+  // Try JS package scraper fallback
+  log.debug("Attempting JS package scraper", { link });
+  const mainResult = await tryJsPackageScraper(link);
+  if (
+    mainResult?.name &&
+    mainResult.recipeInstructions &&
+    mainResult.recipeIngredient.length
+  ) {
+    log.info("JS package scraper succeeded", { link });
+    let imageUrl = mainResult.image?.url;
+    if (!imageUrl) {
+      const imageUrls = await fetchRecipeImages(link);
+      imageUrl = imageUrls[0] ?? undefined;
+    }
+    return {
+      name: mainResult.name,
+      instructions: processInstructions(mainResult.recipeInstructions),
+      ingredients: mainResult.recipeIngredient,
       imageUrl,
     };
   }
@@ -289,11 +389,8 @@ export async function scrapeRecipe(
     htmlResult.recipeIngredient.length > 0
   ) {
     log.info("HTML scraper succeeded", { link });
-    let imageUrl = htmlResult.image?.url;
-    if (!imageUrl) {
-      const imageUrls = await fetchRecipeImages(link);
-      imageUrl = imageUrls[0] ?? undefined;
-    }
+    // HTML scraper already extracts images from the page it fetches
+    const imageUrl = htmlResult.image?.url;
     return {
       name: htmlResult.name,
       instructions: processInstructions(htmlResult.recipeInstructions),
@@ -301,7 +398,6 @@ export async function scrapeRecipe(
       imageUrl,
     };
   }
-
 
   // All scrapers failed - throw error with details
   const missing = [];
@@ -327,4 +423,3 @@ export async function scrapeRecipe(
     `Failed to extract recipe data from all scrapers. Missing: ${missing.join(", ")}`
   );
 }
-
