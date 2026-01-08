@@ -18,7 +18,7 @@ export default function RootLayout({
     <ClientProvider>
       <SearchProvider>
         <html lang="en" className={`${GeistSans.variable} dark`}>
-          <body>
+          <body className="min-h-screen bg-black">
             <Toaster
               closeButton
               position="top-center"
