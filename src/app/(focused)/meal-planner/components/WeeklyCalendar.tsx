@@ -63,7 +63,7 @@ export function WeeklyCalendar({
   const { gridRef } = useGridNavigation(
     3, // rows (meal types)
     7, // cols (days)
-    (row, col) => {
+    (_row, _col) => {
       // Optional: Handle cell selection - could add functionality here
     },
     (row, col) => {

@@ -1,6 +1,5 @@
 import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
-import { TopNav } from "~/app/_components/topnav";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { Toaster } from "~/components/ui/sonner";
 import { ClientProvider } from "~/providers";
@@ -27,10 +26,7 @@ export default function RootLayout({
               expand={false}
             />
             <ErrorBoundary>
-              <div className="grid h-screen grid-rows-[auto,1fr] print:grid-rows-[1fr]">
-                <TopNav />
-                <main className="overflow-y-auto">{children}</main>
-              </div>
+              {children}
             </ErrorBoundary>
             <div id="modal-root" />
           </body>

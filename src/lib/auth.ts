@@ -16,8 +16,41 @@ const getSocialProviders = () => {
   return providers;
 };
 
+const getTrustedOrigins = (): string[] => {
+  const origins: string[] = [];
+  
+  // Add production domain
+  if (env.NEXT_PUBLIC_DOMAIN) {
+    origins.push(env.NEXT_PUBLIC_DOMAIN);
+  }
+  
+  // Add Better Auth URL if different
+  if (env.BETTER_AUTH_URL && !origins.includes(env.BETTER_AUTH_URL)) {
+    origins.push(env.BETTER_AUTH_URL);
+  }
+  
+  // Allow Vercel preview deployments
+  // VERCEL_URL is automatically set by Vercel and contains just the domain
+  // (e.g., "recipe-vault-git-clerk-to-better-auth-chase-collins-projects.vercel.app")
+  if (process.env.VERCEL_URL) {
+    const vercelUrl = `https://${process.env.VERCEL_URL}`;
+    if (!origins.includes(vercelUrl)) {
+      origins.push(vercelUrl);
+    }
+  }
+  
+  // Allow localhost for development
+  if (process.env.NODE_ENV === "development") {
+    origins.push("http://localhost:3000");
+  }
+  
+  return origins;
+};
+
 export const auth = betterAuth({
+  secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL || env.NEXT_PUBLIC_DOMAIN,
+  trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
