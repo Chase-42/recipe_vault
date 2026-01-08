@@ -56,43 +56,71 @@ export default function RecipeListContainer({
   const deleteRecipeMutation = useMutation({
     mutationFn: deleteRecipe,
     onMutate: async (id) => {
+      // Cancel all recipe queries to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
-      const previousRecipes = queryClient.getQueryData<PaginatedRecipes>([
+      
+      // Get the current query key
+      const currentQueryKey = [
         "recipes",
-      ]);
-
-      if (previousRecipes) {
-        queryClient.setQueryData<PaginatedRecipes>(["recipes"], (old) => {
+        { searchTerm: debouncedSearchTerm, sortOption, category: selectedCategory, page: currentPage },
+      ];
+      
+      // Store previous data for rollback
+      const previousData = queryClient.getQueryData<PaginatedRecipes>(currentQueryKey);
+      
+      // Optimistically update the current query immediately
+      if (previousData) {
+        queryClient.setQueryData<PaginatedRecipes>(currentQueryKey, (old) => {
           if (!old) return old;
           return {
             ...old,
             recipes: old.recipes.filter((recipe: Recipe) => recipe.id !== id),
             pagination: {
               ...old.pagination,
-              total: old.pagination.total - 1,
+              total: Math.max(0, old.pagination.total - 1),
             },
           };
         });
       }
+      
+      // Also update all other recipe queries that might contain this recipe
+      queryClient.setQueriesData<PaginatedRecipes>(
+        { queryKey: ["recipes"] },
+        (old) => {
+          if (!old) return old;
+          const hasRecipe = old.recipes.some((r: Recipe) => r.id === id);
+          if (!hasRecipe) return old; // Don't update if recipe not in this query
+          
+          return {
+            ...old,
+            recipes: old.recipes.filter((recipe: Recipe) => recipe.id !== id),
+            pagination: {
+              ...old.pagination,
+              total: Math.max(0, old.pagination.total - 1),
+            },
+          };
+        }
+      );
 
-      return { previousRecipes };
+      return { previousData, currentQueryKey };
     },
     onError: (_, __, context) => {
-      if (context?.previousRecipes) {
-        queryClient.setQueryData(["recipes"], context.previousRecipes);
+      // Rollback the current query
+      if (context?.previousData && context?.currentQueryKey) {
+        queryClient.setQueryData(context.currentQueryKey, context.previousData);
       }
       toast.error("Failed to delete recipe");
     },
     onSuccess: async () => {
+      // Invalidate to sync with server
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      toast.success("Recipe deleted successfully");
     },
   });
 
   // Event handlers
   const handleDelete = useCallback(
     (id: number) => {
-      void deleteRecipeMutation.mutateAsync(id);
+      deleteRecipeMutation.mutate(id);
     },
     [deleteRecipeMutation]
   );

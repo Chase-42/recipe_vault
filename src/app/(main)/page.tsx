@@ -381,17 +381,17 @@ const LandingPage = () => (
 export default function HomePage() {
   const { data: session, isPending } = authClient.useSession();
   
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-32 w-32 animate-spin rounded-full border-b-4 border-t-4 border-red-800" />
-      </div>
-    );
+  // If we have a session, show RecipeList (it handles its own loading state)
+  if (session) {
+    return <RecipeList />;
   }
   
-  if (!session) {
+  // If we're sure there's no session, show landing page
+  if (!isPending) {
     return <LandingPage />;
   }
   
-  return <RecipeList />;
+  // While checking session (should be instant), show nothing
+  // The layout will still render, so navbar won't show yet
+  return null;
 }
