@@ -9,8 +9,6 @@ import {
   AlertTriangle,
   Info,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import type {
   EnhancedParsedIngredient,

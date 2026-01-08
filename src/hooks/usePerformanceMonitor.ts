@@ -17,22 +17,23 @@ export function usePerformanceMonitor(componentName: string) {
 
   useEffect(() => {
     renderStartTime.current = performance.now();
+    const currentMetrics = metrics.current;
 
     return () => {
       const renderTime = performance.now() - renderStartTime.current;
-      metrics.current.renderCount++;
-      metrics.current.renderTime = renderTime;
-      metrics.current.averageRenderTime =
-        (metrics.current.averageRenderTime * (metrics.current.renderCount - 1) +
+      currentMetrics.renderCount++;
+      currentMetrics.renderTime = renderTime;
+      currentMetrics.averageRenderTime =
+        (currentMetrics.averageRenderTime * (currentMetrics.renderCount - 1) +
           renderTime) /
-        metrics.current.renderCount;
+        currentMetrics.renderCount;
 
       // Log performance metrics in development
       if (process.env.NODE_ENV === "development") {
         logger.debug(`Performance metrics for ${componentName}`, {
           renderTime: `${renderTime.toFixed(2)}ms`,
-          averageRenderTime: `${metrics.current.averageRenderTime.toFixed(2)}ms`,
-          renderCount: metrics.current.renderCount,
+          averageRenderTime: `${currentMetrics.averageRenderTime.toFixed(2)}ms`,
+          renderCount: currentMetrics.renderCount,
         });
       }
 
@@ -45,7 +46,7 @@ export function usePerformanceMonitor(componentName: string) {
         });
       }
     };
-  });
+  }, [componentName]);
 
   return metrics.current;
 }

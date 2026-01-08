@@ -31,11 +31,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
-import { handleError, handleAsyncError } from "~/lib/errorHandler";
+import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
-
-import { withRetry } from "~/utils/retry";
-import { useLoadingStates } from "~/hooks/useLoadingStates";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
@@ -51,7 +48,6 @@ import type {
   MealPlan,
   GenerateEnhancedShoppingListResponse,
   ProcessedIngredient,
-  ParsedIngredient,
 } from "~/types";
 
 // Memoized recipe card component for better performance
@@ -110,7 +106,7 @@ MemoizedRecipeCard.displayName = "MemoizedRecipeCard";
 // Memoized meal slot component for better performance
 const MemoizedMealSlot = memo(
   ({
-    date,
+    date: _date,
     mealType,
     plannedMeal,
     isDragOver,
@@ -118,7 +114,7 @@ const MemoizedMealSlot = memo(
     onDragLeave,
     onDrop,
     onMealRemove,
-    setDraggedMeal,
+    setDraggedMeal: _setDraggedMeal,
   }: {
     date: string;
     mealType: MealType;
@@ -272,7 +268,7 @@ export function MealPlannerClient() {
   const {
     data: currentWeekMeals,
     isLoading: isLoadingMeals,
-    error: mealsError,
+
   } = useQuery<WeeklyMealPlan>({
     queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
     queryFn: async () => {
@@ -312,7 +308,7 @@ export function MealPlannerClient() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const recipes = recipesData?.recipes ?? [];
+  const recipes = useMemo(() => recipesData?.recipes ?? [], [recipesData?.recipes]);
 
   // Fetch saved meal plans with error handling
   const { data: savedPlans, error: savedPlansError } = useQuery<MealPlan[]>({
@@ -635,7 +631,7 @@ export function MealPlannerClient() {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [currentWeekMeals, weekStart]);
 
   // Sidebar resize handlers

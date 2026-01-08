@@ -22,10 +22,10 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   delay: 1000,
   exponentialBackoff: true,
   maxDelay: 30000,
-  shouldRetry: (error: unknown, attempt: number) => {
+  shouldRetry: (error: unknown, _attempt: number) => {
     // Don't retry on client errors (4xx), but retry on server errors (5xx) and network errors
     if (error instanceof Error && "status" in error) {
-      const status = (error as any).status;
+      const status = (error as { status: number }).status;
       return status >= 500 || status === 0; // 0 typically indicates network error
     }
     return true; // Retry on other errors
@@ -41,7 +41,7 @@ function calculateDelay(attempt: number, options: RetryOptions): number {
   }
 
   const exponentialDelay = options.delay * Math.pow(2, attempt - 1);
-  return Math.min(exponentialDelay, options.maxDelay || 30000);
+  return Math.min(exponentialDelay, options.maxDelay ?? 30000);
 }
 
 /**
