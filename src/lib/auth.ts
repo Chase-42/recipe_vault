@@ -29,9 +29,14 @@ const getTrustedOrigins = (): string[] => {
     origins.push(env.BETTER_AUTH_URL);
   }
   
-  // Allow Vercel preview deployments (they use *.vercel.app)
+  // Allow Vercel preview deployments
+  // VERCEL_URL is automatically set by Vercel and contains just the domain
+  // (e.g., "recipe-vault-git-clerk-to-better-auth-chase-collins-projects.vercel.app")
   if (process.env.VERCEL_URL) {
-    origins.push(`https://${process.env.VERCEL_URL}`);
+    const vercelUrl = `https://${process.env.VERCEL_URL}`;
+    if (!origins.includes(vercelUrl)) {
+      origins.push(vercelUrl);
+    }
   }
   
   // Allow localhost for development
