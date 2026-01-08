@@ -220,7 +220,13 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+  }
+}
+
+@layer utilities {
+  .grid-align-navbar {
+    background-position-y: calc(var(--navbar-height, 0px) * -1);
   }
 }
 

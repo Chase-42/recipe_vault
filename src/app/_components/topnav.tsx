@@ -70,7 +70,7 @@ export const TopNav = ({
   }
 
   return (
-    <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
+    <nav className="z-50 flex flex-col items-center justify-between border-b bg-black p-4 text-xl font-semibold md:flex-row print:hidden">
       <div className="mb-4 flex items-center gap-2 md:mb-0">
         <Image
           src="/recipe_vault_image.svg"
