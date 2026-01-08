@@ -1,11 +1,11 @@
 "use client";
 import { authClient } from "~/lib/auth-client";
-import { Plus, Search, ShoppingCart, Calendar } from "lucide-react";
+import { Plus, Search, ShoppingCart, Calendar, LogOut } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useSearch } from "~/providers";
@@ -24,10 +24,19 @@ const AddRecipe = dynamic(() => import("./AddRecipe"), {
   ),
 });
 
-export const TopNav = () => {
+interface TopNavProps {
+  showSearch?: boolean;
+  showActions?: boolean;
+}
+
+export const TopNav = ({ 
+  showSearch = true, 
+  showActions = true 
+}: TopNavProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = authClient.useSession();
 
   // Hide topnav on focused pages (recipe viewing, editing, adding, printing, meal planner)
@@ -50,6 +59,12 @@ export const TopNav = () => {
     setIsModalOpen(false);
   };
 
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
   if (!session) {
     return null;
   }
@@ -69,48 +84,62 @@ export const TopNav = () => {
       </div>
 
       <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row">
-        <div className="relative md:mr-6">
-          <Input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search recipes..."
-            className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
-          />
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
-        </div>
+        {showSearch && (
+          <div className="relative md:mr-6">
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search recipes..."
+              className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
+            />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
+          </div>
+        )}
         <div className="flex items-center gap-6">
+          {showActions && (
+            <>
+              <Button
+                onClick={handleOpenModal}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Recipe
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Link href="/meal-planner">
+                  <Calendar className="h-4 w-4" />
+                  Meal Planner
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Link href="/shopping-lists">
+                  <ShoppingCart className="h-4 w-4" />
+                  Shopping Lists
+                </Link>
+              </Button>
+            </>
+          )}
           <Button
-            onClick={handleOpenModal}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Recipe
-          </Button>
-          <Button
-            asChild
+            onClick={handleSignOut}
             variant="outline"
             className="flex items-center gap-2"
           >
-            <Link href="/meal-planner">
-              <Calendar className="h-4 w-4" />
-              Meal Planner
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Link href="/shopping-lists">
-              <ShoppingCart className="h-4 w-4" />
-              Shopping Lists
-            </Link>
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </Button>
         </div>
       </div>
 
-      {isModalOpen && (
+      {showActions && isModalOpen && (
         <Modal onClose={handleCloseModal}>
           <AddRecipe onSuccess={handleCloseModal} />
         </Modal>

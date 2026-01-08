@@ -3,6 +3,7 @@
 import { authClient } from "~/lib/auth-client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "~/components/ui/card";
@@ -139,6 +140,14 @@ export default function SignInPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          <div className="text-center">
+            <p className="text-gray-400">
+              Don&apos;t have an account?{" "}
+              <Link href="/sign-up" className="text-blue-400 hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

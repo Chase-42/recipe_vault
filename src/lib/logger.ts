@@ -130,7 +130,7 @@ class Logger {
     };
 
     // Add correlation ID to context if available
-    if (context || this.correlationId) {
+    if (context ?? this.correlationId) {
       entry.context = {
         ...context,
         ...(this.correlationId && { requestId: this.correlationId }),
@@ -275,7 +275,7 @@ export const logger = new Logger();
 
 // Export convenience functions for common use cases
 export const createRequestLogger = (requestId?: string) => {
-  const id = requestId || generateCorrelationId();
+  const id = requestId ?? generateCorrelationId();
   logger.setCorrelationId(id);
   return logger.child({ requestId: id });
 };
