@@ -8,6 +8,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { useSearch } from "~/providers";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
@@ -69,6 +77,21 @@ export const TopNav = ({
     return null;
   }
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (session.user.name) {
+      const names = session.user.name.trim().split(/\s+/);
+      if (names.length >= 2) {
+        return `${names[0]![0]?.toUpperCase()}${names[names.length - 1]![0]?.toUpperCase()}`;
+      }
+      return names[0]![0]?.toUpperCase() ?? "U";
+    }
+    if (session.user.email) {
+      return session.user.email[0]?.toUpperCase() ?? "U";
+    }
+    return "U";
+  };
+
   return (
     <nav className="z-50 flex flex-col items-center justify-between border-b bg-black p-4 text-xl font-semibold md:flex-row print:hidden">
       <div className="mb-4 flex items-center gap-2 md:mb-0">
@@ -128,14 +151,39 @@ export const TopNav = ({
               </Button>
             </>
           )}
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-700 text-sm font-medium text-white transition-colors hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
+                aria-label="User menu"
+              >
+                {getUserInitials()}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {session.user.name || "User"}
+                  </p>
+                  {session.user.email && (
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {session.user.email}
+                    </p>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
