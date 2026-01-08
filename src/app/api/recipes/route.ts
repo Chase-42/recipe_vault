@@ -1,35 +1,19 @@
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import getRecipeData from "@rethora/url-recipe-scraper";
 import { type NextRequest, NextResponse } from "next/server";
-import {
-  AuthorizationError,
-  RecipeError,
-  ValidationError,
-  getErrorMessage,
-  handleApiError,
-} from "~/lib/errors";
+import { ValidationError, handleApiError } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { schemas } from "~/lib/schemas";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
-import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
-import sanitizeString from "~/utils/sanitizeString";
-import fetchRecipeImages from "~/utils/scraper";
-import { uploadImage } from "~/utils/uploadImage";
-import type {
-  FallbackApiResponse,
-  FlaskApiResponse,
-  ProcessedData,
-} from "~/types";
-// import { z } from "zod";
-// import { rateLimit } from "~/lib/rateLimit";
-// import { processRecipeData } from "~/utils/recipeProcessing";
-// import { scrapeRecipe } from "~/utils/scraper";
-// import { validateUrl } from "~/lib/validation";
+import { logger } from "~/lib/logger";
+import { validateUrl } from "~/lib/validation";
+import { scrapeRecipe } from "~/utils/recipe-scrapers";
+import { processRecipeData } from "~/utils/recipeProcessing";
+import type { FlaskApiResponse } from "~/types";
 
 // Constants
-const baseUrl =
+const FLASK_BASE_URL =
   process.env.NODE_ENV === "development"
     ? "http://localhost:5328/"
     : `${process.env.NEXT_PUBLIC_DOMAIN}/`;
@@ -37,182 +21,28 @@ const baseUrl =
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 12;
 
-// Types
-interface RecipeStep {
-  text?: string;
-  "@type"?: string;
-  name?: string;
-  itemListElement?: RecipeStep[];
-}
-
-// Utility Functions
-const flaskApiUrl = (link: string): URL =>
-  new URL(`/api/scraper?url=${encodeURIComponent(link)}`, baseUrl);
-
-function processInstructions(instructions: RecipeStep[] = []): string {
-  const allSteps: string[] = [];
-
-  const extractSteps = (step: RecipeStep): void => {
-    if (step.text) {
-      allSteps.push(sanitizeString(step.text));
-    }
-    step.itemListElement?.forEach(extractSteps);
-  };
-
-  instructions.forEach(extractSteps);
-  return allSteps.filter(Boolean).join("\n");
-}
-
-// Data Processing Functions
-async function fetchDataFromFlask(link: string): Promise<FlaskApiResponse> {
-  try {
-    const response = await fetch(flaskApiUrl(link).toString(), {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-      return schemas.flaskApiResponse.parse({});
-    }
-
-    const rawData: unknown = await response.json();
-    const validatedData = schemas.flaskApiResponse.parse(rawData);
-
-    const data = {
-      name: validatedData.name ?? undefined,
-      imageUrl: validatedData.imageUrl ?? undefined,
-      instructions: validatedData.instructions ?? undefined,
-      ingredients: validatedData.ingredients ?? undefined,
-    };
-
-    // Ensure ingredients is always an array
-    const ingredients = Array.isArray(data.ingredients) ? data.ingredients : [];
-
-    return data.name && data.instructions && ingredients.length > 0
-      ? { ...data, ingredients }
-      : schemas.flaskApiResponse.parse({});
-  } catch {
-    return schemas.flaskApiResponse.parse({});
-  }
-}
-
-async function tryJsPackageScraper(
-  link: string
-): Promise<FallbackApiResponse | null> {
-  try {
-    const data = await getRecipeData(link);
-
-    if (
-      !data?.name ||
-      !data?.recipeInstructions?.length ||
-      !data?.recipeIngredient?.length
-    ) {
-      return null;
-    }
-
-    const transformedInstructions = data.recipeInstructions
-      .map((instruction) => {
-        if (typeof instruction === "string") {
-          return { "@type": "HowToStep" as const, text: instruction };
-        }
-        if (
-          typeof instruction === "object" &&
-          instruction &&
-          "text" in instruction
-        ) {
-          return {
-            "@type": "HowToStep" as const,
-            text: String(instruction.text ?? ""),
-          };
-        }
-        return null;
-      })
-      .filter(
-        (i): i is { "@type": "HowToStep"; text: string } =>
-          i !== null && !!i.text
-      );
-
-    const validIngredients =
-      data.recipeIngredient
-        ?.map((ing) => (typeof ing === "string" ? ing : String(ing)))
-        .filter(Boolean) ?? [];
-
-    if (!transformedInstructions.length || !validIngredients.length) {
-      return null;
-    }
-
-    return {
-      name: data.name,
-      image: { url: data.image?.url ?? "" },
-      recipeInstructions: transformedInstructions,
-      recipeIngredient: validIngredients,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function processRecipeData(
-  flaskData: FlaskApiResponse,
-  link: string
-): Promise<ProcessedData> {
-  let { imageUrl, instructions, ingredients = [], name } = flaskData;
-
-  if (!name || !instructions || !ingredients.length) {
-    const fallbackData = await tryJsPackageScraper(link);
-    if (
-      fallbackData?.name &&
-      fallbackData?.recipeInstructions?.length &&
-      fallbackData?.recipeIngredient?.length
-    ) {
-      name = sanitizeString(fallbackData.name);
-      instructions = processInstructions(fallbackData.recipeInstructions);
-      ingredients = fallbackData.recipeIngredient;
-      imageUrl = fallbackData.image?.url ?? imageUrl;
-    }
-  }
-
-  if (!imageUrl) {
-    const imageUrls = await fetchRecipeImages(link);
-    imageUrl = imageUrls[0];
-  }
-
-  if (!imageUrl || !instructions || !ingredients.length || !name) {
-    throw new RecipeError("Failed to extract complete recipe data", 422);
-  }
-
-  const [uploadedImageUrl, blurDataURL] = await Promise.all([
-    uploadImage(imageUrl),
-    dynamicBlurDataUrl(imageUrl),
-  ]).catch(() => {
-    throw new RecipeError("Failed to process image", 500);
-  });
-
-  return schemas.processedData.parse({
-    name,
-    imageUrl: uploadedImageUrl,
-    blurDataURL,
-    instructions,
-    ingredients,
-  });
-}
-
-// Create a shared rate limiter instance for the recipes endpoint
+// Rate limiter configuration
 const recipesRateLimiter = {
   maxRequests: 100,
   windowMs: 60 * 1000,
   path: "/api/recipes",
-};
+} as const;
 
-// API Route Handlers
+/**
+ * GET /api/recipes
+ * Retrieves paginated recipes for the authenticated user
+ */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      const log = logger.forComponent("RecipesAPI").forAction("GET");
+
       try {
         const userId = await getServerUserIdFromRequest(req);
-
         const { searchParams } = new URL(req.url);
+
+        // Parse and validate search parameters
         const params = schemas.searchParamsSchema.parse({
           offset: Number(searchParams.get("offset")) ?? 0,
           limit: Number(searchParams.get("limit")) ?? DEFAULT_LIMIT,
@@ -221,11 +51,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           sort: searchParams.get("sort") ?? "newest",
         });
 
+        // Enforce max limit
         if (params.limit > MAX_LIMIT) {
           params.limit = MAX_LIMIT;
         }
 
-        const { recipes, total } = await getMyRecipes(
+        // Fetch recipes from database
+        const { recipes: recipeList, total } = await getMyRecipes(
           userId,
           { offset: params.offset, limit: params.limit },
           {
@@ -235,11 +67,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           }
         );
 
+        // Calculate pagination metadata
         const totalPages = Math.ceil(total / params.limit);
         const currentPage = Math.floor(params.offset / params.limit) + 1;
 
-        const response = {
-          recipes,
+        return NextResponse.json({
+          recipes: recipeList,
           pagination: {
             total,
             offset: params.offset,
@@ -249,10 +82,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             totalPages,
             currentPage,
           },
-        };
-
-        return NextResponse.json(response);
+        });
       } catch (error) {
+        log.error("Failed to fetch recipes", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
         return NextResponse.json(
           { error: errorMessage },
@@ -264,26 +96,47 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   );
 }
 
+/**
+ * POST /api/recipes
+ * Creates a new recipe by scraping the provided URL
+ */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      const log = logger.forComponent("RecipesAPI").forAction("POST");
+
       try {
         const userId = await getServerUserIdFromRequest(req);
 
+        // Parse and validate request body
         const body: unknown = await req.json();
-        const { link } = body as { link?: string };
-        if (!link?.trim()) throw new ValidationError("Valid link required");
+        const { link } = schemas.createRecipeRequest.parse(body);
 
-        const recipeData = await fetchDataFromFlask(link).catch((error) => {
-          throw new RecipeError(
-            `Failed to extract recipe data: ${getErrorMessage(error)}`,
-            422
-          );
-        });
+        if (!link.trim()) {
+          throw new ValidationError("Valid link required");
+        }
+
+        if (!validateUrl(link)) {
+          throw new ValidationError("Invalid URL format");
+        }
+
+        log.debug("Scraping recipe", { link, userId });
+
+        // Scrape recipe data from URL
+        const scrapedData = await scrapeRecipe(link, FLASK_BASE_URL);
+
+        // Process the scraped data (upload image, generate blur, etc.)
+        const recipeData: FlaskApiResponse = {
+          name: scrapedData.name,
+          imageUrl: scrapedData.imageUrl ?? null,
+          instructions: scrapedData.instructions,
+          ingredients: scrapedData.ingredients,
+        };
 
         const processedData = await processRecipeData(recipeData, link);
 
+        // Insert recipe into database
         const [recipe] = await db
           .insert(recipes)
           .values({
@@ -297,8 +150,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           })
           .returning();
 
-        return NextResponse.json(recipe);
+        if (!recipe) {
+          throw new Error("Failed to create recipe - no data returned");
+        }
+
+        log.info("Recipe created successfully", { recipeId: recipe.id, link });
+
+        return NextResponse.json({ data: recipe });
       } catch (error) {
+        log.error("Failed to create recipe", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
         return NextResponse.json(
           { error: errorMessage },
@@ -310,20 +170,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   );
 }
 
+/**
+ * DELETE /api/recipes?id=<recipeId>
+ * Deletes a recipe by ID
+ */
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      const log = logger.forComponent("RecipesAPI").forAction("DELETE");
+
       try {
         const { searchParams } = new URL(req.url);
-        const id = Number(searchParams.get("id"));
-        if (!id || Number.isNaN(id))
+        const idParam = searchParams.get("id");
+
+        if (!idParam) {
+          throw new ValidationError("Recipe ID is required");
+        }
+
+        const id = Number(idParam);
+        if (!id || Number.isNaN(id) || id <= 0) {
           throw new ValidationError("Valid recipe ID required");
+        }
 
         await deleteRecipe(id, req);
 
+        log.info("Recipe deleted successfully", { recipeId: id });
+
         return NextResponse.json({ success: true });
       } catch (error) {
+        log.error("Failed to delete recipe", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
         return NextResponse.json(
           { error: errorMessage },
