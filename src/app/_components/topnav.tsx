@@ -42,6 +42,7 @@ export const TopNav = ({
   showActions = true 
 }: TopNavProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
   const pathname = usePathname();
   const router = useRouter();
@@ -113,8 +114,10 @@ export const TopNav = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search recipes..."
-              className="pl-9 w-40 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              placeholder={isSearchFocused ? "Search recipes..." : "Search"}
+              className="pl-9 w-28 focus:w-64 transition-[width] duration-300 placeholder:text-zinc-400"
             />
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
           </div>

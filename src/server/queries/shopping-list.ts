@@ -21,8 +21,17 @@ export async function getShoppingItems(
   userId: string
 ): Promise<ShoppingItem[]> {
   try {
+    // Explicitly select columns that exist in the database (excluding category)
     const items = await db
-      .select()
+      .select({
+        id: shoppingItems.id,
+        userId: shoppingItems.userId,
+        name: shoppingItems.name,
+        checked: shoppingItems.checked,
+        recipeId: shoppingItems.recipeId,
+        fromMealPlan: shoppingItems.fromMealPlan,
+        createdAt: shoppingItems.createdAt,
+      })
       .from(shoppingItems)
       .where(eq(shoppingItems.userId, userId))
       .orderBy(desc(shoppingItems.createdAt));
@@ -204,39 +213,10 @@ export async function addMealPlanItemsToShoppingList(
   try {
     if (ingredients.length === 0) return;
 
-    // Get recipe categories for meal plan items
-    const recipeIds = ingredients
-      .map(
-        (ingredient) =>
-          (ingredient as ParsedIngredient & { recipeId?: number }).recipeId
-      )
-      .filter((id): id is number => id !== undefined);
-
-    let recipeCategories = new Map<number, string>();
-    if (recipeIds.length > 0) {
-      const recipesWithCategories = await db
-        .select({
-          id: recipes.id,
-          categories: recipes.categories,
-        })
-        .from(recipes)
-        .where(inArray(recipes.id, recipeIds));
-
-      recipeCategories = new Map(
-        recipesWithCategories.map((recipe) => [
-          recipe.id,
-          recipe.categories.length > 0 ? recipe.categories[0]! : "Other",
-        ])
-      );
-    }
-
     // Convert parsed ingredients to shopping items
     const items = ingredients.map((ingredient) => {
       const recipeId = (ingredient as ParsedIngredient & { recipeId?: number })
         .recipeId;
-      const category = recipeId
-        ? recipeCategories.get(recipeId) ?? "Other"
-        : "Other";
 
       return {
         name: ingredient.quantity
@@ -244,7 +224,6 @@ export async function addMealPlanItemsToShoppingList(
           : ingredient.name,
         recipeId,
         fromMealPlan: true,
-        category,
       };
     });
 
@@ -492,7 +471,15 @@ export async function addProcessedIngredientsToShoppingList(
 
       if (existingItemIds.length > 0) {
         const existingItems = await db
-          .select()
+          .select({
+            id: shoppingItems.id,
+            userId: shoppingItems.userId,
+            name: shoppingItems.name,
+            checked: shoppingItems.checked,
+            recipeId: shoppingItems.recipeId,
+            fromMealPlan: shoppingItems.fromMealPlan,
+            createdAt: shoppingItems.createdAt,
+          })
           .from(shoppingItems)
           .where(
             and(

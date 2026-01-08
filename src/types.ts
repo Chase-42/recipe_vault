@@ -197,7 +197,7 @@ export interface ShoppingItem {
   checked: boolean;
   recipeId?: number;
   fromMealPlan: boolean;
-  category: string;
+  category?: string;
   createdAt: string;
 }
 
