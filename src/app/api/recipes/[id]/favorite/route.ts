@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { and, eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import {
@@ -15,10 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      throw new AuthorizationError();
-    }
+    const userId = await getServerUserIdFromRequest(request);
 
     const { id: idParam } = await params;
     const id = Number(idParam);

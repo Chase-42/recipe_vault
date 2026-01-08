@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthorizationError,
@@ -15,10 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      throw new AuthorizationError();
-    }
+    const userId = await getServerUserIdFromRequest(request);
 
     const { id: idParam } = await params;
     const id = validateId(idParam);
@@ -52,10 +49,7 @@ export async function PUT(
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = getAuth(req);
-    if (!userId) {
-      throw new AuthorizationError();
-    }
+    const userId = await getServerUserIdFromRequest(req);
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/");

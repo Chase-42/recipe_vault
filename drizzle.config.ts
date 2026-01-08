@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     url: env.POSTGRES_URL,
   },
-  tablesFilter: ["recipe_vault_*"],
+  tablesFilter: ["recipe_vault_*", "user", "session", "account", "verification"],
 } satisfies Config;

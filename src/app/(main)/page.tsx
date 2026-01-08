@@ -1,6 +1,6 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { authClient } from "~/lib/auth-client";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import Link from "next/link";
 import {
   Search,
   ShoppingCart,
@@ -26,11 +27,11 @@ const LandingPage = () => (
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-white">Recipe Vault</h1>
       </div>
-      <SignInButton>
+      <Link href="/sign-in">
         <Button className="bg-red-600 hover:bg-red-700 text-white">
           Sign In
         </Button>
-      </SignInButton>
+      </Link>
     </nav>
 
     {/* Hero Section */}
@@ -51,14 +52,14 @@ const LandingPage = () => (
               organized and ready to cook. Stop scrolling, start cooking.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <SignInButton>
+              <Link href="/sign-in">
                 <Button
                   size="lg"
                   className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg rounded-lg border-0"
                 >
                   Start Cooking Now
                 </Button>
-              </SignInButton>
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -363,14 +364,14 @@ const LandingPage = () => (
           <p className="text-xl text-gray-400 mb-12 leading-relaxed">
             Sign in and start building your recipe collection.
           </p>
-          <SignInButton>
+          <Link href="/sign-in">
             <Button
               size="lg"
               className="bg-red-600 hover:bg-red-700 text-white px-12 py-4 text-lg rounded-lg border-0"
             >
               Get Started
             </Button>
-          </SignInButton>
+          </Link>
         </div>
       </div>
     </section>
@@ -378,14 +379,19 @@ const LandingPage = () => (
 );
 
 export default function HomePage() {
-  return (
-    <main>
-      <SignedOut>
-        <LandingPage />
-      </SignedOut>
-      <SignedIn>
-        <RecipeList />
-      </SignedIn>
-    </main>
-  );
+  const { data: session, isPending } = authClient.useSession();
+  
+  if (isPending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-32 w-32 animate-spin rounded-full border-b-4 border-t-4 border-red-800" />
+      </div>
+    );
+  }
+  
+  if (!session) {
+    return <LandingPage />;
+  }
+  
+  return <RecipeList />;
 }

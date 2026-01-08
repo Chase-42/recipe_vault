@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "~/lib/auth-helpers";
 import { ValidationError } from "~/lib/errors";
 import { getRecipe } from "~/server/queries";
 import type { Recipe } from "~/types";
@@ -9,9 +9,7 @@ export default async function EditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  const userId = session?.userId;
-  if (!userId) return null;
+  const userId = await getServerUserId();
 
   const { id } = await params;
   const idAsNumber = Number(id);

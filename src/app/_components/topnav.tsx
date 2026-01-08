@@ -1,9 +1,10 @@
 "use client";
-import { UserButton } from "@clerk/nextjs";
-import { Plus, Search, ShoppingCart, Calendar } from "lucide-react";
+import { authClient } from "~/lib/auth-client";
+import { Plus, Search, ShoppingCart, Calendar, LogOut } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -34,6 +35,21 @@ export const TopNav = ({
 }: TopNavProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
+
+  // Hide topnav on focused pages (recipe viewing, editing, adding, printing, meal planner)
+  if (
+    pathname?.startsWith("/img/") ||
+    pathname === "/add" ||
+    pathname?.startsWith("/edit/") ||
+    pathname?.startsWith("/print/") ||
+    pathname === "/shopping-lists" ||
+    pathname === "/meal-planner"
+  ) {
+    return null;
+  }
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -42,6 +58,16 @@ export const TopNav = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
+  if (!session) {
+    return null;
+  }
 
   return (
     <nav className="z-50 flex flex-col items-center justify-between border-b p-4 text-xl font-semibold md:flex-row print:hidden">
@@ -102,7 +128,14 @@ export const TopNav = ({
               </Button>
             </>
           )}
-          <UserButton />
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
       </div>
 

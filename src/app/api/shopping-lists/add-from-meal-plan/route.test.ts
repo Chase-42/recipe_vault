@@ -4,8 +4,8 @@ import { NextRequest } from "next/server";
 import { POST } from "./route";
 
 // Mock dependencies
-vi.mock("@clerk/nextjs/server", () => ({
-  getAuth: vi.fn(),
+vi.mock("~/lib/auth-helpers", () => ({
+  getServerUserIdFromRequest: vi.fn(),
 }));
 
 vi.mock("~/lib/errors", () => ({
@@ -33,7 +33,7 @@ vi.mock("~/server/queries/shopping-list", () => ({
   addProcessedIngredientsToShoppingList: vi.fn(),
 }));
 
-import { getAuth } from "@clerk/nextjs/server";
+import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { addProcessedIngredientsToShoppingList } from "~/server/queries/shopping-list";
 
 describe("/api/shopping-lists/add-from-meal-plan", () => {
@@ -42,20 +42,9 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
   });
 
   it("should return 401 when user is not authenticated", async () => {
-    vi.mocked(getAuth).mockReturnValue({
-      userId: null,
-      sessionClaims: null,
-      sessionId: null,
-      sessionStatus: "signed-out",
-      actor: null,
-      orgId: null,
-      orgRole: null,
-      orgSlug: null,
-      orgPermissions: null,
-      factorVerificationAge: null,
-      has: vi.fn(),
-      debug: vi.fn(),
-    } as any);
+    vi.mocked(getServerUserIdFromRequest).mockRejectedValue(
+      new Error("Unauthorized")
+    );
 
     const request = new NextRequest(
       "http://localhost/api/shopping-lists/add-from-meal-plan",
@@ -70,20 +59,7 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
   });
 
   it("should validate request body schema", async () => {
-    vi.mocked(getAuth).mockReturnValue({
-      userId: "user123",
-      sessionClaims: {},
-      sessionId: "session123",
-      sessionStatus: "active",
-      actor: null,
-      orgId: null,
-      orgRole: null,
-      orgSlug: null,
-      orgPermissions: null,
-      factorVerificationAge: null,
-      has: vi.fn(),
-      debug: vi.fn(),
-    } as any);
+    vi.mocked(getServerUserIdFromRequest).mockResolvedValue("user123");
 
     const request = new NextRequest(
       "http://localhost/api/shopping-lists/add-from-meal-plan",
@@ -98,20 +74,7 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
   });
 
   it("should handle empty selected ingredients", async () => {
-    vi.mocked(getAuth).mockReturnValue({
-      userId: "user123",
-      sessionClaims: {},
-      sessionId: "session123",
-      sessionStatus: "active",
-      actor: null,
-      orgId: null,
-      orgRole: null,
-      orgSlug: null,
-      orgPermissions: null,
-      factorVerificationAge: null,
-      has: vi.fn(),
-      debug: vi.fn(),
-    } as any);
+    vi.mocked(getServerUserIdFromRequest).mockResolvedValue("user123");
 
     const request = new NextRequest(
       "http://localhost/api/shopping-lists/add-from-meal-plan",
@@ -143,20 +106,7 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
   });
 
   it("should process selected ingredients successfully", async () => {
-    vi.mocked(getAuth).mockReturnValue({
-      userId: "user123",
-      sessionClaims: {},
-      sessionId: "session123",
-      sessionStatus: "active",
-      actor: null,
-      orgId: null,
-      orgRole: null,
-      orgSlug: null,
-      orgPermissions: null,
-      factorVerificationAge: null,
-      has: vi.fn(),
-      debug: vi.fn(),
-    } as any);
+    vi.mocked(getServerUserIdFromRequest).mockResolvedValue("user123");
     vi.mocked(addProcessedIngredientsToShoppingList).mockResolvedValue({
       addedItems: [
         {
@@ -217,20 +167,7 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
   });
 
   it("should handle ingredients with user modifications", async () => {
-    vi.mocked(getAuth).mockReturnValue({
-      userId: "user123",
-      sessionClaims: {},
-      sessionId: "session123",
-      sessionStatus: "active",
-      actor: null,
-      orgId: null,
-      orgRole: null,
-      orgSlug: null,
-      orgPermissions: null,
-      factorVerificationAge: null,
-      has: vi.fn(),
-      debug: vi.fn(),
-    } as any);
+    vi.mocked(getServerUserIdFromRequest).mockResolvedValue("user123");
     vi.mocked(addProcessedIngredientsToShoppingList).mockResolvedValue({
       addedItems: [],
       updatedItems: [
