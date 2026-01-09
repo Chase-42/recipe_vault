@@ -190,7 +190,6 @@ function RecipeCard({
           href={`/img/${recipe.id}`}
           onClick={handleCardClick}
           className="group relative mb-4 w-full"
-          prefetch={false}
         >
           <div className="relative aspect-square w-full overflow-hidden rounded-md">
             <Image
