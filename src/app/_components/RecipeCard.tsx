@@ -21,6 +21,8 @@ import type { Recipe, RecipeSearchMatch } from "~/types";
 import { useSearch } from "~/providers";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchRecipe } from "~/utils/recipeService";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -39,7 +41,9 @@ function RecipeCard({
 }: RecipeCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const imageRef = useRef<HTMLImageElement>(null);
+  const prefetchedRef = useRef(false);
   const { searchTerm } = useSearch();
 
   const handleFavoriteToggle = useCallback(() => {
@@ -50,24 +54,31 @@ function RecipeCard({
     setIsImageLoaded(true);
   }, []);
 
-  // Check if image is already cached on mount
   useEffect(() => {
     if (imageRef.current?.complete) {
       handleImageLoadComplete();
     }
   }, [handleImageLoadComplete]);
 
-  const handleCardClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      router.push(`/img/${recipe.id}`);
-    },
-    [recipe.id, router]
-  );
+  const handleMouseEnter = useCallback(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
 
-  const shouldPrioritize = priority || recipe.id <= 4;
+    void router.prefetch(`/img/${recipe.id}`);
+    void router.prefetch(`/edit/${recipe.id}`);
+    void router.prefetch(`/print/${recipe.id}`);
 
-  // Helper function to highlight matches - now memoized
+    const cacheKey = ["recipe", recipe.id];
+    if (!queryClient.getQueryData(cacheKey)) {
+      void queryClient.prefetchQuery({
+        queryKey: cacheKey,
+        queryFn: () => fetchRecipe(recipe.id),
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 30,
+      });
+    }
+  }, [recipe.id, router, queryClient]);
+
   const highlightMatches = useCallback(
     (text: string, matches?: Array<[number, number]>) => {
       if (!matches || !searchTerm) return text;
@@ -76,11 +87,9 @@ function RecipeCard({
       let lastIndex = 0;
 
       for (const [start, end] of matches) {
-        // Add text before the match
         if (start > lastIndex) {
           result.push(text.slice(lastIndex, start));
         }
-        // Add the highlighted match
         result.push(
           <span key={start} className="bg-yellow-500/30">
             {text.slice(start, end + 1)}
@@ -89,7 +98,6 @@ function RecipeCard({
         lastIndex = end + 1;
       }
 
-      // Add remaining text
       if (lastIndex < text.length) {
         result.push(text.slice(lastIndex));
       }
@@ -99,7 +107,6 @@ function RecipeCard({
     [searchTerm]
   );
 
-  // Get matches for each field - now memoized (only if searchMatches is provided)
   const nameMatches = useMemo(
     () => searchMatches?.find((m) => m.key === "name")?.indices,
     [searchMatches]
@@ -113,7 +120,6 @@ function RecipeCard({
     [searchMatches]
   );
 
-  // Memoize the image loading state to prevent unnecessary re-renders
   const imageLoadingState = useMemo(
     () => ({
       className: cn(
@@ -130,7 +136,26 @@ function RecipeCard({
   );
 
   return (
-    <div className="recipe-card group relative flex max-w-md flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white">
+    <div
+      className="recipe-card group relative flex max-w-md flex-col items-center rounded-md p-4 text-white shadow-md overflow-hidden"
+      onMouseEnter={handleMouseEnter}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full rounded-md pointer-events-none"
+        fill="none"
+      >
+        <rect
+          className="animated-border"
+          x="1"
+          y="1"
+          width="calc(100% - 2px)"
+          height="calc(100% - 2px)"
+          rx="6"
+          stroke="white"
+          strokeWidth="2"
+        />
+      </svg>
+      <div className="relative z-10 w-full">
       {recipe.favorite ? (
         <button
           type="button"
@@ -165,7 +190,7 @@ function RecipeCard({
           {highlightMatches(recipe.name, nameMatches)}
         </h2>
         {(recipe.categories ?? recipe.tags) && (
-          <div className="m m-2 flex flex-wrap gap-2">
+          <div className="mb-2 flex flex-wrap gap-2">
             {recipe.categories?.map((cat) => (
               <Badge
                 key={cat}
@@ -188,9 +213,7 @@ function RecipeCard({
         )}
         <Link
           href={`/img/${recipe.id}`}
-          onClick={handleCardClick}
           className="group relative mb-4 w-full"
-          prefetch={false}
         >
           <div className="relative aspect-square w-full overflow-hidden rounded-md">
             <Image
@@ -203,13 +226,13 @@ function RecipeCard({
               alt={recipe.name}
               placeholder="blur"
               blurDataURL={recipe.blurDataUrl}
-              priority={shouldPrioritize}
-              loading={shouldPrioritize ? "eager" : "lazy"}
+              priority={priority}
+              loading={priority ? "eager" : "lazy"}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
               onLoad={handleImageLoadComplete}
               onError={handleImageLoadComplete}
               quality={75}
-              fetchPriority={shouldPrioritize ? "high" : "auto"}
+              fetchPriority={priority ? "high" : "auto"}
             />
             {!isImageLoaded && (
               <div
@@ -221,7 +244,7 @@ function RecipeCard({
         </Link>
 
         <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <Link href={`/edit/${recipe.id}`} prefetch={false}>
+          <Link href={`/edit/${recipe.id}`}>
             <Button
               variant="secondary"
               size="sm"
@@ -230,7 +253,7 @@ function RecipeCard({
               Edit
             </Button>
           </Link>
-          <Link href={`/print/${recipe.id}`} prefetch={false}>
+          <Link href={`/print/${recipe.id}`}>
             <Button
               variant="secondary"
               size="sm"
@@ -267,16 +290,38 @@ function RecipeCard({
           </AlertDialog>
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 export default memo(RecipeCard, (prevProps, nextProps) => {
-  return (
-    prevProps.recipe.id === nextProps.recipe.id &&
-    prevProps.recipe.favorite === nextProps.recipe.favorite &&
-    prevProps.priority === nextProps.priority &&
-    JSON.stringify(prevProps.searchMatches) ===
-      JSON.stringify(nextProps.searchMatches)
-  );
+  if (prevProps.recipe.id !== nextProps.recipe.id) return false;
+  if (prevProps.recipe.favorite !== nextProps.recipe.favorite) return false;
+  if (prevProps.priority !== nextProps.priority) return false;
+  if (prevProps.onDelete !== nextProps.onDelete) return false;
+  if (prevProps.onFavoriteToggle !== nextProps.onFavoriteToggle) return false;
+  
+  const prevMatches = prevProps.searchMatches;
+  const nextMatches = nextProps.searchMatches;
+  if (prevMatches === nextMatches) return true;
+  if (!prevMatches || !nextMatches) return false;
+  if (prevMatches.length !== nextMatches.length) return false;
+  
+  for (let i = 0; i < prevMatches.length; i++) {
+    if (prevMatches[i]?.key !== nextMatches[i]?.key) return false;
+    const prevIndices = prevMatches[i]?.indices;
+    const nextIndices = nextMatches[i]?.indices;
+    if (prevIndices?.length !== nextIndices?.length) return false;
+    if (prevIndices && nextIndices) {
+      for (let j = 0; j < prevIndices.length; j++) {
+        if (prevIndices[j]?.[0] !== nextIndices[j]?.[0] || 
+            prevIndices[j]?.[1] !== nextIndices[j]?.[1]) {
+          return false;
+        }
+      }
+    }
+  }
+  
+  return true;
 });

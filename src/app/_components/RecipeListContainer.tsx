@@ -16,12 +16,10 @@ import RecipePagination from "./RecipePagination";
 const ITEMS_PER_PAGE = 12;
 
 interface RecipeListContainerProps {
-  initialData?: PaginatedRecipes;
+  // initialData is handled by RecipeList parent component via HydrationBoundary
 }
 
-export default function RecipeListContainer({
-  initialData: _initialData,
-}: RecipeListContainerProps) {
+export default function RecipeListContainer({}: RecipeListContainerProps) {
   const { debouncedSearchTerm } = useSearch();
   const queryClient = useQueryClient();
   const { updateParam, getParam } = useUrlParams();

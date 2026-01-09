@@ -9,7 +9,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -18,7 +18,6 @@ import {
 } from "~/components/ui/page-transition";
 
 import { Button } from "~/components/ui/button";
-
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
@@ -30,23 +29,34 @@ import LoadingSpinner from "./LoadingSpinner";
 
 interface FullPageImageViewProps {
   id: number;
+  initialRecipe?: Recipe | null;
+  loadingFallback?: React.ReactNode;
 }
 
-export default function FullImageView({ id }: FullPageImageViewProps) {
+export default function FullImageView({
+  id,
+  initialRecipe,
+  loadingFallback,
+}: FullPageImageViewProps) {
   const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
   const { toggleFavorite } = useFavoriteToggle();
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(
     new Set()
   );
+  const queryClient = useQueryClient();
+  const cachedData = queryClient.getQueryData<Recipe>(["recipe", id]);
+  const hasCachedData = !!cachedData;
 
-  const {
-    data: recipe,
-    error,
-    isLoading,
-  } = useQuery<Recipe>({
+  const { data: recipe, error, isLoading } = useQuery<Recipe>({
     queryKey: ["recipe", id],
     queryFn: () => fetchRecipe(id),
+    initialData: cachedData ?? initialRecipe ?? undefined,
+    placeholderData: cachedData ?? initialRecipe ?? undefined,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    refetchOnMount: !hasCachedData,
+    refetchOnWindowFocus: false,
   });
 
   const toggleIngredient = (index: number) => {
@@ -59,25 +69,31 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
     setCheckedIngredients(newChecked);
   };
 
-  if (isLoading)
+  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
+  
+  if (isLoading && !displayRecipe) {
+    if (loadingFallback) {
+      return <>{loadingFallback}</>;
+    }
     return (
       <div className="h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" fullHeight={false} />
       </div>
     );
-  if (error ?? !recipe) return <div>Failed to load recipe.</div>;
+  }
+  if (error && !displayRecipe) return <div>Failed to load recipe.</div>;
+  if (!displayRecipe) return <div>Recipe not found.</div>;
 
-  const ingredients = recipe.ingredients
+  const ingredients = displayRecipe.ingredients
     .split("\n")
     .filter((line) => line.trim() !== "");
-  const instructions = recipe.instructions
+  const instructions = displayRecipe.instructions
     .split("\n")
     .filter((line) => line.trim() !== "");
 
   return (
     <PageTransition>
       <div className="h-screen w-full">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-border">
           <div className="flex items-center gap-6">
             <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
@@ -86,14 +102,14 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
             <div className="flex items-center gap-2">
               <ChefHat className="h-5 w-5 text-primary" />
               <h1 className="text-xl font-semibold text-foreground">
-                {recipe.name}
+                {displayRecipe.name}
               </h1>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.push(`/edit/${recipe.id}`)}
+                onClick={() => router.push(`/edit/${displayRecipe.id}`)}
                 className="h-8 w-8 rounded-full"
               >
                 <Edit className="h-4 w-4" />
@@ -109,14 +125,14 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => toggleFavorite(recipe)}
+                onClick={() => toggleFavorite(displayRecipe)}
                 className="h-8 w-8 rounded-full"
               >
                 <IconHeart
                   size={16}
                   className={cn(
                     "transition-colors duration-300",
-                    recipe.favorite
+                    displayRecipe.favorite
                       ? "text-destructive fill-current"
                       : "text-foreground"
                   )}
@@ -127,15 +143,12 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex h-[calc(100vh-7rem)]">
-          {/* Left Column - Image + Ingredients */}
           <div className="w-[45%] border-r border-border flex flex-col">
-            {/* Image */}
             <div className="aspect-[16/9] relative">
               <Image
-                src={recipe.imageUrl}
-                alt={`Image of ${recipe.name}`}
+                src={displayRecipe.imageUrl}
+                alt={`Image of ${displayRecipe.name}`}
                 fill
                 priority
                 sizes="45vw"
@@ -144,9 +157,9 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
             </div>
 
             <div className="flex flex-col min-h-0 flex-1 p-4">
-              {recipe.tags && recipe.tags.length > 0 && (
+              {displayRecipe.tags && displayRecipe.tags.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-1.5">
-                  {recipe.tags.map((tag) => (
+                  {displayRecipe.tags.map((tag) => (
                     <Badge key={tag} variant="secondary">
                       {tag}
                     </Badge>
@@ -154,7 +167,6 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
                 </div>
               )}
 
-              {/* Ingredients */}
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-lg font-semibold text-foreground">
                   Ingredients
@@ -189,7 +201,6 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
             </div>
           </div>
 
-          {/* Right Column - Instructions */}
           <div className="w-[55%]">
             <div className="p-4 h-full overflow-y-auto">
               <div className="flex items-center gap-2 mb-3">
@@ -199,12 +210,12 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
                 <Badge variant="outline">{instructions.length} steps</Badge>
               </div>
               <div className="space-y-4">
-                {instructions.map((instruction) => {
-                  const key = `instruction-${instruction.trim().toLowerCase().slice(0, 32).replace(/\s+/g, "-")}`;
+                {instructions.map((instruction, index) => {
+                  const key = `instruction-${index}-${instruction.trim().toLowerCase().slice(0, 32).replace(/\s+/g, "-")}`;
                   return (
                     <div key={key} className="flex gap-3">
                       <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                        {instructions.indexOf(instruction) + 1}
+                        {index + 1}
                       </div>
                       <p className="text-sm leading-relaxed text-foreground/90">
                         {instruction}
@@ -217,13 +228,12 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="h-14 px-4 border-t border-border flex items-center justify-between">
-          {recipe.link && (
+          {displayRecipe.link && (
             <Button
               variant="ghost"
               className="text-sm h-8"
-              onClick={() => window.open(recipe.link, "_blank")}
+              onClick={() => window.open(displayRecipe.link, "_blank")}
             >
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
               View Original Recipe
@@ -250,8 +260,8 @@ export default function FullImageView({ id }: FullPageImageViewProps) {
           isOpen={showAddToList}
           onClose={() => setShowAddToList(false)}
           ingredients={ingredients}
-          recipeId={recipe.id}
-          recipeName={recipe.name}
+          recipeId={displayRecipe.id}
+          recipeName={displayRecipe.name}
         />
       </div>
     </PageTransition>

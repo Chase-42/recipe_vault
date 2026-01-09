@@ -235,70 +235,30 @@ dialog:modal {
   max-height: 100vh;
 }
 
-@keyframes swirl-border {
-  0% {
-    border-color: white transparent transparent transparent;
-  }
-  6.25% {
-    border-color: white white transparent transparent;
-  }
-  12.5% {
-    border-color: white white transparent transparent;
-  }
-  18.75% {
-    border-color: white white white transparent;
-  }
-  25% {
-    border-color: white white white transparent;
-  }
-  31.25% {
-    border-color: white white white white;
-  }
-  37.5% {
-    border-color: white white white white;
-  }
-  43.75% {
-    border-color: white white white white;
-  }
-  50% {
-    border-color: white white white white;
-  }
-  56.25% {
-    border-color: white white white white;
-  }
-  62.5% {
-    border-color: white white white white;
-  }
-  68.75% {
-    border-color: white white white white;
-  }
-  75% {
-    border-color: white white white white;
-  }
-  81.25% {
-    border-color: white white white white;
-  }
-  87.5% {
-    border-color: white white white white;
-  }
-  93.75% {
-    border-color: white white white white;
-  }
-  100% {
-    border-color: white white white white;
-  }
-}
 .recipe-card {
   transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
-.hover\:animate-swirl-border:hover {
-  animation: swirl-border 0.75s ease-in-out forwards;
+@media (max-width: 768px) {
+  .recipe-card {
+    @apply max-w-full;
+  }
 }
 
-.recipe-card {
-  @apply hover:animate-swirl-border flex max-w-xs flex-col items-center rounded-md border-2 border-transparent p-4 text-white shadow-md transition hover:border-white;
+.recipe-card .animated-border {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  transition: stroke-dashoffset 0.6s ease-out;
 }
+
+.recipe-card:hover .animated-border {
+  stroke-dashoffset: 0;
+}
+
+.recipe-card:not(:hover) .animated-border {
+  stroke-dashoffset: 2000;
+}
+
 
 @media (max-width: 768px) {
   .recipe-card {

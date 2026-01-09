@@ -22,21 +22,13 @@ export function useRecipeFiltering(
         limit: itemsPerPage,
       });
     },
-    // Enhanced caching strategy
-    staleTime: 1000 * 60 * 5, // 5 minutes - data considered fresh
-    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    refetchOnMount: false, // Use cached data when possible
-    refetchOnReconnect: true, // Refetch when reconnecting
-    // Background refetching for better UX
-    refetchInterval: (data) => {
-      // Refetch every 10 minutes if data is stale
-      return data ? 1000 * 60 * 10 : false;
-    },
-    refetchIntervalInBackground: true,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: true,
   });
 
-  // If we have no results and we're not on page 1, the page is likely invalid
   const hasResults = data?.recipes && data.recipes.length > 0;
   const totalPages = data?.pagination?.totalPages ?? 0;
   const shouldResetPage =
@@ -45,7 +37,7 @@ export function useRecipeFiltering(
   return {
     recipes: data?.recipes ?? [],
     isLoading,
-    isFetching, // Expose fetching state for better UX
+    isFetching,
     pagination: data?.pagination,
     shouldResetPage,
   };

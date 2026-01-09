@@ -47,14 +47,14 @@ export async function PUT(
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const userId = await getServerUserIdFromRequest(req);
-
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const idStr = pathParts[pathParts.length - 1] ?? "";
-    const id = Number.parseInt(idStr);
+    const { id: idParam } = await params;
+    const id = Number.parseInt(idParam, 10);
 
     if (Number.isNaN(id)) {
       throw new ValidationError("Invalid ID");
@@ -66,13 +66,16 @@ export async function GET(req: NextRequest) {
     }
 
     const response = NextResponse.json(recipe);
-    // Ensure no caching for GET responses
+    
+    // React Query handles caching, but allow browser to cache for short period
+    // This helps with back/forward navigation while React Query manages freshness
     response.headers.set(
       "Cache-Control",
-      "no-cache, no-store, must-revalidate"
+      "private, max-age=0, must-revalidate"
     );
-    response.headers.set("Pragma", "no-cache");
-    response.headers.set("Expires", "0");
+    // Performance headers
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Vary", "Accept-Encoding");
 
     return response;
   } catch (error) {
