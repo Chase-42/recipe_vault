@@ -1,7 +1,6 @@
 "use client";
 
 import * as SelectPrimitive from "@radix-ui/react-select";
-// import { Check, ChevronDown, ChevronUp } from "lucide-react"
 import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import * as React from "react";
 

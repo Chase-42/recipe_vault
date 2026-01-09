@@ -2,10 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Printer } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import Image from "next/image";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { Button } from "~/components/ui/button";
+import { AnimatedBackButton } from "~/components/ui/page-transition";
 import { fetchRecipe } from "~/utils/recipeService";
 
 export default function PrintRecipeClient({ id }: { id: number }) {
@@ -20,7 +21,12 @@ export default function PrintRecipeClient({ id }: { id: number }) {
   return (
     <div className="mx-auto max-w-3xl p-8 print:p-4">
       <div className="mb-6 flex items-center justify-between print:hidden">
-        <h1 className="text-2xl font-bold">Print Recipe</h1>
+        <div className="flex items-center gap-4">
+          <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+            <ArrowLeft className="h-4 w-4" />
+          </AnimatedBackButton>
+          <h1 className="text-2xl font-bold">Print Recipe</h1>
+        </div>
         <Button onClick={() => window.print()}>
           <Printer className="mr-2 h-4 w-4" />
           Print

@@ -61,13 +61,28 @@ export async function updateShoppingItem(
   checked: boolean
 ): Promise<ShoppingItem | undefined> {
   try {
-    const [updatedItem] = await db
+    await db
       .update(shoppingItems)
       .set({ checked })
       .where(
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
-      )
-      .returning();
+      );
+
+    // Fetch the updated item explicitly selecting only existing columns
+    const [updatedItem] = await db
+      .select({
+        id: shoppingItems.id,
+        userId: shoppingItems.userId,
+        name: shoppingItems.name,
+        checked: shoppingItems.checked,
+        recipeId: shoppingItems.recipeId,
+        fromMealPlan: shoppingItems.fromMealPlan,
+        createdAt: shoppingItems.createdAt,
+      })
+      .from(shoppingItems)
+      .where(
+        and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
+      );
 
     return updatedItem
       ? {
@@ -90,16 +105,91 @@ export async function updateShoppingItem(
   }
 }
 
+export async function batchUpdateShoppingItems(
+  userId: string,
+  itemIds: number[],
+  checked: boolean
+): Promise<ShoppingItem[]> {
+  try {
+    if (itemIds.length === 0) {
+      return [];
+    }
+
+    // Update all items in a single query
+    await db
+      .update(shoppingItems)
+      .set({ checked })
+      .where(
+        and(
+          inArray(shoppingItems.id, itemIds),
+          eq(shoppingItems.userId, userId)
+        )
+      );
+
+    // Fetch the updated items explicitly selecting only existing columns
+    const updatedItems = await db
+      .select({
+        id: shoppingItems.id,
+        userId: shoppingItems.userId,
+        name: shoppingItems.name,
+        checked: shoppingItems.checked,
+        recipeId: shoppingItems.recipeId,
+        fromMealPlan: shoppingItems.fromMealPlan,
+        createdAt: shoppingItems.createdAt,
+      })
+      .from(shoppingItems)
+      .where(
+        and(
+          inArray(shoppingItems.id, itemIds),
+          eq(shoppingItems.userId, userId)
+        )
+      );
+
+    // Convert Date objects to strings to match ShoppingItem type
+    return updatedItems.map((item) => ({
+      ...item,
+      createdAt: item.createdAt.toISOString(),
+    }));
+  } catch (error) {
+    logger.error(
+      "Failed to batch update shopping items",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "ShoppingListQueries",
+        action: "batchUpdateShoppingItems",
+        userId,
+        itemCount: itemIds.length,
+      }
+    );
+    throw new RecipeError("Failed to batch update shopping items", 500);
+  }
+}
+
 export async function deleteShoppingItem(userId: string, itemId: number) {
   try {
-    const [deletedItem] = await db
+    // Fetch the item before deleting (explicitly selecting only existing columns)
+    const [itemToDelete] = await db
+      .select({
+        id: shoppingItems.id,
+        userId: shoppingItems.userId,
+        name: shoppingItems.name,
+        checked: shoppingItems.checked,
+        recipeId: shoppingItems.recipeId,
+        fromMealPlan: shoppingItems.fromMealPlan,
+        createdAt: shoppingItems.createdAt,
+      })
+      .from(shoppingItems)
+      .where(
+        and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
+      );
+
+    await db
       .delete(shoppingItems)
       .where(
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
-      )
-      .returning();
+      );
 
-    return deletedItem;
+    return itemToDelete;
   } catch (error) {
     logger.error(
       "Failed to delete shopping item",
@@ -128,16 +218,58 @@ export async function addShoppingItems(
       fromMealPlan: item.fromMealPlan ?? false,
     }));
 
-    const insertedItems = await db
-      .insert(shoppingItems)
-      .values(itemsToInsert)
-      .returning();
+    // Insert items (without category - let database default handle it if column exists)
+    await db.insert(shoppingItems).values(itemsToInsert);
 
-    // Convert Date objects to strings to match ShoppingItem type
-    return insertedItems.map((item) => ({
-      ...item,
-      createdAt: item.createdAt.toISOString(),
-    }));
+    // Fetch the inserted items by matching the exact combinations we inserted
+    // We'll fetch recent items matching our criteria, ordered by creation time
+    const allMatchingItems = await db
+      .select({
+        id: shoppingItems.id,
+        userId: shoppingItems.userId,
+        name: shoppingItems.name,
+        checked: shoppingItems.checked,
+        recipeId: shoppingItems.recipeId,
+        fromMealPlan: shoppingItems.fromMealPlan,
+        createdAt: shoppingItems.createdAt,
+      })
+      .from(shoppingItems)
+      .where(
+        and(
+          eq(shoppingItems.userId, userId),
+          // Match items we just inserted by name
+          inArray(
+            shoppingItems.name,
+            itemsToInsert.map((item) => item.name)
+          )
+        )
+      )
+      .orderBy(desc(shoppingItems.createdAt))
+      .limit(itemsToInsert.length * 2); // Get extra to account for potential duplicates
+
+    // Match inserted items to what we inserted, prioritizing most recent matches
+    const insertedItems: ShoppingItem[] = [];
+    const usedIds = new Set<number>();
+
+    for (const itemToInsert of itemsToInsert) {
+      const match = allMatchingItems.find(
+        (item) =>
+          !usedIds.has(item.id) &&
+          item.name === itemToInsert.name &&
+          item.recipeId === itemToInsert.recipeId &&
+          item.fromMealPlan === itemToInsert.fromMealPlan
+      );
+
+      if (match) {
+        usedIds.add(match.id);
+        insertedItems.push({
+          ...match,
+          createdAt: match.createdAt.toISOString(),
+        });
+      }
+    }
+
+    return insertedItems;
   } catch (error) {
     logger.error(
       "Failed to add shopping items",
@@ -498,7 +630,7 @@ export async function addProcessedIngredientsToShoppingList(
             try {
               const combinedName = `${existingItem.name} + ${ingredient.displayName}`;
 
-              const [updatedItem] = await db
+              await db
                 .update(shoppingItems)
                 .set({
                   name: combinedName,
@@ -509,8 +641,26 @@ export async function addProcessedIngredientsToShoppingList(
                     eq(shoppingItems.id, existingItem.id),
                     eq(shoppingItems.userId, userId)
                   )
-                )
-                .returning();
+                );
+
+              // Fetch the updated item explicitly selecting only existing columns
+              const [updatedItem] = await db
+                .select({
+                  id: shoppingItems.id,
+                  userId: shoppingItems.userId,
+                  name: shoppingItems.name,
+                  checked: shoppingItems.checked,
+                  recipeId: shoppingItems.recipeId,
+                  fromMealPlan: shoppingItems.fromMealPlan,
+                  createdAt: shoppingItems.createdAt,
+                })
+                .from(shoppingItems)
+                .where(
+                  and(
+                    eq(shoppingItems.id, existingItem.id),
+                    eq(shoppingItems.userId, userId)
+                  )
+                );
 
               if (updatedItem) {
                 updatedItems.push({
