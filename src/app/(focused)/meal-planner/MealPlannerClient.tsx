@@ -30,6 +30,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
@@ -235,6 +236,7 @@ function formatDateDisplay(dateString: string): {
 }
 
 export function MealPlannerClient() {
+  const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(new Date()));
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -1103,7 +1105,14 @@ export function MealPlannerClient() {
                         result.updatedItems.length > 0
                           ? ` and updated ${result.updatedItems.length} existing items`
                           : ""
-                      } to your shopping list!`
+                      } to your shopping list!`,
+                      {
+                        duration: Infinity,
+                        action: {
+                          label: "View Shopping List",
+                          onClick: () => router.push("/shopping-lists"),
+                        },
+                      }
                     );
                   } catch (error) {
                     logger.error(

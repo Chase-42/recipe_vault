@@ -117,7 +117,6 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
           recipeId: 1,
           fromMealPlan: true,
           createdAt: "2023-01-01T00:00:00Z",
-          category: "Baking",
         },
       ],
       updatedItems: [],
@@ -179,7 +178,6 @@ describe("/api/shopping-lists/add-from-meal-plan", () => {
           recipeId: 1,
           fromMealPlan: true,
           createdAt: "2023-01-01T00:00:00Z",
-          category: "Baking",
         },
       ],
     });
