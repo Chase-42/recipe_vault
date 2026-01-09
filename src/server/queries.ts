@@ -147,6 +147,7 @@ export async function updateRecipe(
   req: NextRequest
 ) {
   const userId = await getUserIdFromRequest(req);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { userId: _userId, id: _id, ...updateData } = data;
 
   const [updatedRecipe] = await db

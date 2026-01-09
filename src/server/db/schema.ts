@@ -171,7 +171,6 @@ export const shoppingItems = createTable(
       onDelete: "set null",
     }),
     fromMealPlan: boolean("from_meal_plan").default(false).notNull(),
-    category: text("category").default("Other").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
@@ -186,7 +185,6 @@ export const shoppingItems = createTable(
       table.userId,
       table.createdAt
     ),
-    categoryIdx: index("shopping_items_category_idx").on(table.category),
   })
 );
 

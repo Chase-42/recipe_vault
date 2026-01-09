@@ -73,8 +73,6 @@ export function ShoppingListsViewWithBackButton() {
     return items.filter((item) => item.fromMealPlan).length;
   }, [items]);
 
-
-
   const areAllFilteredItemsChecked = useMemo(
     () =>
       filteredItems.length > 0 && filteredItems.every((item) => item.checked),
@@ -224,8 +222,11 @@ export function ShoppingListsViewWithBackButton() {
     }
   };
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = async () => {
     const newCheckedState = !areAllFilteredItemsChecked;
+    const itemIds = filteredItems.map((item) => item.id);
+
+    if (itemIds.length === 0) return;
 
     // Update local state optimistically
     setItems((prev) => {
@@ -240,109 +241,158 @@ export function ShoppingListsViewWithBackButton() {
       return updatedItems;
     });
 
-    // Update server
-    void Promise.all(
-      filteredItems.map((item) =>
-        fetch(`/api/shopping-lists/items/${item.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ checked: newCheckedState }),
-        })
-      )
-    );
+    // Update server with batch request
+    try {
+      const response = await fetch("/api/shopping-lists/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemIds, checked: newCheckedState }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update items");
+      }
+
+      // Optionally refresh items to ensure consistency
+      const data = (await response.json()) as { items: ShoppingItem[] };
+      if (data.items) {
+        setItems((prev) => {
+          if (!prev) return prev;
+          const itemMap = new Map(data.items.map((item) => [item.id, item]));
+          return prev.map((item) => itemMap.get(item.id) ?? item);
+        });
+      }
+    } catch (error) {
+      logger.error(
+        "Failed to batch update shopping items",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "ShoppingListsViewWithBackButton",
+          action: "toggleSelectAll",
+        }
+      );
+      // Revert optimistic update on error
+      setItems((prev) => {
+        if (!prev) return prev;
+        const itemMap = new Map(filteredItems.map((item) => [item.id, item]));
+        return prev.map((item) => itemMap.get(item.id) ?? item);
+      });
+    }
   };
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4" />
-            </AnimatedBackButton>
-            <h2 className="text-2xl font-semibold">Shopping Lists</h2>
-            {items && items.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {items.length} total
-                </Badge>
-                {mealPlanItemsCount > 0 && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs flex items-center gap-1"
-                  >
-                    <ChefHat className="h-3 w-3" />
-                    {mealPlanItemsCount} from meal plan
-                  </Badge>
+      <div className="mx-auto max-w-4xl space-y-4">
+        {/* Header Section */}
+        <div className="space-y-4 border-b border-border pb-4">
+          {/* Title Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+                <ArrowLeft className="h-4 w-4" />
+              </AnimatedBackButton>
+              <div>
+                <h1 className="text-2xl font-semibold">Shopping Lists</h1>
+                {items && items.length > 0 && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">
+                      {filteredItems.length} of {items.length} items
+                      {filterType !== "all" || searchQuery
+                        ? " shown"
+                        : ""}
+                    </span>
+                    {mealPlanItemsCount > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs flex items-center gap-1"
+                      >
+                        <ChefHat className="h-3 w-3" />
+                        {mealPlanItemsCount} from meal plan
+                      </Badge>
+                    )}
+                  </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Controls Row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            {/* Search and Filter */}
+            <div className="flex items-center gap-2 flex-1 max-w-lg">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={filterType}
+                onValueChange={(value: FilterType) => setFilterType(value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Items</SelectItem>
+                  <SelectItem value="meal-plan">Meal Plan</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            {filteredItems.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={toggleSelectAll}>
+                  {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {isDeleting ? "Deleting..." : "Delete All"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete All Items</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {filteredItems.length}{" "}
+                        items?
+                        {searchQuery &&
+                          " (Only items matching your search will be deleted)"}{" "}
+                        {filterType !== "all" &&
+                          ` (Only ${filterType === "meal-plan" ? "meal plan" : "manual"} items will be deleted)`}{" "}
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={deleteAllItems}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[200px] pl-9"
-              />
-            </div>
-            <Select
-              value={filterType}
-              onValueChange={(value: FilterType) => setFilterType(value)}
-            >
-              <SelectTrigger className="w-[140px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Items</SelectItem>
-                <SelectItem value="meal-plan">Meal Plan</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-              </SelectContent>
-            </Select>
-            {filteredItems.length > 0 && (
-              <Button variant="outline" size="sm" onClick={toggleSelectAll}>
-                {areAllFilteredItemsChecked ? "Unselect All" : "Select All"}
-              </Button>
-            )}
-            {filteredItems.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" disabled={isDeleting}>
-                    {isDeleting ? "Deleting..." : "Delete All"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete All Items</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete {filteredItems.length}{" "}
-                      items?
-                      {searchQuery &&
-                        " (Only items matching your search will be deleted)"}{" "}
-                      {filterType !== "all" &&
-                        ` (Only ${filterType === "meal-plan" ? "meal plan" : "manual"} items will be deleted)`}{" "}
-                      This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={deleteAllItems}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete All
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
         </div>
-        <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
+        {/* Shopping List Items */}
+        <ScrollArea className="h-[calc(100vh-280px)] rounded-md border p-4">
           <div className="space-y-2">
             {filteredItems.length === 0 ? (
               <div className="text-center text-muted-foreground space-y-2">
