@@ -136,6 +136,8 @@ export const recipes = createTable(
     favoriteIdx: index("favorite_idx").on(table.favorite),
 
     // Composite indexes for common query patterns
+    // Optimized for getRecipe(id, userId) queries - fastest lookup
+    idUserIdIdx: index("id_user_id_idx").on(table.id, table.userId),
     userCreatedAtIdx: index("user_created_at_idx").on(
       table.userId,
       table.createdAt
