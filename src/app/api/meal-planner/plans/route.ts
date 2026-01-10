@@ -7,12 +7,14 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import {
   saveCurrentWeekAsPlan,
   loadMealPlanToCurrentWeek,
   getUserMealPlans,
 } from "~/server/queries/meal-planner";
 import { apiSuccess, apiError } from "~/lib/api-response";
+import { saveMealPlanSchema, loadMealPlanSchema } from "~/lib/schemas/meal-planner";
 
 // Create a shared rate limiter instance for the meal plans endpoint
 const mealPlansRateLimiter = {
@@ -47,21 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as unknown;
-        const { name, description } = body as {
-          name?: unknown;
-          description?: unknown;
-          weekStart?: unknown;
-        };
-
-        if (!name || typeof name !== "string") {
-          throw new ValidationError("name is required and must be a string");
-        }
-
-        if (description !== undefined && typeof description !== "string") {
-          throw new ValidationError("description must be a string if provided");
-        }
+        const { name, description } = await validateRequestBody(req, saveMealPlanSchema);
 
         const planId = await saveCurrentWeekAsPlan(userId, name, description);
         return apiSuccess({ id: planId, name, description }, 201);
@@ -81,17 +69,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as unknown;
-        const { mealPlanId } = body as {
-          mealPlanId?: unknown;
-        };
-
-        if (!mealPlanId || typeof mealPlanId !== "number") {
-          throw new ValidationError(
-            "mealPlanId is required and must be a number"
-          );
-        }
+        const { mealPlanId } = await validateRequestBody(req, loadMealPlanSchema);
 
         await loadMealPlanToCurrentWeek(userId, mealPlanId);
         return apiSuccess({ mealPlanId });
