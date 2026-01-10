@@ -41,6 +41,7 @@ import {
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { ShoppingItem } from "~/types";
+import { parseApiResponse } from "~/utils/api-client";
 
 type FilterType = "all" | "meal-plan" | "manual";
 
@@ -87,7 +88,7 @@ export function ShoppingListsViewWithBackButton() {
         if (!response.ok) {
           throw new RecipeError("Failed to fetch items", 500);
         }
-        const data = (await response.json()) as ShoppingItem[];
+        const data = await parseApiResponse<ShoppingItem[]>(response);
         setItems(data);
       } catch (error) {
         logger.error(
@@ -254,7 +255,7 @@ export function ShoppingListsViewWithBackButton() {
       }
 
       // Optionally refresh items to ensure consistency
-      const data = (await response.json()) as { items: ShoppingItem[] };
+      const data = await parseApiResponse<{ items: ShoppingItem[] }>(response);
       if (data.items) {
         setItems((prev) => {
           if (!prev) return prev;

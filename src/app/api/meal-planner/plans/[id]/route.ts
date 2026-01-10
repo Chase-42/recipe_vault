@@ -8,6 +8,7 @@ import {
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import { deleteMealPlan } from "~/server/queries/meal-planner";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Create a shared rate limiter instance for the meal plan deletion endpoint
 const mealPlanDeleteRateLimiter = {
@@ -34,13 +35,10 @@ export async function DELETE(
         }
 
         await deleteMealPlan(userId, mealPlanId);
-        return new NextResponse(null, { status: 204 });
+        return apiSuccess({ id: mealPlanId }, 200);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     mealPlanDeleteRateLimiter

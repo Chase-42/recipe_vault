@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { logger } from "~/lib/logger";
 import type { Recipe, PlannedMeal, MealType } from "~/types";
+import { parseApiResponse } from "~/utils/api-client";
 
 // Drag and drop state types
 export interface DragState {
@@ -36,7 +37,7 @@ async function addMealToWeekAPI(
     throw new Error(error || "Failed to add meal");
   }
 
-  return response.json() as Promise<PlannedMeal>;
+  return await parseApiResponse<PlannedMeal>(response);
 }
 
 async function removeMealFromWeekAPI(
@@ -80,7 +81,7 @@ async function moveMealInWeekAPI(
     throw new Error(error || "Failed to move meal");
   }
 
-  return response.json() as Promise<PlannedMeal>;
+  return await parseApiResponse<PlannedMeal>(response);
 }
 
 // Custom hook for drag and drop state management

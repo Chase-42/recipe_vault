@@ -1,5 +1,6 @@
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { ValidationError, handleApiError } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { schemas } from "~/lib/schemas";
@@ -12,6 +13,7 @@ import { validateUrl } from "~/lib/validation";
 import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
 import type { FlaskApiResponse } from "~/types";
+import { apiSuccess, apiPaginated, apiError } from "~/lib/api-response";
 
 // Constants
 const FLASK_BASE_URL =
@@ -70,25 +72,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const totalPages = Math.ceil(total / params.limit);
         const currentPage = Math.floor(params.offset / params.limit) + 1;
 
-        return NextResponse.json({
-          recipes: recipeList,
-          pagination: {
-            total,
-            offset: params.offset,
-            limit: params.limit,
-            hasNextPage: currentPage < totalPages,
-            hasPreviousPage: currentPage > 1,
-            totalPages,
-            currentPage,
-          },
+        return apiPaginated(recipeList, {
+          total,
+          offset: params.offset,
+          limit: params.limit,
+          hasNextPage: currentPage < totalPages,
+          hasPreviousPage: currentPage > 1,
+          totalPages,
+          currentPage,
         });
       } catch (error) {
         log.error("Failed to fetch recipes", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     recipesRateLimiter
@@ -153,14 +149,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         log.info("Recipe created successfully", { recipeId: recipe.id, link });
 
-        return NextResponse.json({ data: recipe });
+        return apiSuccess(recipe, 201);
       } catch (error) {
         log.error("Failed to create recipe", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     recipesRateLimiter
@@ -192,14 +185,11 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
         log.info("Recipe deleted successfully", { recipeId: id });
 
-        return NextResponse.json({ success: true });
+        return apiSuccess({ id }, 200);
       } catch (error) {
         log.error("Failed to delete recipe", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     recipesRateLimiter

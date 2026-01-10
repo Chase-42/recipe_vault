@@ -9,6 +9,7 @@ import {
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import { addProcessedIngredientsToShoppingList } from "~/server/queries/shopping-list";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Validation schemas
 const duplicateActionSchema = z.enum(["skip", "combine", "add_separate"]);
@@ -66,10 +67,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
 
         if (selectedIngredients.length === 0) {
-          return NextResponse.json(
-            { success: true, addedItems: [], updatedItems: [] },
-            { status: 200 }
-          );
+          return apiSuccess({ addedItems: [], updatedItems: [] });
         }
 
         const result = await addProcessedIngredientsToShoppingList(
@@ -77,8 +75,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           selectedIngredients
         );
 
-        return NextResponse.json({
-          success: true,
+        return apiSuccess({
           addedItems: result.addedItems,
           updatedItems: result.updatedItems,
         });
@@ -91,10 +88,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           );
         }
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     addFromMealPlanRateLimiter

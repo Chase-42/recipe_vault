@@ -10,6 +10,7 @@ import {
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 export async function PUT(
   request: NextRequest,
@@ -38,9 +39,9 @@ export async function PUT(
       throw new NotFoundError("Recipe not found");
     }
 
-    return NextResponse.json({ favorite: result.favorite });
+    return apiSuccess({ favorite: result.favorite });
   } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return apiError(errorMessage, undefined, statusCode);
   }
 }
