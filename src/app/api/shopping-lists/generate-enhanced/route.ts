@@ -7,8 +7,10 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestParams } from "~/lib/middleware/validate-request";
 import { generateEnhancedShoppingListFromWeek } from "~/server/queries/shopping-list";
 import { apiSuccess, apiError } from "~/lib/api-response";
+import { weekStartQuerySchema } from "~/lib/schemas/meal-planner";
 
 // Rate limiter for enhanced shopping list generation
 const generateEnhancedRateLimiter = {
@@ -24,18 +26,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const { searchParams } = new URL(req.url);
-        const weekStart = searchParams.get("weekStart");
-
-        if (!weekStart) {
-          throw new ValidationError("weekStart query parameter is required");
-        }
-
+        const { weekStart } = await validateRequestParams(req, weekStartQuerySchema);
         const weekStartDate = new Date(weekStart);
-        if (isNaN(weekStartDate.getTime())) {
-          throw new ValidationError("Invalid weekStart date");
-        }
 
         // Generate enhanced shopping list with existing items and duplicate analysis
         const result = await generateEnhancedShoppingListFromWeek(

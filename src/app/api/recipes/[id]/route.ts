@@ -6,11 +6,14 @@ import {
   ValidationError,
   handleApiError,
 } from "~/lib/errors";
+import { z } from "zod";
 import { validateId, validateUpdateRecipe } from "~/lib/validation";
 import { getRecipe, updateRecipe } from "~/server/queries";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import type { UpdateRecipeInput } from "~/types";
 import { apiSuccess, apiError } from "~/lib/api-response";
+import { schemas } from "~/lib/schemas";
 
 export async function PUT(
   request: NextRequest,
@@ -22,8 +25,7 @@ export async function PUT(
 
     const { id: idParam } = await params;
     const id = validateId(idParam);
-    const body: unknown = await request.json();
-    const updateData = body as UpdateRecipeInput;
+    const updateData = await validateRequestBody(request, schemas.updatedRecipe.partial().extend({ link: z.string().optional() })) as UpdateRecipeInput;
 
     // Validate and sanitize the update data
     const validatedData = validateUpdateRecipe(updateData);
