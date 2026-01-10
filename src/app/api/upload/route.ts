@@ -8,6 +8,7 @@ import {
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import { uploadImage } from "~/utils/uploadImage";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -61,13 +62,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         const cdnUrl = await uploadImage(dataUrl);
 
-        return NextResponse.json({ url: cdnUrl });
+        return apiSuccess({ url: cdnUrl }, 201);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     uploadRateLimiter

@@ -14,6 +14,7 @@ import {
   moveMealInWeek,
   hasCurrentWeekBeenAddedToShoppingList,
 } from "~/server/queries/meal-planner";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Create a shared rate limiter instance for the current week endpoint
 const currentWeekRateLimiter = {
@@ -49,19 +50,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             userId,
             weekStart
           );
-          return NextResponse.json({
+          return apiSuccess({
             hasBeenAddedToShoppingList: hasBeenAdded,
           });
         }
 
         const meals = await getCurrentWeekMeals(userId, weekStart);
-        return NextResponse.json(meals);
+        return apiSuccess(meals);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     currentWeekRateLimiter
@@ -117,13 +115,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           date,
           mealType as "breakfast" | "lunch" | "dinner"
         );
-        return NextResponse.json(meal);
+        return apiSuccess(meal, 201);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     currentWeekRateLimiter
@@ -179,13 +174,10 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
           newDate,
           newMealType as "breakfast" | "lunch" | "dinner"
         );
-        return NextResponse.json(meal);
+        return apiSuccess(meal);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     currentWeekRateLimiter
@@ -226,13 +218,10 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           date,
           mealType as "breakfast" | "lunch" | "dinner"
         );
-        return new NextResponse(null, { status: 204 });
+        return apiSuccess({ date, mealType }, 200);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     currentWeekRateLimiter

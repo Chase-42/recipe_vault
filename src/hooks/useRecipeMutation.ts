@@ -8,7 +8,7 @@ import type {
   UpdateRecipeInput,
   MutationType,
 } from "~/types";
-import { updateRecipe } from "~/utils/recipeService";
+import { updateRecipe, createRecipe } from "~/utils/recipeService";
 
 export function useRecipeMutation(type: MutationType) {
   const queryClient = useQueryClient();
@@ -18,15 +18,8 @@ export function useRecipeMutation(type: MutationType) {
       data: CreateRecipeInput | (UpdateRecipeInput & { id: number })
     ) => {
       if (type === "create") {
-        const response = await fetch("/api/recipes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (!response.ok) {
-          throw new RecipeError("Failed to create recipe", 500);
-        }
-        return response.json();
+        // Use the createRecipe service function which calls /api/recipes/create
+        return await createRecipe(data as CreateRecipeInput);
       }
 
       // For updates, we need to pass the ID separately

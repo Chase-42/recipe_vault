@@ -8,6 +8,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 interface RevalidateRequest {
   path: string;
@@ -33,10 +34,10 @@ export async function GET(request: NextRequest) {
     }
 
     revalidatePath(path);
-    return NextResponse.json({ revalidated: true, now: Date.now() });
+    return apiSuccess({ revalidated: true, now: Date.now() });
   } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return apiError(errorMessage, undefined, statusCode);
   }
 }
 
@@ -54,13 +55,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         revalidatePath(body.path);
-        return NextResponse.json({ revalidated: true });
+        return apiSuccess({ revalidated: true });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     revalidateRateLimiter

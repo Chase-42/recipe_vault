@@ -12,6 +12,7 @@ import {
   addShoppingItems,
   batchUpdateShoppingItems,
 } from "~/server/queries/shopping-list";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 const addItemsSchema = z.object({
   items: z.array(
@@ -47,13 +48,13 @@ export async function POST(req: NextRequest) {
 
     const newItems = await addShoppingItems(userId, items);
 
-    return NextResponse.json({ success: true, items: newItems });
+    return apiSuccess({ items: newItems }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new ValidationError("Invalid request data");
     }
     const { error: errorMessage, statusCode } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return apiError(errorMessage, undefined, statusCode);
   }
 }
 
@@ -69,7 +70,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         const { itemIds, checked } = batchUpdateSchema.parse(body);
 
         if (itemIds.length === 0) {
-          return NextResponse.json({ success: true, items: [] });
+          return apiSuccess({ items: [] });
         }
 
         const updatedItems = await batchUpdateShoppingItems(
@@ -78,16 +79,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           checked
         );
 
-        return NextResponse.json({ success: true, items: updatedItems });
+        return apiSuccess({ items: updatedItems });
       } catch (error) {
         if (error instanceof z.ZodError) {
           throw new ValidationError("Invalid request data");
         }
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     batchRateLimiter
