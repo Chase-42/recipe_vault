@@ -308,20 +308,23 @@ export async function deleteMealPlan(
   userId: string,
   mealPlanId: number
 ): Promise<void> {
-  // Delete all planned meals for this plan
-  await db
-    .delete(plannedMeals)
-    .where(
-      and(
-        eq(plannedMeals.userId, userId),
-        eq(plannedMeals.mealPlanId, mealPlanId)
-      )
-    );
+  // Wrap deletions in transaction to ensure atomicity
+  await db.transaction(async (tx) => {
+    // Delete all planned meals for this plan
+    await tx
+      .delete(plannedMeals)
+      .where(
+        and(
+          eq(plannedMeals.userId, userId),
+          eq(plannedMeals.mealPlanId, mealPlanId)
+        )
+      );
 
-  // Delete the meal plan
-  await db
-    .delete(mealPlans)
-    .where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.userId, userId)));
+    // Delete the meal plan
+    await tx
+      .delete(mealPlans)
+      .where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.userId, userId)));
+  });
 }
 
 // Check if current week has been added to shopping list

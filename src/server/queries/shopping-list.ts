@@ -117,42 +117,34 @@ export async function batchUpdateShoppingItems(
       return [];
     }
 
-    // Update all items in a single query
-    await db
-      .update(shoppingItems)
-      .set({ checked })
-      .where(
-        and(
-          inArray(shoppingItems.id, itemIds),
-          eq(shoppingItems.userId, userId)
+    // Use transaction + .returning() for atomic update and fetch
+    return await db.transaction(async (tx) => {
+      const updatedItems = await tx
+        .update(shoppingItems)
+        .set({ checked })
+        .where(
+          and(
+            inArray(shoppingItems.id, itemIds),
+            eq(shoppingItems.userId, userId)
+          )
         )
-      );
+        .returning({
+          id: shoppingItems.id,
+          userId: shoppingItems.userId,
+          name: shoppingItems.name,
+          checked: shoppingItems.checked,
+          recipeId: shoppingItems.recipeId,
+          fromMealPlan: shoppingItems.fromMealPlan,
+          createdAt: shoppingItems.createdAt,
+        });
 
-    // Fetch the updated items explicitly selecting only existing columns
-    const updatedItems = await db
-      .select({
-        id: shoppingItems.id,
-        userId: shoppingItems.userId,
-        name: shoppingItems.name,
-        checked: shoppingItems.checked,
-        recipeId: shoppingItems.recipeId,
-        fromMealPlan: shoppingItems.fromMealPlan,
-        createdAt: shoppingItems.createdAt,
-      })
-      .from(shoppingItems)
-      .where(
-        and(
-          inArray(shoppingItems.id, itemIds),
-          eq(shoppingItems.userId, userId)
-        )
-      );
-
-    // Convert Date objects to strings to match ShoppingItem type
-    return updatedItems.map((item) => ({
-      ...item,
-      recipeId: item.recipeId ?? undefined,
-      createdAt: item.createdAt.toISOString(),
-    }));
+      // Convert Date objects to strings to match ShoppingItem type
+      return updatedItems.map((item) => ({
+        ...item,
+        recipeId: item.recipeId ?? undefined,
+        createdAt: item.createdAt.toISOString(),
+      }));
+    });
   } catch (error) {
     logger.error(
       "Failed to batch update shopping items",
@@ -553,57 +545,150 @@ export async function addProcessedIngredientsToShoppingList(
   updatedItems: ShoppingItem[];
 }> {
   try {
-    const addedItems: ShoppingItem[] = [];
-    const updatedItems: ShoppingItem[] = [];
+    // Wrap entire operation in transaction to ensure atomicity
+    return await db.transaction(async (tx) => {
+      const addedItems: ShoppingItem[] = [];
+      const updatedItems: ShoppingItem[] = [];
 
-    // Separate ingredients by action type for batch processing
-    const toSkip: ProcessedIngredientWithActions[] = [];
-    const toCombine: ProcessedIngredientWithActions[] = [];
-    const toAdd: ProcessedIngredientWithActions[] = [];
+      // Separate ingredients by action type for batch processing
+      const toSkip: ProcessedIngredientWithActions[] = [];
+      const toCombine: ProcessedIngredientWithActions[] = [];
+      const toAdd: ProcessedIngredientWithActions[] = [];
 
-    // Process ingredients and format display names
-    const processedForBatch: ProcessedIngredientWithActions[] = ingredients.map(
-      (ingredient) => {
-        const finalQuantity = ingredient.editedQuantity ?? ingredient.quantity;
+      // Process ingredients and format display names
+      const processedForBatch: ProcessedIngredientWithActions[] = ingredients.map(
+        (ingredient) => {
+          const finalQuantity = ingredient.editedQuantity ?? ingredient.quantity;
 
-        let displayName = ingredient.name;
-        if (finalQuantity) {
-          displayName = `${finalQuantity} ${ingredient.name}`;
+          let displayName = ingredient.name;
+          if (finalQuantity) {
+            displayName = `${finalQuantity} ${ingredient.name}`;
+          }
+
+          const duplicateAction = ingredient.duplicateMatches[0];
+
+          return {
+            ...ingredient,
+            displayName,
+            duplicateAction,
+          };
         }
+      );
 
-        const duplicateAction = ingredient.duplicateMatches[0];
-
-        return {
-          ...ingredient,
-          displayName,
-          duplicateAction,
-        };
+      // Categorize by action
+      for (const ingredient of processedForBatch) {
+        if (ingredient.duplicateAction?.suggestedAction === "skip") {
+          toSkip.push(ingredient);
+        } else if (
+          ingredient.duplicateAction?.suggestedAction === "combine" &&
+          ingredient.duplicateAction.existingItemId
+        ) {
+          toCombine.push(ingredient);
+        } else {
+          toAdd.push(ingredient);
+        }
       }
-    );
 
-    // Categorize by action
-    for (const ingredient of processedForBatch) {
-      if (ingredient.duplicateAction?.suggestedAction === "skip") {
-        toSkip.push(ingredient);
-      } else if (
-        ingredient.duplicateAction?.suggestedAction === "combine" &&
-        ingredient.duplicateAction.existingItemId
-      ) {
-        toCombine.push(ingredient);
-      } else {
-        toAdd.push(ingredient);
+      // Batch update existing items for combine actions
+      if (toCombine.length > 0) {
+        const existingItemIds = toCombine
+          .map((ing) => ing.duplicateAction?.existingItemId)
+          .filter((id): id is number => id != null);
+
+        if (existingItemIds.length > 0) {
+          const existingItems = await tx
+            .select({
+              id: shoppingItems.id,
+              userId: shoppingItems.userId,
+              name: shoppingItems.name,
+              checked: shoppingItems.checked,
+              recipeId: shoppingItems.recipeId,
+              fromMealPlan: shoppingItems.fromMealPlan,
+              createdAt: shoppingItems.createdAt,
+            })
+            .from(shoppingItems)
+            .where(
+              and(
+                inArray(shoppingItems.id, existingItemIds),
+                eq(shoppingItems.userId, userId)
+              )
+            );
+
+          // Update each existing item
+          for (const ingredient of toCombine) {
+            const existingItem = existingItems.find(
+              (item) => item.id === ingredient.duplicateAction?.existingItemId
+            );
+
+            if (existingItem) {
+              try {
+                const combinedName = `${existingItem.name} + ${ingredient.displayName}`;
+
+                const [updatedItem] = await tx
+                  .update(shoppingItems)
+                  .set({
+                    name: combinedName,
+                    fromMealPlan: true,
+                  })
+                  .where(
+                    and(
+                      eq(shoppingItems.id, existingItem.id),
+                      eq(shoppingItems.userId, userId)
+                    )
+                  )
+                  .returning({
+                    id: shoppingItems.id,
+                    userId: shoppingItems.userId,
+                    name: shoppingItems.name,
+                    checked: shoppingItems.checked,
+                    recipeId: shoppingItems.recipeId,
+                    fromMealPlan: shoppingItems.fromMealPlan,
+                    createdAt: shoppingItems.createdAt,
+                  });
+
+                if (updatedItem) {
+                  updatedItems.push({
+                    ...updatedItem,
+                    recipeId: updatedItem.recipeId ?? undefined,
+                    createdAt: updatedItem.createdAt.toISOString(),
+                  });
+                }
+              } catch (error) {
+                logger.error(
+                  "Failed to combine with existing item, will add as new item",
+                  error instanceof Error ? error : new Error(String(error)),
+                  {
+                    component: "ShoppingListQueries",
+                    action: "addProcessedIngredientsToShoppingList",
+                    userId,
+                    existingItemId: existingItem.id,
+                  }
+                );
+                // Add to toAdd list instead
+                toAdd.push(ingredient);
+              }
+            } else {
+              // Existing item not found, add as new
+              toAdd.push(ingredient);
+            }
+          }
+        }
       }
-    }
 
-    // Batch update existing items for combine actions
-    if (toCombine.length > 0) {
-      const existingItemIds = toCombine
-        .map((ing) => ing.duplicateAction?.existingItemId)
-        .filter((id): id is number => id != null);
+      // Batch add new items
+      if (toAdd.length > 0) {
+        const itemsToInsert = toAdd.map((ingredient) => ({
+          userId,
+          name: ingredient.displayName,
+          recipeId: ingredient.sourceRecipes[0]?.recipeId,
+          checked: false,
+          fromMealPlan: true,
+        }));
 
-      if (existingItemIds.length > 0) {
-        const existingItems = await db
-          .select({
+        const insertedItems = await tx
+          .insert(shoppingItems)
+          .values(itemsToInsert)
+          .returning({
             id: shoppingItems.id,
             userId: shoppingItems.userId,
             name: shoppingItems.name,
@@ -611,99 +696,19 @@ export async function addProcessedIngredientsToShoppingList(
             recipeId: shoppingItems.recipeId,
             fromMealPlan: shoppingItems.fromMealPlan,
             createdAt: shoppingItems.createdAt,
-          })
-          .from(shoppingItems)
-          .where(
-            and(
-              inArray(shoppingItems.id, existingItemIds),
-              eq(shoppingItems.userId, userId)
-            )
-          );
+          });
 
-        // Update each existing item
-        for (const ingredient of toCombine) {
-          const existingItem = existingItems.find(
-            (item) => item.id === ingredient.duplicateAction?.existingItemId
-          );
-
-          if (existingItem) {
-            try {
-              const combinedName = `${existingItem.name} + ${ingredient.displayName}`;
-
-              await db
-                .update(shoppingItems)
-                .set({
-                  name: combinedName,
-                  fromMealPlan: true,
-                })
-                .where(
-                  and(
-                    eq(shoppingItems.id, existingItem.id),
-                    eq(shoppingItems.userId, userId)
-                  )
-                );
-
-              // Fetch the updated item explicitly selecting only existing columns
-              const [updatedItem] = await db
-                .select({
-                  id: shoppingItems.id,
-                  userId: shoppingItems.userId,
-                  name: shoppingItems.name,
-                  checked: shoppingItems.checked,
-                  recipeId: shoppingItems.recipeId,
-                  fromMealPlan: shoppingItems.fromMealPlan,
-                  createdAt: shoppingItems.createdAt,
-                })
-                .from(shoppingItems)
-                .where(
-                  and(
-                    eq(shoppingItems.id, existingItem.id),
-                    eq(shoppingItems.userId, userId)
-                  )
-                );
-
-              if (updatedItem) {
-                updatedItems.push({
-                  ...updatedItem,
-                  recipeId: updatedItem.recipeId ?? undefined,
-                  createdAt: updatedItem.createdAt.toISOString(),
-                });
-              }
-            } catch (error) {
-              logger.error(
-                "Failed to combine with existing item, will add as new item",
-                error instanceof Error ? error : new Error(String(error)),
-                {
-                  component: "ShoppingListQueries",
-                  action: "addProcessedIngredientsToShoppingList",
-                  userId,
-                  existingItemId: existingItem.id,
-                }
-              );
-              // Add to toAdd list instead
-              toAdd.push(ingredient);
-            }
-          } else {
-            // Existing item not found, add as new
-            toAdd.push(ingredient);
-          }
-        }
+        addedItems.push(
+          ...insertedItems.map((item) => ({
+            ...item,
+            recipeId: item.recipeId ?? undefined,
+            createdAt: item.createdAt.toISOString(),
+          }))
+        );
       }
-    }
 
-    // Batch add new items
-    if (toAdd.length > 0) {
-      const itemsToInsert = toAdd.map((ingredient) => ({
-        name: ingredient.displayName,
-        recipeId: ingredient.sourceRecipes[0]?.recipeId,
-        fromMealPlan: true,
-      }));
-
-      const newItems = await addShoppingItems(userId, itemsToInsert);
-      addedItems.push(...newItems);
-    }
-
-    return { addedItems, updatedItems };
+      return { addedItems, updatedItems };
+    });
   } catch (error) {
     logger.error(
       "Failed to add processed ingredients to shopping list",
