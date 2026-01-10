@@ -1,5 +1,7 @@
+import "server-only";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { kv } from "@vercel/kv";
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -7,99 +9,57 @@ interface RateLimitConfig {
   path?: string;
 }
 
-type RateLimitStore = Record<
-  string,
-  {
-    count: number;
-    resetTime: number;
-  }
->;
+function getKey(req: NextRequest, config: RateLimitConfig): string {
+  const ip =
+    req.headers.get("x-forwarded-for") ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+  const path = config.path ?? req.nextUrl.pathname;
+  const storeKey = `${config.path ?? "default"}-${config.maxRequests}-${config.windowMs}`;
+  return `ratelimit:${storeKey}:${ip}:${path}`;
+}
 
-// Create a global store for all rate limiters
-const globalStore: Record<string, RateLimitStore> = {};
+async function checkRateLimit(
+  req: NextRequest,
+  config: RateLimitConfig
+): Promise<{
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+}> {
+  const key = getKey(req, config);
+  const now = Date.now();
+  const resetTime = now + config.windowMs;
+  const windowSeconds = Math.ceil(config.windowMs / 1000);
 
-class RateLimiter {
-  private store: RateLimitStore;
-  public config: RateLimitConfig;
-
-  constructor(config: RateLimitConfig) {
-    this.config = config;
-    const storeKey = this.getStoreKey();
-    if (!globalStore[storeKey]) {
-      globalStore[storeKey] = {};
-    }
-    this.store = globalStore[storeKey];
-  }
-
-  private getStoreKey(): string {
-    return `${this.config.path ?? "default"}-${this.config.maxRequests}-${this.config.windowMs}`;
-  }
-
-  private getKey(req: NextRequest): string {
-    // Use a combination of IP and path for rate limiting
-    const ip =
-      req.headers.get("x-forwarded-for") ??
-      req.headers.get("x-real-ip") ??
-      "unknown";
-    const path = this.config.path ?? req.nextUrl.pathname;
-    return `${ip}-${path}`;
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const key of Object.keys(this.store)) {
-      const entry = this.store[key];
-      if (entry && entry.resetTime < now) {
-        delete this.store[key];
-      }
-    }
-  }
-
-  public async check(req: NextRequest): Promise<{
-    allowed: boolean;
-    remaining: number;
-    resetTime: number;
-  }> {
-    this.cleanup();
-    const key = this.getKey(req);
-    const now = Date.now();
-
-    if (!this.store[key] || this.store[key].resetTime < now) {
-      this.store[key] = {
-        count: 1,
-        resetTime: now + this.config.windowMs,
-      };
-      return {
-        allowed: true,
-        remaining: this.config.maxRequests - 1,
-        resetTime: this.store[key].resetTime,
-      };
+  try {
+    const count = await kv.incr(key);
+    
+    if (count === 1) {
+      await kv.expire(key, windowSeconds);
     }
 
-    if (this.store[key].count >= this.config.maxRequests) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetTime: this.store[key].resetTime,
-      };
-    }
+    const remaining = Math.max(0, config.maxRequests - count);
 
-    this.store[key].count++;
+    return {
+      allowed: count <= config.maxRequests,
+      remaining,
+      resetTime,
+    };
+  } catch (error) {
+    console.error("Rate limit KV error:", error);
+    
     return {
       allowed: true,
-      remaining: this.config.maxRequests - this.store[key].count,
-      resetTime: this.store[key].resetTime,
+      remaining: config.maxRequests - 1,
+      resetTime,
     };
   }
 }
 
-// Create a cache for rate limiter instances
-const rateLimiterCache = new Map<string, RateLimiter>();
-
-// Default rate limiter configuration
 const defaultConfig: RateLimitConfig = {
   maxRequests: 100,
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
 };
 
 export async function withRateLimit(
@@ -108,15 +68,7 @@ export async function withRateLimit(
   config?: RateLimitConfig
 ): Promise<NextResponse> {
   const finalConfig = config ?? defaultConfig;
-  const cacheKey = `${finalConfig.path ?? "default"}-${finalConfig.maxRequests}-${finalConfig.windowMs}`;
-
-  let limiter = rateLimiterCache.get(cacheKey);
-  if (!limiter) {
-    limiter = new RateLimiter(finalConfig);
-    rateLimiterCache.set(cacheKey, limiter);
-  }
-
-  const { allowed, remaining, resetTime } = await limiter.check(req);
+  const { allowed, remaining, resetTime } = await checkRateLimit(req, finalConfig);
 
   if (!allowed) {
     const response = NextResponse.json(
@@ -124,10 +76,9 @@ export async function withRateLimit(
       { status: 429 }
     );
 
-    // Add rate limit headers
     response.headers.set(
       "X-RateLimit-Limit",
-      limiter.config.maxRequests.toString()
+      finalConfig.maxRequests.toString()
     );
     response.headers.set("X-RateLimit-Remaining", remaining.toString());
     response.headers.set("X-RateLimit-Reset", resetTime.toString());
@@ -141,10 +92,9 @@ export async function withRateLimit(
 
   const response = await handler(req);
 
-  // Add rate limit headers to successful responses
   response.headers.set(
     "X-RateLimit-Limit",
-    limiter.config.maxRequests.toString()
+    finalConfig.maxRequests.toString()
   );
   response.headers.set("X-RateLimit-Remaining", remaining.toString());
   response.headers.set("X-RateLimit-Reset", resetTime.toString());
