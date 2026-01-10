@@ -35,18 +35,12 @@ const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
     body: JSON.stringify(recipe),
   });
 
-  const data = (await response.json()) as unknown;
-  const result = schemas.apiResponse(schemas.recipe).parse(data);
-
-  if (!response.ok || result.error) {
-    throw new RecipeError(result.error ?? "Failed to create recipe", 500);
+  if (!response.ok) {
+    throw new RecipeError("Failed to create recipe", response.status);
   }
 
-  if (!result.data) {
-    throw new RecipeError("No data received from server", 500);
-  }
-
-  return result.data;
+  const { parseApiResponse } = await import("~/utils/api-client");
+  return await parseApiResponse<Recipe>(response);
 };
 
 const CreateRecipeClient = () => {

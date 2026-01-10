@@ -13,6 +13,7 @@ import {
   clearMealPlanItemsFromShoppingList,
 } from "~/server/queries/shopping-list";
 import { markCurrentWeekAsAddedToShoppingList } from "~/server/queries/meal-planner";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Rate limiter for shopping list generation
 const generateRateLimiter = {
@@ -61,17 +62,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           await markCurrentWeekAsAddedToShoppingList(userId, weekStartDate);
         }
 
-        return NextResponse.json({
+        return apiSuccess({
           ingredients,
           addedToList: addToList,
           clearedExisting: clearExisting,
         });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     generateRateLimiter
@@ -104,13 +102,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           weekStartDate
         );
 
-        return NextResponse.json({ ingredients });
+        return apiSuccess({ ingredients });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     generateRateLimiter

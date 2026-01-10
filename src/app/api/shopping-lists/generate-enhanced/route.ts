@@ -8,6 +8,7 @@ import {
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import { generateEnhancedShoppingListFromWeek } from "~/server/queries/shopping-list";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Rate limiter for enhanced shopping list generation
 const generateEnhancedRateLimiter = {
@@ -42,13 +43,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           weekStartDate
         );
 
-        return NextResponse.json(result);
+        return apiSuccess(result);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     generateEnhancedRateLimiter

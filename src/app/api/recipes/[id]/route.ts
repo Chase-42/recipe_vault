@@ -10,6 +10,7 @@ import { validateId, validateUpdateRecipe } from "~/lib/validation";
 import { getRecipe, updateRecipe } from "~/server/queries";
 import { getOrSetCorrelationId } from "~/lib/request-context";
 import type { UpdateRecipeInput } from "~/types";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 export async function PUT(
   request: NextRequest,
@@ -33,7 +34,7 @@ export async function PUT(
 
     const updatedRecipe = await updateRecipe(id, validatedData, request);
 
-    const response = NextResponse.json(updatedRecipe);
+    const response = apiSuccess(updatedRecipe);
     // Ensure no caching for update responses
     response.headers.set(
       "Cache-Control",
@@ -45,7 +46,7 @@ export async function PUT(
     return response;
   } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return apiError(errorMessage, undefined, statusCode);
   }
 }
 
@@ -68,7 +69,7 @@ export async function GET(
       throw new NotFoundError("Recipe not found");
     }
 
-    const response = NextResponse.json(recipe);
+    const response = apiSuccess(recipe);
     
     // React Query handles caching, but allow browser to cache for short period
     // This helps with back/forward navigation while React Query manages freshness
@@ -83,6 +84,6 @@ export async function GET(
     return response;
   } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return apiError(errorMessage, undefined, statusCode);
   }
 }

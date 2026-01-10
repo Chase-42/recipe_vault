@@ -8,6 +8,10 @@ import type {
   CreateRecipeInput,
   FetchRecipesParams,
 } from "~/types";
+import {
+  parsePaginatedApiResponse,
+  parseApiResponse,
+} from "~/utils/api-client";
 
 export const fetchRecipes = async ({
   offset = 0,
@@ -36,8 +40,14 @@ export const fetchRecipes = async ({
         response.status
       );
     }
-    const data = await response.json();
-    return schemas.paginatedRecipes.parse(data);
+    const { data: recipes, pagination } =
+      await parsePaginatedApiResponse<Recipe>(response);
+
+    // Convert to legacy format for backward compatibility
+    return {
+      recipes,
+      pagination,
+    };
   } catch (error) {
     handleError(error, "fetchRecipes", { showToast: false });
     throw error;
@@ -56,8 +66,12 @@ export const fetchRecipe = async (id: number): Promise<Recipe> => {
         response.status
       );
     }
-    const data = await response.json();
-    return schemas.recipe.parse(data);
+    const data = await parseApiResponse<Recipe>(response);
+    const validatedData = schemas.recipe.safeParse(data);
+    if (!validatedData.success) {
+      throw new RecipeError("Invalid data received from server", 500);
+    }
+    return validatedData.data;
   } catch (error) {
     handleError(error, "fetchRecipe", { showToast: false });
     throw error;
@@ -84,8 +98,12 @@ export const updateRecipe = async (
         response.status
       );
     }
-    const data = await response.json();
-    return schemas.recipe.parse(data);
+    const data = await parseApiResponse<Recipe>(response);
+    const validatedData = schemas.recipe.safeParse(data);
+    if (!validatedData.success) {
+      throw new RecipeError("Invalid data received from server", 500);
+    }
+    return validatedData.data;
   } catch (error) {
     handleError(error, "updateRecipe", { showToast: false });
     throw error;
@@ -127,9 +145,8 @@ export const toggleFavorite = async (id: number): Promise<boolean> => {
       );
     }
 
-    const data = await response.json();
-    const validatedData = schemas.favoriteResponse.parse(data);
-    return validatedData.favorite;
+    const data = await parseApiResponse<{ favorite: boolean }>(response);
+    return data.favorite;
   } catch (error) {
     handleError(error, "toggleFavorite", { showToast: false });
     throw error;
@@ -149,18 +166,14 @@ export const createRecipe = async (
       body: JSON.stringify(recipe),
     });
 
-    const data = await response.json();
-    const validatedData = schemas.apiResponse(schemas.recipe).parse(data);
-
-    if (!response.ok || validatedData.error) {
-      throw new RecipeError(
-        validatedData.error ?? ERROR_MESSAGES.SERVER_ERROR,
-        response.status
-      );
+    if (!response.ok) {
+      throw new RecipeError(ERROR_MESSAGES.SERVER_ERROR, response.status);
     }
 
-    if (!validatedData.data) {
-      throw new RecipeError("No data received from server", 500);
+    const data = await parseApiResponse<Recipe>(response);
+    const validatedData = schemas.recipe.safeParse(data);
+    if (!validatedData.success) {
+      throw new RecipeError("Invalid data received from server", 500);
     }
 
     return validatedData.data;

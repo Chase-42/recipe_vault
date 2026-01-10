@@ -40,13 +40,12 @@ const saveRecipe = async (link: string): Promise<Recipe> => {
     body: JSON.stringify({ link }),
   });
 
-  const result = (await response.json()) as SaveRecipeResponse;
-
-  if (!response.ok || result.error) {
-    throw new RecipeError(result.error ?? "Failed to save recipe", 500);
+  if (!response.ok) {
+    throw new RecipeError("Failed to save recipe", response.status);
   }
 
-  return result.data;
+  const { parseApiResponse } = await import("~/utils/api-client");
+  return await parseApiResponse<Recipe>(response);
 };
 
 const ButtonContainer = ({

@@ -9,6 +9,7 @@ import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import type { Recipe } from "~/types";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Rate limiter for recipe creation
 const createRecipeRateLimiter = {
@@ -50,18 +51,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           throw new RecipeError("Failed to create recipe", 500);
         }
 
-        return NextResponse.json({
-          data: {
+        return apiSuccess(
+          {
             ...recipe,
             createdAt: recipe.createdAt.toISOString(),
           } as Recipe,
-        });
+          201
+        );
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     createRecipeRateLimiter
