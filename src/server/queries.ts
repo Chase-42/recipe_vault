@@ -141,27 +141,28 @@ export async function deleteRecipe(id: number, req: NextRequest) {
     throw new NotFoundError("Recipe not found or unauthorized");
   }
 
-  // Delete associated shopping items before deleting the recipe
-  // This is done manually to ensure we only delete items for this user
-  // Even though cascade is set, we do this explicitly for safety
-  await db
-    .delete(shoppingItems)
-    .where(
-      and(
-        eq(shoppingItems.recipeId, id),
-        eq(shoppingItems.userId, userId)
-      )
-    );
+  // Wrap deletions in transaction to ensure atomicity
+  await db.transaction(async (tx) => {
+    // Delete associated shopping items before deleting the recipe
+    await tx
+      .delete(shoppingItems)
+      .where(
+        and(
+          eq(shoppingItems.recipeId, id),
+          eq(shoppingItems.userId, userId)
+        )
+      );
 
-  // Now delete the recipe (cascade will handle any remaining references)
-  const result = await db
-    .delete(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .returning();
+    // Now delete the recipe (cascade will handle any remaining references)
+    const result = await tx
+      .delete(recipes)
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .returning();
 
-  if (result.length === 0) {
-    throw new NotFoundError("Recipe not found or unauthorized");
-  }
+    if (result.length === 0) {
+      throw new NotFoundError("Recipe not found or unauthorized");
+    }
+  });
 
   return { success: true, id };
 }
