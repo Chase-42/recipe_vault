@@ -8,6 +8,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import {
   updateShoppingItem,
   deleteShoppingItem,
@@ -44,16 +45,12 @@ export async function PATCH(
           throw new ValidationError("Invalid item ID");
         }
 
-        const body = (await req.json()) as UpdateItemRequest;
-        const { checked } = updateItemSchema.parse(body);
+        const { checked } = await validateRequestBody(req, updateItemSchema);
 
         const updatedItem = await updateShoppingItem(userId, itemId, checked);
 
         return apiSuccess(updatedItem);
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new ValidationError("Invalid request data");
-        }
         const { error: errorMessage, statusCode } = handleApiError(error);
         return apiError(errorMessage, undefined, statusCode);
       }

@@ -7,6 +7,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody, validateRequestParams } from "~/lib/middleware/validate-request";
 import {
   getCurrentWeekMeals,
   addMealToWeek,
@@ -15,6 +16,7 @@ import {
   hasCurrentWeekBeenAddedToShoppingList,
 } from "~/server/queries/meal-planner";
 import { apiSuccess, apiError } from "~/lib/api-response";
+import { addMealToWeekSchema, moveMealInWeekSchema, deleteMealFromWeekSchema, weekStartQuerySchema } from "~/lib/schemas/meal-planner";
 
 // Create a shared rate limiter instance for the current week endpoint
 const currentWeekRateLimiter = {
@@ -30,20 +32,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const { searchParams } = new URL(req.url);
-        const weekStartParam = searchParams.get("weekStart");
-        const checkShoppingListStatus =
-          searchParams.get("checkShoppingListStatus") === "true";
-
-        if (!weekStartParam) {
-          throw new ValidationError("weekStart parameter is required");
-        }
-
-        const weekStart = new Date(weekStartParam);
-        if (Number.isNaN(weekStart.getTime())) {
-          throw new ValidationError("Invalid weekStart date format");
-        }
+        const params = await validateRequestParams(req, weekStartQuerySchema);
+        const weekStart = new Date(params.weekStart);
+        const checkShoppingListStatus = params.checkShoppingListStatus === "true";
 
         if (checkShoppingListStatus) {
           const hasBeenAdded = await hasCurrentWeekBeenAddedToShoppingList(
@@ -73,47 +64,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as unknown;
-        const { recipeId, date, mealType } = body as {
-          recipeId?: unknown;
-          date?: unknown;
-          mealType?: unknown;
-        };
-
-        if (!recipeId || !date || !mealType) {
-          throw new ValidationError(
-            "recipeId, date, and mealType are required"
-          );
-        }
-
-        if (typeof recipeId !== "number") {
-          throw new ValidationError("recipeId must be a number");
-        }
-
-        if (typeof date !== "string") {
-          throw new ValidationError("date must be a string");
-        }
-
-        if (
-          typeof mealType !== "string" ||
-          !["breakfast", "lunch", "dinner"].includes(mealType)
-        ) {
-          throw new ValidationError(
-            "mealType must be breakfast, lunch, or dinner"
-          );
-        }
-
-        const dateObj = new Date(date);
-        if (Number.isNaN(dateObj.getTime())) {
-          throw new ValidationError("Invalid date format");
-        }
+        const { recipeId, date, mealType } = await validateRequestBody(req, addMealToWeekSchema);
 
         const meal = await addMealToWeek(
           userId,
           recipeId,
           date,
-          mealType as "breakfast" | "lunch" | "dinner"
+          mealType
         );
         return apiSuccess(meal, 201);
       } catch (error) {
@@ -132,47 +89,13 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as unknown;
-        const { mealId, newDate, newMealType } = body as {
-          mealId?: unknown;
-          newDate?: unknown;
-          newMealType?: unknown;
-        };
-
-        if (!mealId || !newDate || !newMealType) {
-          throw new ValidationError(
-            "mealId, newDate, and newMealType are required"
-          );
-        }
-
-        if (typeof mealId !== "number") {
-          throw new ValidationError("mealId must be a number");
-        }
-
-        if (typeof newDate !== "string") {
-          throw new ValidationError("newDate must be a string");
-        }
-
-        if (
-          typeof newMealType !== "string" ||
-          !["breakfast", "lunch", "dinner"].includes(newMealType)
-        ) {
-          throw new ValidationError(
-            "newMealType must be breakfast, lunch, or dinner"
-          );
-        }
-
-        const dateObj = new Date(newDate);
-        if (Number.isNaN(dateObj.getTime())) {
-          throw new ValidationError("Invalid newDate format");
-        }
+        const { mealId, newDate, newMealType } = await validateRequestBody(req, moveMealInWeekSchema);
 
         const meal = await moveMealInWeek(
           userId,
           mealId,
           newDate,
-          newMealType as "breakfast" | "lunch" | "dinner"
+          newMealType
         );
         return apiSuccess(meal);
       } catch (error) {
@@ -191,32 +114,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const { searchParams } = new URL(req.url);
-        const date = searchParams.get("date");
-        const mealType = searchParams.get("mealType");
-
-        if (!date || !mealType) {
-          throw new ValidationError(
-            "date and mealType parameters are required"
-          );
-        }
-
-        if (!["breakfast", "lunch", "dinner"].includes(mealType)) {
-          throw new ValidationError(
-            "mealType must be breakfast, lunch, or dinner"
-          );
-        }
-
-        const dateObj = new Date(date);
-        if (Number.isNaN(dateObj.getTime())) {
-          throw new ValidationError("Invalid date format");
-        }
+        const { date, mealType } = await validateRequestParams(req, deleteMealFromWeekSchema);
 
         await removeMealFromWeek(
           userId,
           date,
-          mealType as "breakfast" | "lunch" | "dinner"
+          mealType
         );
         return apiSuccess({ date, mealType }, 200);
       } catch (error) {

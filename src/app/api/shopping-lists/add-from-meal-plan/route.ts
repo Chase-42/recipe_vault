@@ -8,6 +8,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import { addProcessedIngredientsToShoppingList } from "~/server/queries/shopping-list";
 import { apiSuccess, apiError } from "~/lib/api-response";
 
@@ -57,9 +58,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as AddFromMealPlanRequest;
-        const { ingredients } = addFromMealPlanSchema.parse(body);
+        const { ingredients } = await validateRequestBody(req, addFromMealPlanSchema);
 
         // Filter only selected ingredients
         const selectedIngredients = ingredients.filter(
@@ -80,13 +79,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           updatedItems: result.updatedItems,
         });
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new ValidationError(
-            `Invalid request data: ${error.errors
-              .map((e) => `${e.path.join(".")}: ${e.message}`)
-              .join(", ")}`
-          );
-        }
         const { error: errorMessage, statusCode } = handleApiError(error);
         return apiError(errorMessage, undefined, statusCode);
       }

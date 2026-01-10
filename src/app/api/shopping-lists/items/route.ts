@@ -8,6 +8,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import {
   addShoppingItems,
   batchUpdateShoppingItems,
@@ -42,17 +43,12 @@ export async function POST(req: NextRequest) {
   getOrSetCorrelationId(req);
   try {
     const userId = await getServerUserIdFromRequest(req);
-
-    const body = (await req.json()) as AddItemsRequest;
-    const { items } = addItemsSchema.parse(body);
+    const { items } = await validateRequestBody(req, addItemsSchema);
 
     const newItems = await addShoppingItems(userId, items);
 
     return apiSuccess({ items: newItems }, 201);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new ValidationError("Invalid request data");
-    }
     const { error: errorMessage, statusCode } = handleApiError(error);
     return apiError(errorMessage, undefined, statusCode);
   }
@@ -65,9 +61,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = (await req.json()) as BatchUpdateRequest;
-        const { itemIds, checked } = batchUpdateSchema.parse(body);
+        const { itemIds, checked } = await validateRequestBody(req, batchUpdateSchema);
 
         if (itemIds.length === 0) {
           return apiSuccess({ items: [] });
@@ -81,9 +75,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
         return apiSuccess({ items: updatedItems });
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new ValidationError("Invalid request data");
-        }
         const { error: errorMessage, statusCode } = handleApiError(error);
         return apiError(errorMessage, undefined, statusCode);
       }

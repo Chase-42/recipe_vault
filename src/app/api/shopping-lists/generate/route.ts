@@ -7,6 +7,7 @@ import {
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { getOrSetCorrelationId } from "~/lib/request-context";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import {
   generateShoppingListFromWeek,
   addMealPlanItemsToShoppingList,
@@ -14,6 +15,8 @@ import {
 } from "~/server/queries/shopping-list";
 import { markCurrentWeekAsAddedToShoppingList } from "~/server/queries/meal-planner";
 import { apiSuccess, apiError } from "~/lib/api-response";
+import { generateShoppingListSchema, weekStartQuerySchema } from "~/lib/schemas/meal-planner";
+import { validateRequestParams } from "~/lib/middleware/validate-request";
 
 // Rate limiter for shopping list generation
 const generateRateLimiter = {
@@ -29,18 +32,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const body = await req.json();
-        const { weekStart, addToList = false, clearExisting = false } = body;
-
-        if (!weekStart) {
-          throw new ValidationError("weekStart is required");
-        }
+        const { weekStart, addToList, clearExisting } = await validateRequestBody(req, generateShoppingListSchema);
 
         const weekStartDate = new Date(weekStart);
-        if (isNaN(weekStartDate.getTime())) {
-          throw new ValidationError("Invalid weekStart date");
-        }
 
         // Generate shopping list from current week meals
         const ingredients = await generateShoppingListFromWeek(
@@ -83,18 +77,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
-
-        const { searchParams } = new URL(req.url);
-        const weekStart = searchParams.get("weekStart");
-
-        if (!weekStart) {
-          throw new ValidationError("weekStart query parameter is required");
-        }
-
+        const { weekStart } = await validateRequestParams(req, weekStartQuerySchema);
         const weekStartDate = new Date(weekStart);
-        if (isNaN(weekStartDate.getTime())) {
-          throw new ValidationError("Invalid weekStart date");
-        }
 
         // Generate shopping list from current week meals (preview only)
         const ingredients = await generateShoppingListFromWeek(
