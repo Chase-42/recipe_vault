@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import {
   updateShoppingItem,
   deleteShoppingItem,
@@ -32,6 +33,7 @@ export async function PATCH(
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       const params = await context.params;
       try {
         const userId = await getServerUserIdFromRequest(req);
@@ -69,6 +71,7 @@ export async function DELETE(
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       const params = await context.params;
       try {
         const userId = await getServerUserIdFromRequest(req);

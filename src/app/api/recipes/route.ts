@@ -7,6 +7,7 @@ import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { logger } from "~/lib/logger";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import { validateUrl } from "~/lib/validation";
 import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       const log = logger.forComponent("RecipesAPI").forAction("GET");
 
       try {
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       const log = logger.forComponent("RecipesAPI").forAction("POST");
 
       try {
@@ -169,6 +172,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       const log = logger.forComponent("RecipesAPI").forAction("DELETE");
 
       try {

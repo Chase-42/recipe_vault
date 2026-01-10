@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import { addProcessedIngredientsToShoppingList } from "~/server/queries/shopping-list";
 
 // Validation schemas
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 

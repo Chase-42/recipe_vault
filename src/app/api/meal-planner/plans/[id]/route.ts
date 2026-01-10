@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import { deleteMealPlan } from "~/server/queries/meal-planner";
 
 // Create a shared rate limiter instance for the meal plan deletion endpoint
@@ -22,6 +23,7 @@ export async function DELETE(
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 

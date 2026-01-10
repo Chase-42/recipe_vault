@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 
 interface RevalidateRequest {
   path: string;
@@ -20,6 +21,7 @@ const revalidateRateLimiter = {
 };
 
 export async function GET(request: NextRequest) {
+  getOrSetCorrelationId(request);
   try {
     const userId = await getServerUserIdFromRequest(request);
 
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 
