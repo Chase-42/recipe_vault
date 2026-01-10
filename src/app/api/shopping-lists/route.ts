@@ -13,6 +13,7 @@ import {
   getShoppingItems,
 } from "~/server/queries/shopping-list";
 import type { ShoppingItemRequest, DeleteItemRequest } from "~/types";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Create a shared rate limiter instance for the shopping lists endpoint
 const shoppingListsRateLimiter = {
@@ -31,13 +32,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const userId = await getServerUserIdFromRequest(req);
 
         const items = await getShoppingItems(userId);
-        return NextResponse.json(items);
+        return apiSuccess(items);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     shoppingListsRateLimiter
@@ -60,13 +58,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const items = await addShoppingItems(userId, [
           { name: body.name, recipeId: body.recipeId, fromMealPlan: false },
         ]);
-        return NextResponse.json(items);
+        return apiSuccess(items, 201);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     shoppingListsRateLimiter
@@ -87,13 +82,10 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         }
 
         await deleteShoppingItem(userId, body.id);
-        return new NextResponse(null, { status: 204 });
+        return apiSuccess({ id: body.id }, 200);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     shoppingListsRateLimiter

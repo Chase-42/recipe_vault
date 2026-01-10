@@ -82,17 +82,12 @@ export default function ImageUpload({
         body: formData,
       });
 
-      const result = (await response.json()) as
-        | { url: string }
-        | { error: string };
-
-      if (!response.ok || "error" in result) {
-        throw new RecipeError(
-          "error" in result ? result.error : "Upload failed",
-          500
-        );
+      if (!response.ok) {
+        throw new RecipeError("Upload failed", response.status);
       }
 
+      const { parseApiResponse } = await import("~/utils/api-client");
+      const result = await parseApiResponse<{ url: string }>(response);
       onImageChange(result.url);
       toast("Image uploaded successfully!");
     } catch (error) {

@@ -12,6 +12,7 @@ import {
   updateShoppingItem,
   deleteShoppingItem,
 } from "~/server/queries/shopping-list";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 const updateItemSchema = z.object({
   checked: z.boolean(),
@@ -48,16 +49,13 @@ export async function PATCH(
 
         const updatedItem = await updateShoppingItem(userId, itemId, checked);
 
-        return NextResponse.json(updatedItem);
+        return apiSuccess(updatedItem);
       } catch (error) {
         if (error instanceof z.ZodError) {
           throw new ValidationError("Invalid request data");
         }
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     itemRateLimiter
@@ -82,13 +80,10 @@ export async function DELETE(
         }
 
         await deleteShoppingItem(userId, itemId);
-        return new NextResponse(null, { status: 204 });
+        return apiSuccess({ id: itemId }, 200);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     itemRateLimiter

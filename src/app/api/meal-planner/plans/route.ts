@@ -12,6 +12,7 @@ import {
   loadMealPlanToCurrentWeek,
   getUserMealPlans,
 } from "~/server/queries/meal-planner";
+import { apiSuccess, apiError } from "~/lib/api-response";
 
 // Create a shared rate limiter instance for the meal plans endpoint
 const mealPlansRateLimiter = {
@@ -29,13 +30,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const userId = await getServerUserIdFromRequest(req);
 
         const plans = await getUserMealPlans(userId);
-        return NextResponse.json(plans);
+        return apiSuccess(plans);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     mealPlansRateLimiter
@@ -66,13 +64,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         const planId = await saveCurrentWeekAsPlan(userId, name, description);
-        return NextResponse.json({ id: planId, name, description });
+        return apiSuccess({ id: planId, name, description }, 201);
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     mealPlansRateLimiter
@@ -99,13 +94,10 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         }
 
         await loadMealPlanToCurrentWeek(userId, mealPlanId);
-        return NextResponse.json({ success: true });
+        return apiSuccess({ mealPlanId });
       } catch (error) {
         const { error: errorMessage, statusCode } = handleApiError(error);
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: statusCode }
-        );
+        return apiError(errorMessage, undefined, statusCode);
       }
     },
     mealPlansRateLimiter

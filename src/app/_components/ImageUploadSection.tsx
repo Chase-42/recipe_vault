@@ -8,6 +8,7 @@ import { RecipeError } from "~/lib/errors";
 import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
 import { compressImage } from "~/utils/imageCompression";
+import { parseApiResponse } from "~/utils/api-client";
 
 interface ImageUploadSectionProps {
   imageUrl: string;
@@ -63,18 +64,12 @@ export default function ImageUploadSection({
         body: formData,
       });
 
-      const result = (await response.json()) as
-        | { data: { url: string }; success: boolean; timestamp: number }
-        | { error: string };
-
-      if (!response.ok || "error" in result) {
-        throw new RecipeError(
-          "error" in result ? result.error : "Failed to upload image",
-          500
-        );
+      if (!response.ok) {
+        throw new RecipeError("Failed to upload image", response.status);
       }
 
-      onImageUrlChange(result.data.url);
+      const result = await parseApiResponse<{ url: string }>(response);
+      onImageUrlChange(result.url);
       toast("Image uploaded successfully!");
     } catch (error) {
       handleError(error, "ImageUploadSection", {

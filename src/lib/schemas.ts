@@ -94,14 +94,32 @@ const createRecipeRequest = z.object({
   link: z.string().min(1, "Valid link required"),
 });
 
+// Updated to match standardized API response format
 const apiResponse = <T extends z.ZodType>(schema: T) =>
+  z.discriminatedUnion("success", [
+    z.object({
+      success: z.literal(true),
+      data: schema,
+    }),
+    z.object({
+      success: z.literal(false),
+      error: z.string(),
+      code: z.string().optional(),
+    }),
+  ]);
+
+const paginatedApiResponse = <T extends z.ZodType>(schema: T) =>
   z.object({
-    data: schema.optional(),
-    error: z.string().optional(),
+    success: z.literal(true),
+    data: z.array(schema),
+    pagination: paginationMetadata,
   });
 
 const favoriteResponse = z.object({
-  favorite: z.boolean(),
+  success: z.literal(true),
+  data: z.object({
+    favorite: z.boolean(),
+  }),
 });
 
 const searchParamsSchema = z.object({
@@ -125,6 +143,7 @@ export const schemas = {
   updatedRecipe,
   createRecipeRequest,
   apiResponse,
+  paginatedApiResponse,
   favoriteResponse,
   sortOption,
   searchParamsSchema,

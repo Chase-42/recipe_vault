@@ -34,6 +34,7 @@ import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
+import { parseApiResponse, parsePaginatedApiResponse } from "~/utils/api-client";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
@@ -281,7 +282,7 @@ export function MealPlannerClient() {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to fetch meals");
       }
-      return (await response.json()) as WeeklyMealPlan;
+      return await parseApiResponse<WeeklyMealPlan>(response);
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -300,11 +301,8 @@ export function MealPlannerClient() {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to fetch recipes");
       }
-      const data = (await response.json()) as {
-        recipes: Recipe[];
-        pagination: unknown;
-      };
-      return data;
+      const { data: recipes, pagination } = await parsePaginatedApiResponse<Recipe>(response);
+      return { recipes, pagination };
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -321,7 +319,8 @@ export function MealPlannerClient() {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to fetch saved plans");
       }
-      return (await response.json()) as MealPlan[];
+      const { parseApiResponse } = await import("~/utils/api-client");
+      return await parseApiResponse<MealPlan[]>(response);
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -343,7 +342,8 @@ export function MealPlannerClient() {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to add meal");
       }
-      return response.json();
+      const { parseApiResponse } = await import("~/utils/api-client");
+      return await parseApiResponse<PlannedMeal>(response);
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -473,7 +473,8 @@ export function MealPlannerClient() {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to save meal plan");
       }
-      return response.json();
+      const data = await parseApiResponse<{ id: number; name: string; description?: string }>(response);
+      return { id: data.id, name: data.name, description: data.description, userId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as MealPlan;
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -491,14 +492,23 @@ export function MealPlannerClient() {
   // Load meal plan mutation with retry
   const loadMealPlanMutation = useMutation({
     mutationFn: async (planId: number) => {
-      const response = await fetch(`/api/meal-planner/plans/${planId}/load`, {
-        method: "POST",
+      const response = await fetch("/api/meal-planner/plans", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealPlanId: planId }),
       });
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to load meal plan");
+        let errorMessage = "Failed to load meal plan";
+        try {
+          const errorData = await response.json() as { error?: string };
+          errorMessage = errorData.error ?? errorMessage;
+        } catch {
+          // Use default error message
+        }
+        throw new Error(errorMessage);
       }
-      return response.json();
+      const { parseApiResponse } = await import("~/utils/api-client");
+      return await parseApiResponse<{ mealPlanId: number }>(response);
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -624,8 +634,7 @@ export function MealPlannerClient() {
           throw new Error(errorText || "Failed to generate shopping list");
         }
 
-        const enhancedData: GenerateEnhancedShoppingListResponse =
-          await response.json();
+        const enhancedData = await parseApiResponse<GenerateEnhancedShoppingListResponse>(response);
         setEnhancedShoppingListData(enhancedData);
       } catch (error) {
         handleError(error, "Generate shopping list");
@@ -1090,14 +1099,17 @@ export function MealPlannerClient() {
                     );
 
                     if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(
-                        errorData.error ||
-                          "Failed to add items to shopping list"
-                      );
+                      let errorMessage = "Failed to add items to shopping list";
+                      try {
+                        const errorData = await response.json() as { error?: string };
+                        errorMessage = errorData.error ?? errorMessage;
+                      } catch {
+                        // Use default error message
+                      }
+                      throw new Error(errorMessage);
                     }
 
-                    const result = await response.json();
+                    const result = await parseApiResponse<{ addedItems: unknown[]; updatedItems: unknown[] }>(response);
 
                     setShowEnhancedShoppingList(false);
                     toast.success(

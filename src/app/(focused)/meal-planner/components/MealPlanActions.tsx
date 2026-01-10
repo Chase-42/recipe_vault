@@ -26,6 +26,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Save, FolderOpen, Trash2 } from "lucide-react";
 import type { MealPlan } from "~/types";
+import { parseApiResponse } from "~/utils/api-client";
 
 interface MealPlanActionsProps {
   savedPlans: MealPlan[];
@@ -58,11 +59,18 @@ async function saveMealPlan(
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error?: string };
-    throw new Error(errorData.error ?? "Failed to save meal plan");
+    let errorMessage = "Failed to save meal plan";
+    try {
+      const errorData = await response.json() as { error?: string };
+      errorMessage = errorData.error ?? errorMessage;
+    } catch {
+      // Use default error message
+    }
+    throw new Error(errorMessage);
   }
 
-  return response.json() as Promise<MealPlan>;
+  const data = await parseApiResponse<{ id: number; name: string; description?: string }>(response);
+  return { id: data.id, name: data.name, description: data.description, userId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as MealPlan;
 }
 
 async function loadMealPlan(mealPlanId: number): Promise<void> {
@@ -75,8 +83,14 @@ async function loadMealPlan(mealPlanId: number): Promise<void> {
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error?: string };
-    throw new Error(errorData.error ?? "Failed to load meal plan");
+    let errorMessage = "Failed to load meal plan";
+    try {
+      const errorData = await response.json() as { error?: string };
+      errorMessage = errorData.error ?? errorMessage;
+    } catch {
+      // Use default error message
+    }
+    throw new Error(errorMessage);
   }
 }
 
@@ -86,8 +100,14 @@ async function deleteMealPlan(mealPlanId: number): Promise<void> {
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error?: string };
-    throw new Error(errorData.error ?? "Failed to delete meal plan");
+    let errorMessage = "Failed to delete meal plan";
+    try {
+      const errorData = await response.json() as { error?: string };
+      errorMessage = errorData.error ?? errorMessage;
+    } catch {
+      // Use default error message
+    }
+    throw new Error(errorMessage);
   }
 }
 
