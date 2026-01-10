@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import {
   addShoppingItems,
   deleteShoppingItem,
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 
@@ -74,6 +77,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 

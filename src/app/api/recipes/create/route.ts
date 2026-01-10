@@ -4,6 +4,7 @@ import { AuthorizationError, handleApiError, RecipeError } from "~/lib/errors";
 import { validateCreateRecipe } from "~/lib/validation";
 import type { CreateRecipeInput } from "~/types";
 import { withRateLimit } from "~/lib/rateLimit";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import type { Recipe } from "~/types";
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
     async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
       try {
         const userId = await getServerUserIdFromRequest(req);
 

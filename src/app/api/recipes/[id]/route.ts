@@ -8,12 +8,14 @@ import {
 } from "~/lib/errors";
 import { validateId, validateUpdateRecipe } from "~/lib/validation";
 import { getRecipe, updateRecipe } from "~/server/queries";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import type { UpdateRecipeInput } from "~/types";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  getOrSetCorrelationId(request);
   try {
     const userId = await getServerUserIdFromRequest(request);
 
@@ -51,6 +53,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  getOrSetCorrelationId(req);
   try {
     const userId = await getServerUserIdFromRequest(req);
     const { id: idParam } = await params;
