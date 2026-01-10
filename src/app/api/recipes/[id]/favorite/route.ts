@@ -7,6 +7,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "~/lib/errors";
+import { getOrSetCorrelationId } from "~/lib/request-context";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 
@@ -14,6 +15,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  getOrSetCorrelationId(request);
   try {
     const userId = await getServerUserIdFromRequest(request);
 
