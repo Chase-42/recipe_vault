@@ -1,8 +1,6 @@
 import sanitizeString from "./sanitizeString";
 
-/**
- * Recipe instruction step structure
- */
+// Recipe instruction step structure
 export interface RecipeStep {
   text?: string;
   "@type"?: string;
@@ -11,9 +9,7 @@ export interface RecipeStep {
   image?: unknown;
 }
 
-/**
- * Processes recipe instructions from various formats into a single string
- */
+// Processes recipe instructions from various formats into a single string
 export function processInstructions(
   instructions: RecipeStep[] | string | undefined
 ): string {

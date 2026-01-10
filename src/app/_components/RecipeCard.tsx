@@ -143,7 +143,9 @@ function RecipeCard({
       <svg
         className="absolute inset-0 w-full h-full rounded-md pointer-events-none"
         fill="none"
+        aria-hidden="true"
       >
+        <title>Decorative card border</title>
         <rect
           className="animated-border"
           x="1"
@@ -155,12 +157,11 @@ function RecipeCard({
           strokeWidth="2"
         />
       </svg>
-      <div className="relative z-10 w-full">
       {recipe.favorite ? (
         <button
           type="button"
           onClick={handleFavoriteToggle}
-          className="absolute right-2 top-2 z-10 transition-opacity duration-300 group-hover:opacity-100"
+          className="absolute right-0 top-0 z-20 p-2 transition-opacity duration-300 group-hover:opacity-100"
           aria-label="Unfavorite"
         >
           <IconHeart
@@ -174,7 +175,7 @@ function RecipeCard({
         <button
           type="button"
           onClick={handleFavoriteToggle}
-          className="absolute right-2 top-2 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          className="absolute right-0 top-0 z-20 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           aria-label="Favorite"
         >
           <IconHeart
@@ -184,6 +185,7 @@ function RecipeCard({
           />
         </button>
       )}
+      <div className="relative z-10 w-full">
 
       <div className="flex w-full flex-col items-center">
         <h2 className="mb-2 break-words text-center text-lg font-semibold">
@@ -243,21 +245,21 @@ function RecipeCard({
           </div>
         </Link>
 
-        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <Link href={`/edit/${recipe.id}`}>
+        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <Link href={`/edit/${recipe.id}`} aria-label={`Edit recipe: ${recipe.name}`}>
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-200 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
             >
               Edit
             </Button>
           </Link>
-          <Link href={`/print/${recipe.id}`}>
+          <Link href={`/print/${recipe.id}`} aria-label={`Print recipe: ${recipe.name}`}>
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-200 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
             >
               Print
             </Button>
@@ -267,7 +269,8 @@ function RecipeCard({
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-white/10 transition-colors duration-200 hover:bg-white/20"
+                className="bg-red-600 text-white border border-red-500 backdrop-blur-sm transition-all duration-200 hover:bg-red-700 hover:border-red-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
+                aria-label={`Delete recipe: ${recipe.name}`}
               >
                 Delete
               </Button>

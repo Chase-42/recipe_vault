@@ -16,10 +16,7 @@ interface TouchDragHandlers {
   onDragEnd: (dropTarget?: { date: string; mealType: string }) => void;
 }
 
-/**
- * Custom hook for touch-friendly drag and drop functionality
- * Provides better mobile experience compared to HTML5 drag and drop
- */
+// Custom hook for touch-friendly drag and drop functionality
 export function useTouchDragAndDrop(handlers: TouchDragHandlers) {
   const [dragState, setDragState] = useState<TouchDragState>({
     isDragging: false,

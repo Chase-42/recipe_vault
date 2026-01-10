@@ -28,10 +28,7 @@ const recipesRateLimiter = {
   path: "/api/recipes",
 } as const;
 
-/**
- * GET /api/recipes
- * Retrieves paginated recipes for the authenticated user
- */
+// GET /api/recipes - Retrieves paginated recipes for the authenticated user
 export async function GET(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
@@ -96,10 +93,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   );
 }
 
-/**
- * POST /api/recipes
- * Creates a new recipe by scraping the provided URL
- */
+// POST /api/recipes - Creates a new recipe by scraping the provided URL
 export async function POST(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,
@@ -170,10 +164,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   );
 }
 
-/**
- * DELETE /api/recipes?id=<recipeId>
- * Deletes a recipe by ID
- */
+// DELETE /api/recipes?id=<recipeId> - Deletes a recipe by ID
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   return withRateLimit(
     req,

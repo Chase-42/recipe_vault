@@ -14,10 +14,7 @@ interface KeyboardNavigationOptions {
   enabled?: boolean;
 }
 
-/**
- * Custom hook for keyboard navigation in meal planner
- * Provides arrow key navigation, enter/space for selection, delete for removal
- */
+// Custom hook for keyboard navigation in meal planner
 export function useKeyboardNavigation(options: KeyboardNavigationOptions) {
   const {
     onArrowUp,
@@ -105,9 +102,7 @@ export function useKeyboardNavigation(options: KeyboardNavigationOptions) {
   return { handleKeyDown };
 }
 
-/**
- * Hook for managing focus within a grid-like structure (like meal planner calendar)
- */
+// Hook for managing focus within a grid-like structure
 export function useGridNavigation(
   rows: number,
   cols: number,
@@ -174,9 +169,7 @@ export function useGridNavigation(
   };
 }
 
-/**
- * Hook for meal planner specific keyboard interactions
- */
+// Hook for meal planner specific keyboard interactions
 export function useMealPlannerKeyboard(
   onDeleteMeal?: () => void,
   onAddMeal?: () => void,

@@ -19,9 +19,7 @@ interface TouchPosition {
   y: number;
 }
 
-/**
- * Custom hook for handling swipe gestures on touch devices
- */
+// Custom hook for handling swipe gestures on touch devices
 export function useSwipeGestures(
   handlers: SwipeHandlers,
   options: SwipeOptions = {}

@@ -112,6 +112,7 @@ export default function RecipeListContainer({}: RecipeListContainerProps) {
     onSuccess: async () => {
       // Invalidate to sync with server
       await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      toast.success("Recipe deleted successfully");
     },
   });
 

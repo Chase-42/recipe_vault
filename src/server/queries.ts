@@ -5,7 +5,7 @@ import { AuthorizationError, NotFoundError, RecipeError } from "~/lib/errors";
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import type { Category } from "~/types";
 import { db } from "./db";
-import { recipes } from "./db/schema";
+import { recipes, shoppingItems } from "./db/schema";
 import type { InferSelectModel, SQL } from "drizzle-orm";
 
 type Recipe = InferSelectModel<typeof recipes>;
@@ -129,6 +129,31 @@ export async function getRecipe(id: number, userId: string) {
 export async function deleteRecipe(id: number, req: NextRequest) {
   const userId = await getUserIdFromRequest(req);
 
+  // First verify the recipe exists and user owns it
+  const recipe = await db
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!recipe) {
+    throw new NotFoundError("Recipe not found or unauthorized");
+  }
+
+  // Delete associated shopping items before deleting the recipe
+  // This is done manually to ensure we only delete items for this user
+  // Even though cascade is set, we do this explicitly for safety
+  await db
+    .delete(shoppingItems)
+    .where(
+      and(
+        eq(shoppingItems.recipeId, id),
+        eq(shoppingItems.userId, userId)
+      )
+    );
+
+  // Now delete the recipe (cascade will handle any remaining references)
   const result = await db
     .delete(recipes)
     .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))

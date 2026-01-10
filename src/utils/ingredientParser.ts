@@ -88,9 +88,7 @@ const INGREDIENT_PATTERNS = [
   /^(.+?)(?:\s+(?:to taste|as needed|optional))?$/,
 ];
 
-/**
- * Parse a single ingredient string into structured data
- */
+// Parse a single ingredient string into structured data
 export function parseIngredient(ingredientText: string): ParsedIngredient {
   const trimmed = ingredientText.trim();
 
@@ -122,16 +120,14 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
             quantity,
             originalText: ingredientText,
           };
-        } else {
-          // Unit not recognized, treat as part of ingredient name
-          const fullName =
-            `${unitOrDescriptor ?? ""} ${nameOrUnit ?? ""}`.trim();
-          return {
-            name: cleanIngredientName(fullName),
-            quantity,
-            originalText: ingredientText,
-          };
         }
+        // Unit not recognized, treat as part of ingredient name
+        const fullName = `${unitOrDescriptor ?? ""} ${nameOrUnit ?? ""}`.trim();
+        return {
+          name: cleanIngredientName(fullName),
+          quantity,
+          originalText: ingredientText,
+        };
       }
     }
   }
@@ -143,9 +139,7 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
   };
 }
 
-/**
- * Parse multiple ingredient strings
- */
+// Parse multiple ingredient strings
 export function parseIngredients(
   ingredientTexts: string[]
 ): ParsedIngredient[] {
@@ -154,9 +148,7 @@ export function parseIngredients(
     .map((text) => parseIngredient(text));
 }
 
-/**
- * Consolidate similar ingredients by combining quantities
- */
+// Consolidate similar ingredients by combining quantities
 export function consolidateIngredients(
   ingredients: ParsedIngredient[]
 ): ParsedIngredient[] {
@@ -189,9 +181,7 @@ export function consolidateIngredients(
   );
 }
 
-/**
- * Generate shopping list from meal plan ingredients
- */
+// Generate shopping list from meal plan ingredients
 export function generateShoppingListFromIngredients(
   recipeIngredients: Array<{ recipeId: number; ingredients: string[] }>
 ): ParsedIngredient[] {
@@ -223,9 +213,7 @@ export function generateShoppingListFromIngredients(
   }
 }
 
-/**
- * Generate enhanced shopping list from meal plan ingredients with recipe source tracking
- */
+// Generate enhanced shopping list from meal plan ingredients with recipe source tracking
 export function generateEnhancedShoppingListFromIngredients(
   recipeIngredients: Array<{
     recipeId: number;

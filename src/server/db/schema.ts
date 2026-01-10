@@ -167,8 +167,8 @@ export const shoppingItems = createTable(
     userId: varchar("userId", { length: 256 }).notNull(),
     name: text("name").notNull(),
     checked: boolean("checked").default(false).notNull(),
-    recipeId: serial("recipe_id").references(() => recipes.id, {
-      onDelete: "set null",
+    recipeId: integer("recipe_id").references(() => recipes.id, {
+      onDelete: "cascade",
     }),
     fromMealPlan: boolean("from_meal_plan").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),

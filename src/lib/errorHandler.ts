@@ -13,9 +13,7 @@ export interface ErrorHandlerOptions {
   fallbackMessage?: string;
 }
 
-/**
- * Standardized error handler for consistent error handling across the app
- */
+// Standardized error handler for consistent error handling across the app
 export function handleError(
   error: unknown,
   context: string,
@@ -59,9 +57,7 @@ export function handleError(
   }
 }
 
-/**
- * Async error handler for promises
- */
+// Async error handler for promises
 export async function handleAsyncError<T>(
   promise: Promise<T>,
   context: string,
@@ -75,17 +71,13 @@ export async function handleAsyncError<T>(
   }
 }
 
-/**
- * Error boundary fallback component props
- */
+// Error boundary fallback component props
 export interface ErrorFallbackProps {
   error: Error;
   resetError: () => void;
 }
 
-/**
- * Standard error messages
- */
+// Standard error messages
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: "Network error. Please check your connection and try again.",
   UNAUTHORIZED: "You are not authorized to perform this action.",

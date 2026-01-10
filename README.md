@@ -1,45 +1,38 @@
 # Recipe Vault
 
-A modern recipe management application that helps you collect, organize, and cook from your favorite recipes. Built with Next.js, TanStack Query, and Tailwind CSS for the frontend, Python Flask for recipe scraping, and PostgreSQL with Drizzle ORM for data persistence. Recipe Vault offers a seamless experience for managing your digital recipe collection, featuring Clerk authentication, Uploadcare for image hosting, and Shadcn UI components.
+A recipe management app where you can collect recipes from anywhere on the web, organize them, and actually use them in your kitchen. Built with Next.js, TypeScript, and PostgreSQL.
 
-[Try Recipe Vault →](https://recipe-vault-pied.vercel.app/)
+[Try it →](https://recipe-vault-pied.vercel.app/)
 
-## Features
+## What it does
 
-### Recipe Management
-- Import recipes directly from any cooking website
-- Create and edit custom recipes with rich formatting
-- Organize recipes with tags and categories
+**Recipe Collection**
+- Import recipes from any cooking website - paste a URL and it pulls everything
+- Create your own recipes manually
+- Edit anything, organize with categories and tags
 - Mark favorites for quick access
-- Print-optimized recipe views
+- Print-friendly views (actually useful on a tablet in the kitchen)
 
-### Smart Organization
-- Powerful search across ingredients and instructions
-- Shopping list generation from ingredients
-- Interactive ingredient checklist while cooking
-- Tag-based categorization
-- Responsive layout optimized for kitchen use
+**Meal Planning**
+- Weekly calendar to plan your meals
+- Drag and drop recipes onto days
+- Automatically generate shopping lists from your meal plan
+- Shopping lists with duplicate detection (no more buying onions three times)
 
-### Technical Features
-- Fast, modern UI built with Next.js and React
-- Secure authentication via Clerk
-- PostgreSQL database with Drizzle ORM
-- Optimized image handling and caching
-- Parallel routes for modal views
-- Server-side recipe scraping
+**Organization**
+- Search recipes by name, ingredient, or instruction
+- Filter by category or tags
+- Pagination for large collections
+- Image view for full recipe photos
 
-## Getting Started
+## Setup
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- Python 3.8+ (for recipe scraping)
+You'll need Node.js 18+, PostgreSQL 14+, and Python 3.8+ for the recipe scraper.
 
-### Quick Start
-1. Clone the repository
+1. Clone it
    ```bash
    git clone https://github.com/Chase-42/recipe_vault.git
-   cd recipe-vault
+   cd recipe_vault
    ```
 
 2. Install dependencies
@@ -50,53 +43,42 @@ A modern recipe management application that helps you collect, organize, and coo
 3. Set up environment variables
    ```bash
    cp .env.example .env.local
-   # Edit .env.local with your configuration
+   ```
+   
+   You'll need:
+   - `POSTGRES_URL` - Your PostgreSQL connection string
+   - `BETTER_AUTH_SECRET` - At least 32 characters for auth
+   - `BETTER_AUTH_URL` - Your app URL (optional, defaults to NEXT_PUBLIC_DOMAIN)
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - For Google OAuth (optional)
+   - `UPLOADCARE_SECRET_KEY` / `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` - For image hosting
+   - `NEXT_PUBLIC_DOMAIN` - Your app domain
+
+4. Run migrations
+   ```bash
+   npm run db:push
    ```
 
-4. Start the development server
+5. Start the dev server
    ```bash
    npm run dev
    ```
+   
+   This starts both the Next.js app and the Python Flask scraper. Open `http://localhost:3000`.
 
-Visit `http://localhost:3000` to see your local instance.
+## Tech Stack
 
-### Environment Variables
-Required environment variables:
-- `DATABASE_URL`: PostgreSQL connection string
-- `CLERK_FRONTEND_API`: Clerk Frontend API key
-- `CLERK_API_KEY`: Clerk API key
-- `UPLOADCARE_PUBLIC_KEY`: Uploadcare public key for image hosting
+- **Next.js** - Frontend and API routes
+- **TypeScript** - Type safety
+- **PostgreSQL** - Database
+- **Drizzle ORM** - Type-safe database queries
+- **Better Auth** - Authentication (email/password + Google OAuth)
+- **TanStack Query** - Server state management
+- **Tailwind CSS** - Styling
+- **Uploadcare** - Image hosting
+- **Python Flask** - Recipe scraping server
 
-## Recent Updates
-
-- Improved recipe view layout and modal interactions
-- Enhanced search functionality with categories and tags
-- Added shopping list feature
-- Optimized performance and image handling
-- Implemented comprehensive error handling
-- Added print-friendly recipe views
-
-## Development
-
-### Architecture
-Recipe Vault follows a modern web architecture:
-- Next.js for the frontend and API routes
-- PostgreSQL with Drizzle ORM for data persistence
-- Python Flask serverless function for recipe scraping
-- Clerk for authentication and user management
-
-### Key Technologies
-- [Next.js](https://nextjs.org/) - React framework
-- [PostgreSQL](https://www.postgresql.org/) - Database
-- [Drizzle ORM](https://drizzle-orm.com/) - TypeScript ORM
-- [Clerk](https://clerk.dev/) - Authentication
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Shadcn UI](https://shadcn.dev/) - UI components
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+The recipe scraper tries multiple methods - a JavaScript package first, then a Python Flask API, with fallbacks. Most recipe sites work.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
