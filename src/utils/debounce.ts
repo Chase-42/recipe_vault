@@ -1,7 +1,4 @@
-/**
- * Creates a debounced function that delays invoking func until after wait milliseconds
- * have elapsed since the last time the debounced function was invoked.
- */
+// Creates a debounced function that delays invoking func until after wait milliseconds
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
@@ -20,9 +17,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   };
 }
 
-/**
- * Creates a debounced function with immediate execution option
- */
+// Creates a debounced function with immediate execution option
 export function debounceImmediate<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,

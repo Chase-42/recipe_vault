@@ -1,8 +1,6 @@
 import { useState, useCallback } from "react";
 
-/**
- * Loading state management hook for multiple operations
- */
+// Loading state management hook for multiple operations
 export function useLoadingStates() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
     {}
@@ -48,9 +46,7 @@ export function useLoadingStates() {
   };
 }
 
-/**
- * Simple loading state hook for a single operation
- */
+// Simple loading state hook for a single operation
 export function useLoading(initialState = false) {
   const [isLoading, setIsLoading] = useState(initialState);
 

@@ -1,11 +1,7 @@
-/**
- * Performance monitoring utilities
- */
+// Performance monitoring utilities
 import { logger } from "~/lib/logger";
 
-/**
- * Measures the execution time of a function
- */
+// Measures the execution time of a function
 export function measurePerformance<T>(name: string, fn: () => T): T {
   const start = performance.now();
   const result = fn();
@@ -20,9 +16,7 @@ export function measurePerformance<T>(name: string, fn: () => T): T {
   return result;
 }
 
-/**
- * Measures the execution time of an async function
- */
+// Measures the execution time of an async function
 export async function measureAsyncPerformance<T>(
   name: string,
   fn: () => Promise<T>
@@ -40,9 +34,7 @@ export async function measureAsyncPerformance<T>(
   return result;
 }
 
-/**
- * Creates a performance timer
- */
+// Creates a performance timer
 export function createTimer(name: string) {
   const start = performance.now();
 
@@ -74,9 +66,7 @@ export function createTimer(name: string) {
   };
 }
 
-/**
- * Throttles a function to execute at most once per specified interval
- */
+// Throttles a function to execute at most once per specified interval
 export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
@@ -94,9 +84,7 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
   };
 }
 
-/**
- * Memoizes expensive computations
- */
+// Memoizes expensive computations
 export function memoize<T extends (...args: unknown[]) => unknown>(
   fn: T,
   getKey?: (...args: Parameters<T>) => string
@@ -107,7 +95,10 @@ export function memoize<T extends (...args: unknown[]) => unknown>(
     const key = getKey ? getKey(...args) : JSON.stringify(args);
 
     if (cache.has(key)) {
-      return cache.get(key)!;
+      const value = cache.get(key);
+      if (value !== undefined) {
+        return value;
+      }
     }
 
     const result = fn(...args);
@@ -117,9 +108,7 @@ export function memoize<T extends (...args: unknown[]) => unknown>(
   }) as T;
 }
 
-/**
- * Batches multiple function calls into a single execution
- */
+// Batches multiple function calls into a single execution
 export function batchCalls<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay = 0

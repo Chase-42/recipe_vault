@@ -39,6 +39,7 @@ export async function getShoppingItems(
     // Convert Date objects to strings to match ShoppingItem type
     return items.map((item) => ({
       ...item,
+      recipeId: item.recipeId ?? undefined,
       createdAt: item.createdAt.toISOString(),
     }));
   } catch (error) {
@@ -87,6 +88,7 @@ export async function updateShoppingItem(
     return updatedItem
       ? {
           ...updatedItem,
+          recipeId: updatedItem.recipeId ?? undefined,
           createdAt: updatedItem.createdAt.toISOString(),
         }
       : undefined;
@@ -148,6 +150,7 @@ export async function batchUpdateShoppingItems(
     // Convert Date objects to strings to match ShoppingItem type
     return updatedItems.map((item) => ({
       ...item,
+      recipeId: item.recipeId ?? undefined,
       createdAt: item.createdAt.toISOString(),
     }));
   } catch (error) {
@@ -264,6 +267,7 @@ export async function addShoppingItems(
         usedIds.add(match.id);
         insertedItems.push({
           ...match,
+          recipeId: match.recipeId ?? undefined,
           createdAt: match.createdAt.toISOString(),
         });
       }
@@ -407,9 +411,7 @@ export async function clearMealPlanItemsFromShoppingList(
   }
 }
 
-/**
- * Generate enhanced shopping list from week with duplicate detection and existing items
- */
+// Generate enhanced shopping list from week with duplicate detection and existing items
 export async function generateEnhancedShoppingListFromWeek(
   userId: string,
   weekStart: Date
@@ -536,9 +538,7 @@ export async function generateEnhancedShoppingListFromWeek(
   }
 }
 
-/**
- * Add processed ingredients to shopping list with duplicate handling
- */
+// Add processed ingredients to shopping list with duplicate handling
 // Local interface for processing ingredients with additional properties
 interface ProcessedIngredientWithActions extends ProcessedIngredient {
   displayName: string;
@@ -665,6 +665,7 @@ export async function addProcessedIngredientsToShoppingList(
               if (updatedItem) {
                 updatedItems.push({
                   ...updatedItem,
+                  recipeId: updatedItem.recipeId ?? undefined,
                   createdAt: updatedItem.createdAt.toISOString(),
                 });
               }

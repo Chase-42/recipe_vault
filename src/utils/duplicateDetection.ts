@@ -4,16 +4,14 @@ import type { ParsedIngredient, ShoppingItem, DuplicateMatch } from "~/types";
 const MAX_CACHE_SIZE = 500;
 const normalizationCache = new Map<string, string>();
 
-/**
- * Normalize ingredient name for better matching (with LRU caching)
- */
+// Normalize ingredient name for better matching
 export function normalizeIngredientName(name: string): string {
-  if (normalizationCache.has(name)) {
+  const cached = normalizationCache.get(name);
+  if (cached !== undefined) {
     // Move to end (most recently used)
-    const value = normalizationCache.get(name)!;
     normalizationCache.delete(name);
-    normalizationCache.set(name, value);
-    return value;
+    normalizationCache.set(name, cached);
+    return cached;
   }
 
   const normalized = name
@@ -42,9 +40,7 @@ export function normalizeIngredientName(name: string): string {
   return normalized;
 }
 
-/**
- * Calculate similarity score between two ingredient names (optimized)
- */
+// Calculate similarity score between two ingredient names
 export function calculateSimilarityScore(name1: string, name2: string): number {
   const normalized1 = normalizeIngredientName(name1);
   const normalized2 = normalizeIngredientName(name2);
@@ -97,18 +93,14 @@ export function calculateSimilarityScore(name1: string, name2: string): number {
   return commonWords.length > 0 ? 0.4 : 0;
 }
 
-/**
- * Determine match confidence based on similarity score
- */
+// Determine match confidence based on similarity score
 export function getMatchConfidence(score: number): "high" | "medium" | "low" {
   if (score >= 0.9) return "high";
   if (score >= 0.7) return "medium";
   return "low";
 }
 
-/**
- * Suggest action for duplicate handling
- */
+// Suggest action for duplicate handling
 export function suggestDuplicateAction(
   ingredient: ParsedIngredient,
   existingItem: ShoppingItem,
@@ -136,9 +128,7 @@ export function suggestDuplicateAction(
   return "add_separate";
 }
 
-/**
- * Check if two units can be combined
- */
+// Check if two units can be combined
 export function canCombineUnits(unit1?: string, unit2?: string): boolean {
   if (!unit1 && !unit2) return true; // Both have no units
   if (!unit1 || !unit2) return false; // Only one has a unit
@@ -172,10 +162,7 @@ export function canCombineUnits(unit1?: string, unit2?: string): boolean {
   );
 }
 
-/**
- * Detect duplicate matches between new ingredients and existing shopping items
- * Optimized for performance with early exits and efficient string matching
- */
+// Detect duplicate matches between new ingredients and existing shopping items
 export function detectDuplicates(
   ingredients: ParsedIngredient[],
   existingItems: ShoppingItem[]
@@ -207,7 +194,7 @@ export function detectDuplicates(
       return;
     }
 
-    normalizedExistingItems.forEach((existingItem) => {
+    for (const existingItem of normalizedExistingItems) {
       // Quick length-based filter to avoid expensive calculations
       const lengthDiff = Math.abs(
         normalizedIngredientName.length - existingItem.normalizedName.length
@@ -220,7 +207,7 @@ export function detectDuplicates(
         ) *
           0.7
       ) {
-        return; // Skip if length difference is too large
+        continue; // Skip if length difference is too large
       }
 
       // Fast exact match check
@@ -231,7 +218,7 @@ export function detectDuplicates(
           matchConfidence: "high",
           suggestedAction: "combine",
         });
-        return;
+        continue;
       }
 
       // Fast substring check
@@ -245,7 +232,7 @@ export function detectDuplicates(
           matchConfidence: "high",
           suggestedAction: "combine",
         });
-        return;
+        continue;
       }
 
       // Only do expensive similarity calculation for potential matches
@@ -278,7 +265,7 @@ export function detectDuplicates(
           });
         }
       }
-    });
+    }
 
     if (matches.length > 0) {
       // Sort matches by confidence (high first) and limit to top 3
@@ -297,9 +284,7 @@ export function detectDuplicates(
   return duplicateMap;
 }
 
-/**
- * Extract unit from ingredient name (e.g., "cups flour" -> "cups")
- */
+// Extract unit from ingredient name
 function extractUnitFromIngredientName(
   ingredientName: string
 ): string | undefined {
@@ -341,41 +326,57 @@ function extractUnitFromIngredientName(
   return undefined;
 }
 
-/**
- * Extract unit from shopping item name (basic parsing)
- */
+// Extract unit from shopping item name
 function extractUnitFromShoppingItem(itemName: string): string | undefined {
   const unitPattern = /^\d+(?:\.\d+)?\s+([a-zA-Z]+)/;
   const match = itemName.match(unitPattern);
   return match?.[1]?.toLowerCase();
 }
 
-/**
- * Calculate Levenshtein distance between two strings
- */
+// Calculate Levenshtein distance between two strings
 function levenshteinDistance(str1: string, str2: string): number {
-  const matrix: number[][] = Array(str2.length + 1)
-    .fill(0)
-    .map(() => Array(str1.length + 1).fill(0));
+  const matrix: number[][] = Array.from({ length: str2.length + 1 }, () =>
+    Array.from({ length: str1.length + 1 }, () => 0)
+  );
 
-  for (let i = 0; i <= str1.length; i++) {
-    matrix[0]![i] = i;
+  const firstRow = matrix[0];
+  if (firstRow) {
+    for (let i = 0; i <= str1.length; i++) {
+      firstRow[i] = i;
+    }
   }
 
   for (let j = 0; j <= str2.length; j++) {
-    matrix[j]![0] = j;
+    const row = matrix[j];
+    if (row) {
+      row[0] = j;
+    }
   }
 
   for (let j = 1; j <= str2.length; j++) {
+    const currentRow = matrix[j];
+    const previousRow = matrix[j - 1];
+    if (!currentRow || !previousRow) continue;
+
     for (let i = 1; i <= str1.length; i++) {
       const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j]![i] = Math.min(
-        matrix[j]![i - 1]! + 1, // deletion
-        matrix[j - 1]![i]! + 1, // insertion
-        matrix[j - 1]![i - 1]! + indicator // substitution
+      const deletion = currentRow[i - 1] ?? 0;
+      const insertion = previousRow[i] ?? 0;
+      const substitution = previousRow[i - 1] ?? 0;
+      currentRow[i] = Math.min(
+        deletion + 1, // deletion
+        insertion + 1, // insertion
+        substitution + indicator // substitution
       );
     }
   }
 
-  return matrix[str2.length]![str1.length]!;
+  const lastRow = matrix[str2.length];
+  if (lastRow) {
+    const result = lastRow[str1.length];
+    if (result !== undefined) {
+      return result;
+    }
+  }
+  return 0;
 }

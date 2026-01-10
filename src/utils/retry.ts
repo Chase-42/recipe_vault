@@ -1,52 +1,39 @@
-/**
- * Retry configuration options
- */
+// Retry configuration options
 export interface RetryOptions {
-  /** Maximum number of retry attempts */
   maxAttempts: number;
-  /** Delay between retries in milliseconds */
   delay: number;
-  /** Whether to use exponential backoff */
   exponentialBackoff?: boolean;
-  /** Maximum delay for exponential backoff */
   maxDelay?: number;
-  /** Function to determine if an error should trigger a retry */
   shouldRetry?: (error: unknown, attempt: number) => boolean;
 }
 
-/**
- * Default retry configuration
- */
+// Default retry configuration
 const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   maxAttempts: 3,
   delay: 1000,
   exponentialBackoff: true,
   maxDelay: 30000,
   shouldRetry: (error: unknown, _attempt: number) => {
-    // Don't retry on client errors (4xx), but retry on server errors (5xx) and network errors
+    // Don't retry on 4xx errors, retry on 5xx and network errors
     if (error instanceof Error && "status" in error) {
       const status = (error as { status: number }).status;
-      return status >= 500 || status === 0; // 0 typically indicates network error
+      return status >= 500 || status === 0;
     }
-    return true; // Retry on other errors
+    return true;
   },
 };
 
-/**
- * Calculates the delay for a given attempt
- */
+// Calculates the delay for a given attempt
 function calculateDelay(attempt: number, options: RetryOptions): number {
   if (!options.exponentialBackoff) {
     return options.delay;
   }
 
-  const exponentialDelay = options.delay * Math.pow(2, attempt - 1);
+  const exponentialDelay = options.delay * 2 ** (attempt - 1);
   return Math.min(exponentialDelay, options.maxDelay ?? 30000);
 }
 
-/**
- * Retries an async function with configurable options
- */
+// Retries an async function with configurable options
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: Partial<RetryOptions> = {}
@@ -74,17 +61,13 @@ export async function withRetry<T>(
     }
   }
 
-  // This should never be reached, but TypeScript requires it
   throw lastError;
 }
 
-/**
- * Creates a retry wrapper for a function
- */
-export function createRetryWrapper<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
-  options: Partial<RetryOptions> = {}
-): T {
+// Creates a retry wrapper for a function
+export function createRetryWrapper<
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(fn: T, options: Partial<RetryOptions> = {}): T {
   return ((...args: Parameters<T>) => {
     return withRetry(() => fn(...args), options);
   }) as T;

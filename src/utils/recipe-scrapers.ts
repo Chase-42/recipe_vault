@@ -9,10 +9,7 @@ import { fetchRecipeImages, tryHtmlScraper } from "./scraper";
 const FLASK_API_TIMEOUT_MS = 10_000; // 10 seconds
 const SCRAPER_TIMEOUT_MS = 15_000; // 15 seconds
 
-/**
- * Fixes instruction strings that were incorrectly split by the scraper.
- * Merges continuation lines (starting with lowercase) and short headers with their content.
- */
+// Fixes instruction strings that were incorrectly split by the scraper
 function fixInstructionString(instructions: string): string {
   const lines = instructions
     .split("\n")
@@ -73,18 +70,14 @@ function fixInstructionString(instructions: string): string {
   return fixedSteps.join("\n");
 }
 
-/**
- * Creates a timeout promise that rejects after the specified duration
- */
+// Creates a timeout promise that rejects after the specified duration
 function createTimeout<T>(ms: number, message: string): Promise<T> {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new Error(message)), ms);
   });
 }
 
-/**
- * Fetches data with a timeout
- */
+// Fetches data with a timeout
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
@@ -96,10 +89,7 @@ async function fetchWithTimeout(
   ]);
 }
 
-/**
- * Main Scraper: JS Package (@rethora/url-recipe-scraper)
- * This is the primary scraper we rely on
- */
+// Main Scraper: JS Package (@rethora/url-recipe-scraper) - primary scraper
 export async function tryJsPackageScraper(
   link: string
 ): Promise<FallbackApiResponse | null> {
@@ -227,9 +217,7 @@ export async function tryJsPackageScraper(
   }
 }
 
-/**
- * Fallback 1: Flask API
- */
+// Fallback 1: Flask API
 export async function tryFlaskApiScraper(
   link: string,
   baseUrl: string
@@ -314,9 +302,7 @@ export async function tryFlaskApiScraper(
   }
 }
 
-/**
- * Scraped recipe data from any source
- */
+// Scraped recipe data from any source
 export interface ScrapedRecipeData {
   name: string;
   instructions: string;
@@ -324,10 +310,7 @@ export interface ScrapedRecipeData {
   imageUrl?: string;
 }
 
-/**
- * Orchestrates recipe scraping with Flask as primary scraper and two fallbacks
- * Returns the first successful result
- */
+// Orchestrates recipe scraping with Flask as primary scraper and two fallbacks
 export async function scrapeRecipe(
   link: string,
   flaskBaseUrl: string

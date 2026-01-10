@@ -1,8 +1,6 @@
 // Environment variables - using process.env directly for compatibility
 
-/**
- * Log levels in order of severity
- */
+// Log levels in order of severity
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -10,9 +8,7 @@ export enum LogLevel {
   ERROR = 3,
 }
 
-/**
- * Context information that can be attached to log entries
- */
+// Context information that can be attached to log entries
 export interface LogContext {
   userId?: string;
   requestId?: string;
@@ -22,9 +18,7 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-/**
- * Structured log entry
- */
+// Structured log entry
 export interface LogEntry {
   timestamp: string;
   level: string;
@@ -37,9 +31,7 @@ export interface LogEntry {
   };
 }
 
-/**
- * Logger configuration
- */
+// Logger configuration
 interface LoggerConfig {
   level: LogLevel;
   enableConsole: boolean;
@@ -47,16 +39,12 @@ interface LoggerConfig {
   environment: string;
 }
 
-/**
- * Generate a correlation ID for request tracing
- */
+// Generate a correlation ID for request tracing
 export function generateCorrelationId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
-/**
- * Centralized logging service with environment-aware configuration
- */
+// Centralized logging service with environment-aware configuration
 class Logger {
   private config: LoggerConfig;
   private correlationId: string | null = null;
@@ -70,30 +58,22 @@ class Logger {
     };
   }
 
-  /**
-   * Set correlation ID for request tracing
-   */
+  // Set correlation ID for request tracing
   setCorrelationId(id: string): void {
     this.correlationId = id;
   }
 
-  /**
-   * Get current correlation ID
-   */
+  // Get current correlation ID
   getCorrelationId(): string | null {
     return this.correlationId;
   }
 
-  /**
-   * Clear correlation ID
-   */
+  // Clear correlation ID
   clearCorrelationId(): void {
     this.correlationId = null;
   }
 
-  /**
-   * Get log level based on environment
-   */
+  // Get log level based on environment
   private getLogLevel(): LogLevel {
     switch (process.env.NODE_ENV) {
       case "development":
@@ -107,16 +87,12 @@ class Logger {
     }
   }
 
-  /**
-   * Check if a log level should be logged
-   */
+  // Check if a log level should be logged
   private shouldLog(level: LogLevel): boolean {
     return level >= this.config.level;
   }
 
-  /**
-   * Create a structured log entry
-   */
+  // Create a structured log entry
   private createLogEntry(
     level: LogLevel,
     message: string,
@@ -149,9 +125,7 @@ class Logger {
     return entry;
   }
 
-  /**
-   * Output log entry to console
-   */
+  // Output log entry to console
   private logToConsole(entry: LogEntry): void {
     if (!this.config.enableConsole) return;
 
@@ -176,21 +150,13 @@ class Logger {
     }
   }
 
-  /**
-   * Send log entry to remote logging service
-   * This is a placeholder for future integration with services like Sentry, LogRocket, etc.
-   */
+  // Send log entry to remote logging service
   private logToRemote(_entry: LogEntry): void {
     if (!this.config.enableRemote) return;
 
-    // Remote logging integration placeholder
-    // Configure with Sentry, LogRocket, CloudWatch, etc. when needed
-    // For now, local logging only
   }
 
-  /**
-   * Core logging method
-   */
+  // Core logging method
   private log(
     level: LogLevel,
     message: string,
@@ -205,42 +171,31 @@ class Logger {
     this.logToRemote(entry);
   }
 
-  /**
-   * Log debug message
-   */
+  // Log debug message
   debug(message: string, context?: LogContext): void {
     this.log(LogLevel.DEBUG, message, context);
   }
 
-  /**
-   * Log info message
-   */
+  // Log info message
   info(message: string, context?: LogContext): void {
     this.log(LogLevel.INFO, message, context);
   }
 
-  /**
-   * Log warning message
-   */
+  // Log warning message
   warn(message: string, context?: LogContext): void {
     this.log(LogLevel.WARN, message, context);
   }
 
-  /**
-   * Log error message
-   */
+  // Log error message
   error(message: string, error?: Error, context?: LogContext): void {
     this.log(LogLevel.ERROR, message, context, error);
   }
 
-  /**
-   * Create a child logger with additional context
-   */
+  // Create a child logger with additional context
   child(context: LogContext): Logger {
     const childLogger = new Logger();
     childLogger.correlationId = this.correlationId;
 
-    // Override logging methods to include the child context
     const originalLog = childLogger.log.bind(childLogger);
     childLogger.log = (
       level: LogLevel,
@@ -255,16 +210,12 @@ class Logger {
     return childLogger;
   }
 
-  /**
-   * Create a logger for a specific component
-   */
+  // Create a logger for a specific component
   forComponent(componentName: string): Logger {
     return this.child({ component: componentName });
   }
 
-  /**
-   * Create a logger for a specific action
-   */
+  // Create a logger for a specific action
   forAction(actionName: string): Logger {
     return this.child({ action: actionName });
   }

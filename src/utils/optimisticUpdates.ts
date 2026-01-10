@@ -1,23 +1,23 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-/**
- * Optimistic update configuration
- */
+// Optimistic update configuration
 export interface OptimisticUpdateConfig<TData, TVariables> {
   queryKey: unknown[];
   updater: (oldData: TData | undefined, variables: TVariables) => TData;
   rollback?: (oldData: TData | undefined, variables: TVariables) => TData;
 }
 
-/**
- * Performs an optimistic update with automatic rollback on error
- */
-export async function performOptimisticUpdate<TData, TVariables>(
+// Performs an optimistic update with automatic rollback on error
+export async function performOptimisticUpdate<
+  TData,
+  TVariables,
+  TMutationResult = unknown,
+>(
   queryClient: QueryClient,
   config: OptimisticUpdateConfig<TData, TVariables>,
   variables: TVariables,
-  mutationFn: (variables: TVariables) => Promise<any>
-): Promise<{ success: boolean; data?: any; error?: unknown }> {
+  mutationFn: (variables: TVariables) => Promise<TMutationResult>
+): Promise<{ success: boolean; data?: TMutationResult; error?: unknown }> {
   // Cancel outgoing refetches
   await queryClient.cancelQueries({ queryKey: config.queryKey });
 
@@ -37,8 +37,9 @@ export async function performOptimisticUpdate<TData, TVariables>(
   } catch (error) {
     // Rollback on error
     if (config.rollback) {
+      const rollbackFn = config.rollback;
       queryClient.setQueryData(config.queryKey, (oldData: TData | undefined) =>
-        config.rollback!(oldData, variables)
+        rollbackFn(oldData, variables)
       );
     } else {
       // Default rollback to previous data
@@ -52,17 +53,21 @@ export async function performOptimisticUpdate<TData, TVariables>(
   }
 }
 
-/**
- * Creates an optimistic update handler for a specific query
- */
-export function createOptimisticUpdater<TData, TVariables>(
-  queryClient: QueryClient,
-  config: OptimisticUpdateConfig<TData, TVariables>
-) {
+// Creates an optimistic update handler for a specific query
+export function createOptimisticUpdater<
+  TData,
+  TVariables,
+  TMutationResult = unknown,
+>(queryClient: QueryClient, config: OptimisticUpdateConfig<TData, TVariables>) {
   return async (
     variables: TVariables,
-    mutationFn: (variables: TVariables) => Promise<any>
+    mutationFn: (variables: TVariables) => Promise<TMutationResult>
   ) => {
-    return performOptimisticUpdate(queryClient, config, variables, mutationFn);
+    return performOptimisticUpdate<TData, TVariables, TMutationResult>(
+      queryClient,
+      config,
+      variables,
+      mutationFn
+    );
   };
 }
