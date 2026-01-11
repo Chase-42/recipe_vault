@@ -24,17 +24,13 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
+import { useRecipeProgress } from "~/hooks/useRecipeProgress";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
 import LoadingSpinner from "./LoadingSpinner";
 
-interface FullPageImageViewProps {
-  id: number;
-  initialRecipe?: Recipe | null;
-  loadingFallback?: React.ReactNode;
-}
-
+// Constants for resizable panels
 const MIN_PANEL_SIZE = 20;
 const MAX_PANEL_SIZE = 80;
 const DEFAULT_LEFT_PANEL_WIDTH = 45;
@@ -62,6 +58,12 @@ const handleKeyboardToggle = (
   }
 };
 
+interface FullPageImageViewProps {
+  id: number;
+  initialRecipe?: Recipe | null;
+  loadingFallback?: React.ReactNode;
+}
+
 export default function FullImageView({
   id,
   initialRecipe,
@@ -70,12 +72,14 @@ export default function FullImageView({
   const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
   const { toggleFavorite } = useFavoriteToggle();
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(
-    new Set()
-  );
-  const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(
-    new Set()
-  );
+  
+  // Use localStorage hook for persistence (will be initialized from localStorage)
+  const {
+    checkedIngredients,
+    checkedInstructions,
+    setCheckedIngredients,
+    setCheckedInstructions,
+  } = useRecipeProgress(id);
 
   // Resizable panel states
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
@@ -105,16 +109,16 @@ export default function FullImageView({
 
   const toggleIngredient = useCallback(
     (index: number) => {
-      setCheckedIngredients((prev) => toggleSetItem(prev, index));
+      setCheckedIngredients(toggleSetItem(checkedIngredients, index));
     },
-    []
+    [checkedIngredients, setCheckedIngredients]
   );
 
   const toggleInstruction = useCallback(
     (index: number) => {
-      setCheckedInstructions((prev) => toggleSetItem(prev, index));
+      setCheckedInstructions(toggleSetItem(checkedInstructions, index));
     },
-    []
+    [checkedInstructions, setCheckedInstructions]
   );
 
   // Horizontal divider handlers (left/right split)
