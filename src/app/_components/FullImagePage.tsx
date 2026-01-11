@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ExternalLink,
   ChefHat,
   Edit,
   ShoppingCart,
   ArrowLeft,
+  Check,
+  GripVertical,
+  GripHorizontal,
 } from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,10 +25,39 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
+import { useRecipeProgress } from "~/hooks/useRecipeProgress";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
 import LoadingSpinner from "./LoadingSpinner";
+
+// Constants for resizable panels
+const MIN_PANEL_SIZE = 20;
+const MAX_PANEL_SIZE = 80;
+const DEFAULT_LEFT_PANEL_WIDTH = 45;
+const DEFAULT_IMAGE_HEIGHT = 50;
+
+// Utility function to toggle an item in a Set
+function toggleSetItem<T>(set: Set<T>, item: T): Set<T> {
+  const newSet = new Set(set);
+  if (newSet.has(item)) {
+    newSet.delete(item);
+  } else {
+    newSet.add(item);
+  }
+  return newSet;
+}
+
+// Helper for keyboard event handling
+const handleKeyboardToggle = (
+  e: React.KeyboardEvent,
+  callback: () => void
+) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    callback();
+  }
+};
 
 interface FullPageImageViewProps {
   id: number;
@@ -41,9 +73,26 @@ export default function FullImageView({
   const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
   const { toggleFavorite } = useFavoriteToggle();
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(
-    new Set()
-  );
+  
+  // Use localStorage hook for persistence (will be initialized from localStorage)
+  const {
+    checkedIngredients,
+    checkedInstructions,
+    setCheckedIngredients,
+    setCheckedInstructions,
+  } = useRecipeProgress(id);
+
+  // Resizable panel states
+  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
+  const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
+  const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
+  const [isDraggingVertical, setIsDraggingVertical] = useState(false);
+
+  const horizontalDividerRef = useRef<HTMLDivElement>(null);
+  const verticalDividerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+
   const queryClient = useQueryClient();
   const cachedData = queryClient.getQueryData<Recipe>(["recipe", id]);
   const hasCachedData = !!cachedData;
@@ -59,15 +108,196 @@ export default function FullImageView({
     refetchOnWindowFocus: false,
   });
 
-  const toggleIngredient = (index: number) => {
-    const newChecked = new Set(checkedIngredients);
-    if (newChecked.has(index)) {
-      newChecked.delete(index);
-    } else {
-      newChecked.add(index);
+  const toggleIngredient = useCallback(
+    (index: number) => {
+      setCheckedIngredients(toggleSetItem(checkedIngredients, index));
+    },
+    [checkedIngredients, setCheckedIngredients]
+  );
+
+  const toggleInstruction = useCallback(
+    (index: number) => {
+      setCheckedInstructions(toggleSetItem(checkedInstructions, index));
+    },
+    [checkedInstructions, setCheckedInstructions]
+  );
+
+  // Horizontal divider handlers (left/right split)
+  const handleHorizontalStart = useCallback(() => {
+    setIsDraggingHorizontal(true);
+  }, []);
+
+  const handleHorizontalMove = useCallback(
+    (clientX: number) => {
+      if (!isDraggingHorizontal || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newWidth = ((clientX - rect.left) / rect.width) * 100;
+      const constrainedWidth = Math.max(
+        MIN_PANEL_SIZE,
+        Math.min(MAX_PANEL_SIZE, newWidth)
+      );
+      setLeftPanelWidth(constrainedWidth);
+    },
+    [isDraggingHorizontal]
+  );
+
+  const handleHorizontalEnd = useCallback(() => {
+    setIsDraggingHorizontal(false);
+  }, []);
+
+  // Vertical divider handlers (image/ingredients split)
+  const handleVerticalStart = useCallback(() => {
+    setIsDraggingVertical(true);
+  }, []);
+
+  const handleVerticalMove = useCallback(
+    (clientY: number) => {
+      if (!isDraggingVertical || !leftPanelRef.current) return;
+      const rect = leftPanelRef.current.getBoundingClientRect();
+      const newHeight = ((clientY - rect.top) / rect.height) * 100;
+      const constrainedHeight = Math.max(
+        MIN_PANEL_SIZE,
+        Math.min(MAX_PANEL_SIZE, newHeight)
+      );
+      setImageHeight(constrainedHeight);
+    },
+    [isDraggingVertical]
+  );
+
+  const handleVerticalEnd = useCallback(() => {
+    setIsDraggingVertical(false);
+  }, []);
+
+  // Unified mouse handlers
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isDraggingHorizontal) {
+        handleHorizontalMove(e.clientX);
+      } else if (isDraggingVertical) {
+        handleVerticalMove(e.clientY);
+      }
+    },
+    [
+      isDraggingHorizontal,
+      isDraggingVertical,
+      handleHorizontalMove,
+      handleVerticalMove,
+    ]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    if (isDraggingHorizontal) {
+      handleHorizontalEnd();
+    } else if (isDraggingVertical) {
+      handleVerticalEnd();
     }
-    setCheckedIngredients(newChecked);
-  };
+  }, [
+    isDraggingHorizontal,
+    isDraggingVertical,
+    handleHorizontalEnd,
+    handleVerticalEnd,
+  ]);
+
+  const handleMouseDown = useCallback(
+    (e: MouseEvent) => {
+      if (horizontalDividerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+        handleHorizontalStart();
+      } else if (verticalDividerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+        handleVerticalStart();
+      }
+    },
+    [handleHorizontalStart, handleVerticalStart]
+  );
+
+  // Unified touch handlers
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      if (isDraggingHorizontal) {
+        e.preventDefault();
+        handleHorizontalMove(touch.clientX);
+      } else if (isDraggingVertical) {
+        e.preventDefault();
+        handleVerticalMove(touch.clientY);
+      }
+    },
+    [
+      isDraggingHorizontal,
+      isDraggingVertical,
+      handleHorizontalMove,
+      handleVerticalMove,
+    ]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (isDraggingHorizontal) {
+      handleHorizontalEnd();
+    } else if (isDraggingVertical) {
+      handleVerticalEnd();
+    }
+  }, [
+    isDraggingHorizontal,
+    isDraggingVertical,
+    handleHorizontalEnd,
+    handleVerticalEnd,
+  ]);
+
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      if (horizontalDividerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+        handleHorizontalStart();
+      } else if (verticalDividerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+        handleVerticalStart();
+      }
+    },
+    [handleHorizontalStart, handleVerticalStart]
+  );
+
+  // Event listeners for dragging
+  useEffect(() => {
+    if (isDraggingHorizontal || isDraggingVertical) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleTouchEnd);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleTouchEnd);
+      };
+    }
+  }, [
+    isDraggingHorizontal,
+    isDraggingVertical,
+    handleMouseMove,
+    handleMouseUp,
+    handleTouchMove,
+    handleTouchEnd,
+  ]);
+
+  // Event listeners for drag start
+  useEffect(() => {
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("touchstart", handleTouchStart);
+    };
+  }, [handleMouseDown, handleTouchStart]);
 
   const displayRecipe = recipe ?? cachedData ?? initialRecipe;
   
@@ -143,20 +373,47 @@ export default function FullImageView({
           </div>
         </div>
 
-        <div className="flex h-[calc(100vh-7rem)]">
-          <div className="w-[45%] border-r border-border flex flex-col">
-            <div className="aspect-[16/9] relative">
+        {/* Main Content */}
+        <div ref={containerRef} className="flex h-[calc(100vh-7rem)] relative">
+          {/* Left Panel */}
+          <div
+            ref={leftPanelRef}
+            className="flex flex-col border-r border-border relative"
+            style={{ width: `${leftPanelWidth}%` }}
+          >
+            {/* Image Section */}
+            <div
+              className="relative overflow-hidden"
+              style={{ height: `${imageHeight}%` }}
+            >
               <Image
                 src={displayRecipe.imageUrl}
                 alt={`Image of ${displayRecipe.name}`}
                 fill
                 priority
-                sizes="45vw"
+                sizes={`${leftPanelWidth}vw`}
                 className="object-cover"
               />
             </div>
 
-            <div className="flex flex-col min-h-0 flex-1 p-4">
+            {/* Vertical Divider */}
+            <div
+              ref={verticalDividerRef}
+              className={cn(
+                "h-1 bg-border hover:bg-primary/50 cursor-row-resize transition-colors relative z-10 flex items-center justify-center",
+                isDraggingVertical && "bg-primary"
+              )}
+              style={{ userSelect: "none" }}
+            >
+              <div className="absolute inset-x-0 -top-2 -bottom-2" />
+              <GripHorizontal className="h-3 w-3 text-muted-foreground" />
+            </div>
+
+            {/* Ingredients Section */}
+            <div
+              className="flex flex-col min-h-0 flex-1 p-4 overflow-hidden"
+              style={{ height: `${100 - imageHeight}%` }}
+            >
               {displayRecipe.tags && displayRecipe.tags.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-1.5">
                   {displayRecipe.tags.map((tag) => (
@@ -201,7 +458,24 @@ export default function FullImageView({
             </div>
           </div>
 
-          <div className="w-[55%]">
+          {/* Horizontal Divider */}
+          <div
+            ref={horizontalDividerRef}
+            className={cn(
+              "w-1 bg-border hover:bg-primary/50 cursor-col-resize transition-colors relative z-10 flex items-center justify-center",
+              isDraggingHorizontal && "bg-primary"
+            )}
+            style={{ userSelect: "none" }}
+          >
+            <div className="absolute inset-y-0 -left-2 -right-2" />
+            <GripVertical className="h-3 w-3 text-muted-foreground" />
+          </div>
+
+          {/* Right Panel (Instructions) */}
+          <div
+            className="flex-1 overflow-hidden"
+            style={{ width: `${100 - leftPanelWidth}%` }}
+          >
             <div className="p-4 h-full overflow-y-auto">
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-lg font-semibold text-foreground">
@@ -212,14 +486,41 @@ export default function FullImageView({
               <div className="space-y-4">
                 {instructions.map((instruction, index) => {
                   const key = `instruction-${index}-${instruction.trim().toLowerCase().slice(0, 32).replace(/\s+/g, "-")}`;
+                  const isChecked = checkedInstructions.has(index);
+                  const handleToggle = () => toggleInstruction(index);
                   return (
-                    <div key={key} className="flex gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                        {index + 1}
-                      </div>
-                      <p className="text-sm leading-relaxed text-foreground/90">
+                    <div key={key} className="flex gap-3 items-start">
+                      <button
+                        type="button"
+                        onClick={handleToggle}
+                        onKeyDown={(e) => handleKeyboardToggle(e, handleToggle)}
+                        className={cn(
+                          "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95",
+                          isChecked
+                            ? "bg-green-600 text-white"
+                            : "bg-primary text-primary-foreground hover:bg-primary/80"
+                        )}
+                        aria-label={`Mark step ${index + 1} as ${isChecked ? "incomplete" : "complete"}`}
+                      >
+                        {isChecked ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleToggle}
+                        onKeyDown={(e) => handleKeyboardToggle(e, handleToggle)}
+                        className={cn(
+                          "text-sm leading-relaxed flex-1 cursor-pointer text-left",
+                          isChecked
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground/90"
+                        )}
+                      >
                         {instruction}
-                      </p>
+                      </button>
                     </div>
                   );
                 })}
