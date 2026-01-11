@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ExternalLink,
   ChefHat,
   Edit,
   ShoppingCart,
   ArrowLeft,
-  Check,
   GripVertical,
   GripHorizontal,
+  Check,
 } from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,6 @@ import {
   PageTransition,
   AnimatedBackButton,
 } from "~/components/ui/page-transition";
-
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
@@ -37,8 +36,8 @@ const MAX_PANEL_SIZE = 80;
 const DEFAULT_LEFT_PANEL_WIDTH = 45;
 const DEFAULT_IMAGE_HEIGHT = 50;
 
-// Utility function to toggle an item in a Set
-function toggleSetItem<T>(set: Set<T>, item: T): Set<T> {
+// Helper to toggle an item in a Set
+const toggleSetItem = <T,>(set: Set<T>, item: T): Set<T> => {
   const newSet = new Set(set);
   if (newSet.has(item)) {
     newSet.delete(item);
@@ -46,7 +45,7 @@ function toggleSetItem<T>(set: Set<T>, item: T): Set<T> {
     newSet.add(item);
   }
   return newSet;
-}
+};
 
 // Helper for keyboard event handling
 const handleKeyboardToggle = (
@@ -300,7 +299,7 @@ export default function FullImageView({
   }, [handleMouseDown, handleTouchStart]);
 
   const displayRecipe = recipe ?? cachedData ?? initialRecipe;
-  
+
   if (isLoading && !displayRecipe) {
     if (loadingFallback) {
       return <>{loadingFallback}</>;
@@ -311,8 +310,14 @@ export default function FullImageView({
       </div>
     );
   }
-  if (error && !displayRecipe) return <div>Failed to load recipe.</div>;
-  if (!displayRecipe) return <div>Recipe not found.</div>;
+
+  if (error && !displayRecipe) {
+    return <div>Failed to load recipe.</div>;
+  }
+
+  if (!displayRecipe) {
+    return <div>Recipe not found.</div>;
+  }
 
   const ingredients = displayRecipe.ingredients
     .split("\n")
@@ -324,14 +329,15 @@ export default function FullImageView({
   return (
     <PageTransition>
       <div className="h-screen w-full">
-        <div className="flex items-center justify-between px-4 h-14 border-b border-border">
+        {/* Header */}
+        <div className="z-50 flex items-center justify-between px-4 h-14 border-b bg-black">
           <div className="flex items-center gap-6">
             <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 text-white" />
             </AnimatedBackButton>
             <div className="flex items-center gap-2">
               <ChefHat className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-foreground">
+              <h1 className="text-xl font-semibold text-white">
                 {displayRecipe.name}
               </h1>
             </div>
@@ -340,7 +346,7 @@ export default function FullImageView({
                 variant="ghost"
                 size="icon"
                 onClick={() => router.push(`/edit/${displayRecipe.id}`)}
-                className="h-8 w-8 rounded-full"
+                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -348,7 +354,7 @@ export default function FullImageView({
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowAddToList(true)}
-                className="h-8 w-8 rounded-full"
+                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
               >
                 <ShoppingCart className="h-4 w-4" />
               </Button>
@@ -356,7 +362,7 @@ export default function FullImageView({
                 variant="ghost"
                 size="icon"
                 onClick={() => toggleFavorite(displayRecipe)}
-                className="h-8 w-8 rounded-full"
+                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
               >
                 <IconHeart
                   size={16}
@@ -364,7 +370,7 @@ export default function FullImageView({
                     "transition-colors duration-300",
                     displayRecipe.favorite
                       ? "text-destructive fill-current"
-                      : "text-foreground"
+                      : "text-white"
                   )}
                   strokeWidth={2}
                 />
@@ -433,18 +439,19 @@ export default function FullImageView({
               <div className="overflow-y-auto min-h-0 flex-1 space-y-2.5">
                 {ingredients.map((ingredient, index) => {
                   const key = `ingredient-${index}-${ingredient.trim().toLowerCase().replace(/\s+/g, "-")}`;
+                  const isChecked = checkedIngredients.has(index);
                   return (
                     <div key={key} className="flex items-start gap-2">
                       <Checkbox
                         id={key}
-                        checked={checkedIngredients.has(index)}
+                        checked={isChecked}
                         onCheckedChange={() => toggleIngredient(index)}
                       />
                       <label
                         htmlFor={key}
                         className={cn(
                           "text-sm leading-relaxed cursor-pointer",
-                          checkedIngredients.has(index)
+                          isChecked
                             ? "line-through text-muted-foreground"
                             : "text-foreground"
                         )}
@@ -529,6 +536,7 @@ export default function FullImageView({
           </div>
         </div>
 
+        {/* Footer */}
         <div className="h-14 px-4 border-t border-border flex items-center justify-between">
           {displayRecipe.link && (
             <Button
