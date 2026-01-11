@@ -17,31 +17,76 @@ import type {
   ShoppingItem,
 } from "~/types";
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// Standard column selection for shopping items
+const shoppingItemColumns = {
+  id: shoppingItems.id,
+  userId: shoppingItems.userId,
+  name: shoppingItems.name,
+  checked: shoppingItems.checked,
+  recipeId: shoppingItems.recipeId,
+  fromMealPlan: shoppingItems.fromMealPlan,
+  createdAt: shoppingItems.createdAt,
+} as const;
+
+// Convert database shopping item to API ShoppingItem type
+function convertDbItemToShoppingItem(
+  item: {
+    id: number;
+    userId: string;
+    name: string;
+    checked: boolean;
+    recipeId: number | null;
+    fromMealPlan: boolean;
+    createdAt: Date;
+  }
+): ShoppingItem {
+  return {
+    ...item,
+    recipeId: item.recipeId ?? undefined,
+    createdAt: item.createdAt.toISOString(),
+  };
+}
+
+// Convert array of database shopping items to API ShoppingItem[] type
+function convertDbItemsToShoppingItems(
+  items: Array<{
+    id: number;
+    userId: string;
+    name: string;
+    checked: boolean;
+    recipeId: number | null;
+    fromMealPlan: boolean;
+    createdAt: Date;
+  }>
+): ShoppingItem[] {
+  return items.map(convertDbItemToShoppingItem);
+}
+
+// Local interface for processing ingredients with additional properties
+interface ProcessedIngredientWithActions extends ProcessedIngredient {
+  displayName: string;
+  duplicateAction?: DuplicateMatch;
+}
+
+// ============================================================================
+// CRUD Operations
+// ============================================================================
+
 export async function getShoppingItems(
   userId: string
 ): Promise<ShoppingItem[]> {
   try {
-    // Explicitly select columns that exist in the database (excluding category)
     const items = await db
-      .select({
-        id: shoppingItems.id,
-        userId: shoppingItems.userId,
-        name: shoppingItems.name,
-        checked: shoppingItems.checked,
-        recipeId: shoppingItems.recipeId,
-        fromMealPlan: shoppingItems.fromMealPlan,
-        createdAt: shoppingItems.createdAt,
-      })
+      .select(shoppingItemColumns)
       .from(shoppingItems)
       .where(eq(shoppingItems.userId, userId))
       .orderBy(desc(shoppingItems.createdAt));
 
-    // Convert Date objects to strings to match ShoppingItem type
-    return items.map((item) => ({
-      ...item,
-      recipeId: item.recipeId ?? undefined,
-      createdAt: item.createdAt.toISOString(),
-    }));
+    return convertDbItemsToShoppingItems(items);
   } catch (error) {
     logger.error(
       "Failed to fetch shopping items",
@@ -69,29 +114,15 @@ export async function updateShoppingItem(
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
       );
 
-    // Fetch the updated item explicitly selecting only existing columns
+    // Fetch the updated item
     const [updatedItem] = await db
-      .select({
-        id: shoppingItems.id,
-        userId: shoppingItems.userId,
-        name: shoppingItems.name,
-        checked: shoppingItems.checked,
-        recipeId: shoppingItems.recipeId,
-        fromMealPlan: shoppingItems.fromMealPlan,
-        createdAt: shoppingItems.createdAt,
-      })
+      .select(shoppingItemColumns)
       .from(shoppingItems)
       .where(
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
       );
 
-    return updatedItem
-      ? {
-          ...updatedItem,
-          recipeId: updatedItem.recipeId ?? undefined,
-          createdAt: updatedItem.createdAt.toISOString(),
-        }
-      : undefined;
+    return updatedItem ? convertDbItemToShoppingItem(updatedItem) : undefined;
   } catch (error) {
     logger.error(
       "Failed to update shopping item",
@@ -117,7 +148,6 @@ export async function batchUpdateShoppingItems(
       return [];
     }
 
-    // Use transaction + .returning() for atomic update and fetch
     return await db.transaction(async (tx) => {
       const updatedItems = await tx
         .update(shoppingItems)
@@ -128,22 +158,9 @@ export async function batchUpdateShoppingItems(
             eq(shoppingItems.userId, userId)
           )
         )
-        .returning({
-          id: shoppingItems.id,
-          userId: shoppingItems.userId,
-          name: shoppingItems.name,
-          checked: shoppingItems.checked,
-          recipeId: shoppingItems.recipeId,
-          fromMealPlan: shoppingItems.fromMealPlan,
-          createdAt: shoppingItems.createdAt,
-        });
+        .returning(shoppingItemColumns);
 
-      // Convert Date objects to strings to match ShoppingItem type
-      return updatedItems.map((item) => ({
-        ...item,
-        recipeId: item.recipeId ?? undefined,
-        createdAt: item.createdAt.toISOString(),
-      }));
+      return convertDbItemsToShoppingItems(updatedItems);
     });
   } catch (error) {
     logger.error(
@@ -160,19 +177,14 @@ export async function batchUpdateShoppingItems(
   }
 }
 
-export async function deleteShoppingItem(userId: string, itemId: number) {
+export async function deleteShoppingItem(
+  userId: string,
+  itemId: number
+): Promise<ShoppingItem | undefined> {
   try {
-    // Fetch the item before deleting (explicitly selecting only existing columns)
+    // Fetch the item before deleting
     const [itemToDelete] = await db
-      .select({
-        id: shoppingItems.id,
-        userId: shoppingItems.userId,
-        name: shoppingItems.name,
-        checked: shoppingItems.checked,
-        recipeId: shoppingItems.recipeId,
-        fromMealPlan: shoppingItems.fromMealPlan,
-        createdAt: shoppingItems.createdAt,
-      })
+      .select(shoppingItemColumns)
       .from(shoppingItems)
       .where(
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
@@ -184,7 +196,7 @@ export async function deleteShoppingItem(userId: string, itemId: number) {
         and(eq(shoppingItems.id, itemId), eq(shoppingItems.userId, userId))
       );
 
-    return itemToDelete;
+    return itemToDelete ? convertDbItemToShoppingItem(itemToDelete) : undefined;
   } catch (error) {
     logger.error(
       "Failed to delete shopping item",
@@ -213,21 +225,13 @@ export async function addShoppingItems(
       fromMealPlan: item.fromMealPlan ?? false,
     }));
 
-    // Insert items (without category - let database default handle it if column exists)
+    // Insert items
     await db.insert(shoppingItems).values(itemsToInsert);
 
     // Fetch the inserted items by matching the exact combinations we inserted
     // We'll fetch recent items matching our criteria, ordered by creation time
     const allMatchingItems = await db
-      .select({
-        id: shoppingItems.id,
-        userId: shoppingItems.userId,
-        name: shoppingItems.name,
-        checked: shoppingItems.checked,
-        recipeId: shoppingItems.recipeId,
-        fromMealPlan: shoppingItems.fromMealPlan,
-        createdAt: shoppingItems.createdAt,
-      })
+      .select(shoppingItemColumns)
       .from(shoppingItems)
       .where(
         and(
@@ -257,11 +261,7 @@ export async function addShoppingItems(
 
       if (match) {
         usedIds.add(match.id);
-        insertedItems.push({
-          ...match,
-          recipeId: match.recipeId ?? undefined,
-          createdAt: match.createdAt.toISOString(),
-        });
+        insertedItems.push(convertDbItemToShoppingItem(match));
       }
     }
 
@@ -280,6 +280,10 @@ export async function addShoppingItems(
     throw new RecipeError("Failed to add shopping items", 500);
   }
 }
+
+// ============================================================================
+// Meal Plan Operations
+// ============================================================================
 
 export async function generateShoppingListFromWeek(
   userId: string,
@@ -403,7 +407,10 @@ export async function clearMealPlanItemsFromShoppingList(
   }
 }
 
-// Generate enhanced shopping list from week with duplicate detection and existing items
+// ============================================================================
+// Enhanced Operations with Duplicate Detection
+// ============================================================================
+
 export async function generateEnhancedShoppingListFromWeek(
   userId: string,
   weekStart: Date
@@ -476,10 +483,10 @@ export async function generateEnhancedShoppingListFromWeek(
     }
 
     // Add duplicate matches to enhanced ingredients
-    enhancedIngredients.forEach((ingredient) => {
+    for (const ingredient of enhancedIngredients) {
       const matches = duplicateMap.get(ingredient.id) ?? [];
       ingredient.duplicateMatches = matches;
-    });
+    }
 
     // Generate duplicate analysis
     const duplicateAnalysis: DuplicateAnalysis = {
@@ -528,13 +535,6 @@ export async function generateEnhancedShoppingListFromWeek(
       500
     );
   }
-}
-
-// Add processed ingredients to shopping list with duplicate handling
-// Local interface for processing ingredients with additional properties
-interface ProcessedIngredientWithActions extends ProcessedIngredient {
-  displayName: string;
-  duplicateAction?: DuplicateMatch;
 }
 
 export async function addProcessedIngredientsToShoppingList(
@@ -597,15 +597,7 @@ export async function addProcessedIngredientsToShoppingList(
 
         if (existingItemIds.length > 0) {
           const existingItems = await tx
-            .select({
-              id: shoppingItems.id,
-              userId: shoppingItems.userId,
-              name: shoppingItems.name,
-              checked: shoppingItems.checked,
-              recipeId: shoppingItems.recipeId,
-              fromMealPlan: shoppingItems.fromMealPlan,
-              createdAt: shoppingItems.createdAt,
-            })
+            .select(shoppingItemColumns)
             .from(shoppingItems)
             .where(
               and(
@@ -636,22 +628,10 @@ export async function addProcessedIngredientsToShoppingList(
                       eq(shoppingItems.userId, userId)
                     )
                   )
-                  .returning({
-                    id: shoppingItems.id,
-                    userId: shoppingItems.userId,
-                    name: shoppingItems.name,
-                    checked: shoppingItems.checked,
-                    recipeId: shoppingItems.recipeId,
-                    fromMealPlan: shoppingItems.fromMealPlan,
-                    createdAt: shoppingItems.createdAt,
-                  });
+                  .returning(shoppingItemColumns);
 
                 if (updatedItem) {
-                  updatedItems.push({
-                    ...updatedItem,
-                    recipeId: updatedItem.recipeId ?? undefined,
-                    createdAt: updatedItem.createdAt.toISOString(),
-                  });
+                  updatedItems.push(convertDbItemToShoppingItem(updatedItem));
                 }
               } catch (error) {
                 logger.error(
@@ -688,23 +668,9 @@ export async function addProcessedIngredientsToShoppingList(
         const insertedItems = await tx
           .insert(shoppingItems)
           .values(itemsToInsert)
-          .returning({
-            id: shoppingItems.id,
-            userId: shoppingItems.userId,
-            name: shoppingItems.name,
-            checked: shoppingItems.checked,
-            recipeId: shoppingItems.recipeId,
-            fromMealPlan: shoppingItems.fromMealPlan,
-            createdAt: shoppingItems.createdAt,
-          });
+          .returning(shoppingItemColumns);
 
-        addedItems.push(
-          ...insertedItems.map((item) => ({
-            ...item,
-            recipeId: item.recipeId ?? undefined,
-            createdAt: item.createdAt.toISOString(),
-          }))
-        );
+        addedItems.push(...insertedItems.map(convertDbItemToShoppingItem));
       }
 
       return { addedItems, updatedItems };
