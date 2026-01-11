@@ -18,7 +18,7 @@ export default function RootLayout({
     <ClientProvider>
       <SearchProvider>
         <html lang="en" className={`${GeistSans.variable} dark`}>
-          <body className="min-h-screen bg-black bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:40px_40px]">
+          <body className="min-h-screen bg-black bg-grid-pattern">
             <Toaster
               closeButton
               position="top-center"
