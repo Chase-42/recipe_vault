@@ -289,7 +289,7 @@ export function ShoppingListsViewWithBackButton() {
           {/* Title Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+              <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
                 <ArrowLeft className="h-4 w-4" />
               </AnimatedBackButton>
               <div>
