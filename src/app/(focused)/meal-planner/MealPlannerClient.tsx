@@ -41,6 +41,7 @@ import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
 import { ArrowLeft } from "lucide-react";
 import { GeneratedShoppingList } from "./components/GeneratedShoppingList";
+import { MealSlot } from "./components/MealSlot";
 
 import type {
   Recipe,
@@ -63,14 +64,20 @@ const MemoizedRecipeCard = memo(
     recipe: Recipe;
     onDragStart: (recipe: Recipe) => void;
     onDragEnd: () => void;
-  }) => (
-    <div
-      key={recipe.id}
-      draggable
-      onDragStart={() => onDragStart(recipe)}
-      onDragEnd={onDragEnd}
-      className="p-3 bg-card rounded-lg border cursor-grab active:cursor-grabbing hover:bg-accent transition-colors"
-    >
+  }) => {
+    const handleDragStart = (e: React.DragEvent) => {
+      onDragStart(recipe);
+      e.dataTransfer.setData("application/json", JSON.stringify(recipe));
+    };
+
+    return (
+      <div
+        key={recipe.id}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        className="p-3 bg-card rounded-lg border cursor-grab active:cursor-grabbing hover:bg-accent transition-colors"
+      >
       <div className="flex items-center gap-3">
         <div className="relative w-12 h-12 rounded-md overflow-hidden">
           <Image
@@ -101,96 +108,11 @@ const MemoizedRecipeCard = memo(
         </div>
       </div>
     </div>
-  )
+    );
+  }
 );
 
 MemoizedRecipeCard.displayName = "MemoizedRecipeCard";
-
-// Memoized meal slot component for better performance
-const MemoizedMealSlot = memo(
-  ({
-    date: _date,
-    mealType,
-    plannedMeal,
-    isDragOver,
-    onDragOver,
-    onDragLeave,
-    onDrop,
-    onMealRemove,
-    setDraggedMeal: _setDraggedMeal,
-  }: {
-    date: string;
-    mealType: MealType;
-    plannedMeal?: PlannedMeal;
-    isDragOver: boolean;
-    onDragOver: (e: React.DragEvent) => void;
-    onDragLeave: () => void;
-    onDrop: (e: React.DragEvent) => void;
-    onMealRemove: (meal: PlannedMeal) => void;
-    setDraggedMeal?: (meal: PlannedMeal | null) => void;
-  }) => (
-    <div
-      className={`p-3 border-r last:border-r-0 min-h-[100px] transition-colors ${
-        isDragOver ? "bg-green-50 border-green-300" : "hover:bg-muted/50"
-      }`}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-    >
-      {plannedMeal ? (
-        <div
-          className="bg-card rounded-md border-2 p-3 h-full hover:shadow-md transition-shadow flex flex-col items-center justify-center text-center relative group"
-          style={{ borderColor: mealTypeColors[mealType] }}
-        >
-          {/* Remove button - only visible on hover */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMealRemove(plannedMeal);
-            }}
-            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-xs transition-all z-10 opacity-0 group-hover:opacity-100"
-            aria-label={`Remove ${plannedMeal.recipe?.name}`}
-            title="Remove from meal plan"
-          >
-            ×
-          </button>
-
-          <div className="relative w-16 h-16 rounded-md overflow-hidden mb-2 flex-shrink-0">
-            <Image
-              src={plannedMeal.recipe?.imageUrl ?? "/placeholder-recipe.jpg"}
-              alt={plannedMeal.recipe?.name ?? "Recipe"}
-              fill
-              className="object-cover"
-              sizes="64px"
-            />
-          </div>
-          <h4 className="font-medium text-xs leading-tight line-clamp-2">
-            {plannedMeal.recipe?.name}
-          </h4>
-        </div>
-      ) : (
-        <div
-          className={`border-2 border-dashed rounded-md h-full flex items-center justify-center ${
-            isDragOver
-              ? "border-green-400 text-green-600 bg-green-50"
-              : "border-muted-foreground/25"
-          }`}
-          style={{
-            borderColor: isDragOver ? undefined : mealTypeColors[mealType],
-          }}
-        >
-          <div
-            className={`text-2xl ${isDragOver ? "text-green-600" : "text-muted-foreground"}`}
-          >
-            {isDragOver ? "+" : "+"}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-);
-
-MemoizedMealSlot.displayName = "MemoizedMealSlot";
 
 // HSL color system for meal types
 const mealTypeColors = {
@@ -525,18 +447,16 @@ export function MealPlannerClient() {
 
   // Handle meal drop - memoized
   const handleDrop = useCallback(
-    (date: string, mealType: MealType) => {
-      if (draggedRecipe) {
-        addMealMutation.mutate({
-          recipeId: draggedRecipe.id,
-          date,
-          mealType,
-        });
-      }
+    (recipe: Recipe, date: string, mealType: MealType) => {
+      addMealMutation.mutate({
+        recipeId: recipe.id,
+        date,
+        mealType,
+      });
       setDraggedRecipe(null);
       setDragOverSlot(null);
     },
-    [draggedRecipe, addMealMutation]
+    [addMealMutation]
   );
 
   // Handle meal remove - memoized
@@ -843,22 +763,14 @@ export function MealPlannerClient() {
                       dragOverSlot?.mealType === mealType;
 
                     return (
-                      <MemoizedMealSlot
+                      <MealSlot
                         key={`${date}-${mealType}`}
                         date={date}
                         mealType={mealType}
                         plannedMeal={plannedMeal}
+                        onDrop={handleDrop}
+                        onRemove={handleMealRemove}
                         isDragOver={isDragOver}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          handleDragOver(date, mealType);
-                        }}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          handleDrop(date, mealType);
-                        }}
-                        onMealRemove={handleMealRemove}
                       />
                     );
                   })}
