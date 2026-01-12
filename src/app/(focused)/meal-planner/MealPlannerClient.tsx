@@ -35,6 +35,7 @@ import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
 import { parseApiResponse, parsePaginatedApiResponse } from "~/utils/api-client";
+import { getWeekStart, getWeekDates, formatDateDisplay } from "~/utils/date-helpers";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
@@ -191,51 +192,12 @@ const MemoizedMealSlot = memo(
 
 MemoizedMealSlot.displayName = "MemoizedMealSlot";
 
-// Helper function to get week start (Monday)
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  d.setDate(diff);
-  return d;
-}
-
 // HSL color system for meal types
 const mealTypeColors = {
   breakfast: "hsl(25, 70%, 50%)", // Orange
   lunch: "hsl(210, 70%, 50%)", // Blue
   dinner: "hsl(270, 70%, 50%)", // Purple
 } as const;
-
-// Helper function to get week dates
-function getWeekDates(weekStart: Date): string[] {
-  const dates: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
-    const dateString = date.toISOString().split("T")[0];
-    if (dateString) {
-      dates.push(dateString);
-    }
-  }
-  return dates;
-}
-
-// Helper function to format date for display
-function formatDateDisplay(dateString: string): {
-  dayName: string;
-  dayNumber: number;
-  isToday: boolean;
-} {
-  const date = new Date(dateString);
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-
-  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-  const dayNumber = date.getDate();
-
-  return { dayName, dayNumber, isToday };
-}
 
 export function MealPlannerClient() {
   const router = useRouter();
