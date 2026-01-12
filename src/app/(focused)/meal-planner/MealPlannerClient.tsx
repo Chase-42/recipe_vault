@@ -691,7 +691,7 @@ export function MealPlannerClient() {
           {/* Sidebar Header */}
           <div className="p-4 border-b">
             <div className="flex items-center gap-3 mb-3">
-              <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+              <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
                 <ArrowLeft className="h-4 w-4" />
               </AnimatedBackButton>
               <h2 className="text-lg font-semibold">Recipes</h2>

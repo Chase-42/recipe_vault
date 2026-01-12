@@ -22,6 +22,12 @@ import {
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeProgress } from "~/hooks/useRecipeProgress";
@@ -332,7 +338,7 @@ export default function FullImageView({
         {/* Header */}
         <div className="z-50 flex items-center justify-between px-4 h-14 border-b bg-black">
           <div className="flex items-center gap-6">
-            <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
               <ArrowLeft className="h-4 w-4 text-white" />
             </AnimatedBackButton>
             <div className="flex items-center gap-2">
@@ -341,41 +347,66 @@ export default function FullImageView({
                 {displayRecipe.name}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push(`/edit/${displayRecipe.id}`)}
-                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowAddToList(true)}
-                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
-              >
-                <ShoppingCart className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleFavorite(displayRecipe)}
-                className="h-8 w-8 rounded-full text-white hover:bg-zinc-800"
-              >
-                <IconHeart
-                  size={16}
-                  className={cn(
-                    "transition-colors duration-300",
-                    displayRecipe.favorite
-                      ? "text-destructive fill-current"
-                      : "text-white"
-                  )}
-                  strokeWidth={2}
-                />
-              </Button>
-            </div>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => router.push(`/edit/${displayRecipe.id}`)}
+                      className="h-8 w-8 text-white hover:bg-zinc-800"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit Recipe</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAddToList(true)}
+                      className="h-8 w-8 text-white hover:bg-zinc-800"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add to Shopping List</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleFavorite(displayRecipe)}
+                      className="h-8 w-8 text-white hover:bg-zinc-800"
+                    >
+                      <IconHeart
+                        size={16}
+                        className={cn(
+                          "transition-colors duration-300",
+                          displayRecipe.favorite
+                            ? "text-destructive fill-current"
+                            : "text-white"
+                        )}
+                        strokeWidth={2}
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {displayRecipe.favorite ? "Remove from Favorites" : "Add to Favorites"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           </div>
         </div>
 
@@ -417,7 +448,7 @@ export default function FullImageView({
 
             {/* Ingredients Section */}
             <div
-              className="flex flex-col min-h-0 flex-1 p-4 overflow-hidden"
+              className="flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40"
               style={{ height: `${100 - imageHeight}%` }}
             >
               {displayRecipe.tags && displayRecipe.tags.length > 0 && (
@@ -483,7 +514,7 @@ export default function FullImageView({
             className="flex-1 overflow-hidden"
             style={{ width: `${100 - leftPanelWidth}%` }}
           >
-            <div className="p-4 h-full overflow-y-auto">
+            <div className="p-4 h-full overflow-y-auto bg-black/40">
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-lg font-semibold text-foreground">
                   Instructions
@@ -537,11 +568,11 @@ export default function FullImageView({
         </div>
 
         {/* Footer */}
-        <div className="h-14 px-4 border-t border-border flex items-center justify-between">
+        <div className="h-14 px-4 border-t border-border bg-black flex items-center justify-between">
           {displayRecipe.link && (
             <Button
               variant="ghost"
-              className="text-sm h-8"
+              className="text-sm h-8 text-white hover:bg-zinc-800"
               onClick={() => window.open(displayRecipe.link, "_blank")}
             >
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
@@ -552,13 +583,13 @@ export default function FullImageView({
             <Button
               variant="ghost"
               onClick={() => window.print()}
-              className="text-sm h-8"
+              className="text-sm h-8 text-white hover:bg-zinc-800"
             >
               Print Recipe
             </Button>
             <Button
               onClick={() => setShowAddToList(true)}
-              className="text-sm h-8"
+              className="text-sm h-8 text-white hover:bg-zinc-800"
             >
               Add to Shopping List
             </Button>
