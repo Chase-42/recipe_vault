@@ -13,7 +13,7 @@ export default function AddPage() {
       <div className="flex h-full min-h-0 w-full min-w-0">
         <div className="flex h-full w-full flex-col">
           <div className="border-b p-2 flex items-center gap-4">
-            <AnimatedBackButton className="h-8 w-8 rounded-full bg-transparent hover:bg-accent flex items-center justify-center">
+            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
               <ArrowLeft className="h-4 w-4" />
             </AnimatedBackButton>
             <h1 className="text-lg font-bold flex-1 text-center">
