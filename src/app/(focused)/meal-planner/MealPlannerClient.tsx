@@ -689,7 +689,7 @@ export function MealPlannerClient() {
           style={{ width: sidebarWidth }}
         >
           {/* Sidebar Header */}
-          <div className="p-4 border-b">
+          <div className="p-4 border-b bg-black">
             <div className="flex items-center gap-3 mb-3">
               <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
                 <ArrowLeft className="h-4 w-4" />
@@ -793,7 +793,7 @@ export function MealPlannerClient() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="border-b p-4">
+          <div className="border-b bg-black p-4">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Meal Planner</h1>
 
@@ -905,7 +905,7 @@ export function MealPlannerClient() {
           </div>
 
           {/* Action Bar */}
-          <div className="border-t p-4">
+          <div className="border-t border-border bg-black p-4">
             <div className="flex items-center justify-between">
               {/* Color Legend */}
               <div className="flex items-center gap-4">
