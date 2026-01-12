@@ -110,41 +110,82 @@ export async function addMealToWeek(
   date: string,
   mealType: MealType
 ): Promise<PlannedMeal> {
-  // Remove any existing meal for this slot
-  await db
-    .delete(currentWeekMeals)
-    .where(
-      and(
-        eq(currentWeekMeals.userId, userId),
-        eq(currentWeekMeals.date, date),
-        eq(currentWeekMeals.mealType, mealType)
-      )
-    );
+  // Wrap delete and insert in transaction to ensure atomicity
+  const meal = await db.transaction(async (tx) => {
+    // Remove any existing meal for this slot
+    await tx
+      .delete(currentWeekMeals)
+      .where(
+        and(
+          eq(currentWeekMeals.userId, userId),
+          eq(currentWeekMeals.date, date),
+          eq(currentWeekMeals.mealType, mealType)
+        )
+      );
 
-  // Add new meal
-  const [meal] = await db
-    .insert(currentWeekMeals)
-    .values({
-      userId,
-      recipeId,
-      date,
-      mealType,
+    // Add new meal
+    const [newMeal] = await tx
+      .insert(currentWeekMeals)
+      .values({
+        userId,
+        recipeId,
+        date,
+        mealType,
+      })
+      .returning();
+
+    if (!newMeal) {
+      throw new Error("Failed to add meal to week");
+    }
+
+    return newMeal;
+  });
+
+  // Fetch recipe data for the planned meal
+  const [mealWithRecipe] = await db
+    .select({
+      id: currentWeekMeals.id,
+      userId: currentWeekMeals.userId,
+      recipeId: currentWeekMeals.recipeId,
+      date: currentWeekMeals.date,
+      mealType: currentWeekMeals.mealType,
+      createdAt: currentWeekMeals.createdAt,
+      recipe: {
+        id: recipes.id,
+        name: recipes.name,
+        imageUrl: recipes.imageUrl,
+        blurDataUrl: recipes.blurDataUrl,
+        instructions: recipes.instructions,
+        ingredients: recipes.ingredients,
+        favorite: recipes.favorite,
+        categories: recipes.categories,
+        tags: recipes.tags,
+        link: recipes.link,
+        createdAt: recipes.createdAt,
+      },
     })
-    .returning();
+    .from(currentWeekMeals)
+    .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
+    .where(eq(currentWeekMeals.id, meal.id))
+    .limit(1);
 
-  if (!meal) {
-    throw new Error("Failed to add meal to week");
+  if (!mealWithRecipe) {
+    throw new Error("Failed to fetch meal with recipe data");
   }
 
   // Convert to PlannedMeal format
   return {
-    id: meal.id,
-    userId: meal.userId,
-    recipeId: meal.recipeId,
+    id: mealWithRecipe.id,
+    userId: mealWithRecipe.userId,
+    recipeId: mealWithRecipe.recipeId,
     mealPlanId: undefined, // Current week meals don't have a meal plan ID
-    date: meal.date,
-    mealType: meal.mealType as MealType,
-    createdAt: meal.createdAt.toISOString(),
+    date: mealWithRecipe.date,
+    mealType: mealWithRecipe.mealType as MealType,
+    createdAt: mealWithRecipe.createdAt.toISOString(),
+    recipe: {
+      ...mealWithRecipe.recipe,
+      createdAt: mealWithRecipe.recipe.createdAt.toISOString(),
+    },
   };
 }
 
@@ -202,7 +243,8 @@ export async function moveMealInWeek(
 export async function saveCurrentWeekAsPlan(
   userId: string,
   name: string,
-  description?: string
+  description?: string,
+  weekStart?: Date
 ): Promise<number> {
   // Create the meal plan
   const [mealPlan] = await db
@@ -218,10 +260,19 @@ export async function saveCurrentWeekAsPlan(
     throw new Error("Failed to create meal plan");
   }
 
+  // Calculate week start if not provided (fallback to current week)
+  const weekStartDate = weekStart ?? (() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    const monday = new Date(now);
+    monday.setDate(diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  })();
+
   // Get all current week meals
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
-  const { startDate, endDate } = getWeekDateRange(weekStart);
+  const { startDate, endDate } = getWeekDateRange(weekStartDate);
 
   const currentMeals = await db
     .select()
