@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo, memo } from "react";
+import { useState, useRef, useCallback, useMemo, memo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
@@ -34,7 +34,7 @@ import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
-import { parseApiResponse, parsePaginatedApiResponse } from "~/utils/api-client";
+import { mealPlannerApi } from "~/utils/api/meal-planner-client";
 import { getWeekStart, getWeekDates, formatDateDisplay } from "~/utils/date-helpers";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
@@ -159,16 +159,7 @@ export function MealPlannerClient() {
 
   } = useQuery<WeeklyMealPlan>({
     queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/meal-planner/current-week?weekStart=${weekStart.toISOString().split("T")[0]}`
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to fetch meals");
-      }
-      return await parseApiResponse<WeeklyMealPlan>(response);
-    },
+    queryFn: () => mealPlannerApi.getCurrentWeekMeals(weekStart),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -180,15 +171,7 @@ export function MealPlannerClient() {
     error: recipesError,
   } = useQuery<{ recipes: Recipe[]; pagination: unknown }>({
     queryKey: ["recipes"],
-    queryFn: async () => {
-      const response = await fetch("/api/recipes?limit=100");
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to fetch recipes");
-      }
-      const { data: recipes, pagination } = await parsePaginatedApiResponse<Recipe>(response);
-      return { recipes, pagination };
-    },
+    queryFn: () => mealPlannerApi.getRecipes({ limit: 100 }),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -198,74 +181,57 @@ export function MealPlannerClient() {
   // Fetch saved meal plans with error handling
   const { data: savedPlans, error: savedPlansError } = useQuery<MealPlan[]>({
     queryKey: ["savedMealPlans"],
-    queryFn: async () => {
-      const response = await fetch("/api/meal-planner/plans");
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to fetch saved plans");
-      }
-      const { parseApiResponse } = await import("~/utils/api-client");
-      return await parseApiResponse<MealPlan[]>(response);
-    },
+    queryFn: () => mealPlannerApi.getSavedMealPlans(),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Add meal to week mutation with retry and optimistic updates
   const addMealMutation = useMutation({
-    mutationFn: async ({
-      recipeId,
-      date,
-      mealType,
-    }: { recipeId: number; date: string; mealType: MealType }) => {
-      const response = await fetch("/api/meal-planner/current-week", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId, date, mealType }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to add meal");
-      }
-      const { parseApiResponse } = await import("~/utils/api-client");
-      return await parseApiResponse<PlannedMeal>(response);
-    },
+    mutationFn: (params: { recipeId: number; date: string; mealType: MealType }) =>
+      mealPlannerApi.addMealToWeek(params),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onMutate: async ({ recipeId, date, mealType }) => {
+      const weekStartKey = weekStart.toISOString().split("T")[0];
+      
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["currentWeekMeals"] });
+      await queryClient.cancelQueries({ 
+        queryKey: ["currentWeekMeals", weekStartKey] 
+      });
 
       // Snapshot previous value
       const previousMeals = queryClient.getQueryData([
         "currentWeekMeals",
-        weekStart.toISOString().split("T")[0],
+        weekStartKey,
       ]);
 
-      // Optimistically update
+      // Optimistically update with validation
       const recipe = recipes.find((r: Recipe) => r.id === recipeId);
-      if (recipe) {
-        const optimisticMeal: PlannedMeal = {
-          id: -Date.now(),
-          userId: "current",
-          recipeId,
-          date,
-          mealType,
-          createdAt: new Date().toISOString(),
-          recipe,
-        };
-
-        queryClient.setQueryData(
-          ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
-          (old: WeeklyMealPlan = {}) => ({
-            ...old,
-            [date]: {
-              ...old[date],
-              [mealType]: optimisticMeal,
-            },
-          })
-        );
+      if (!recipe) {
+        throw new Error(`Recipe ${recipeId} not found`);
       }
+
+      const optimisticMeal: PlannedMeal = {
+        id: -Date.now(),
+        userId: "current",
+        recipeId,
+        date,
+        mealType,
+        createdAt: new Date().toISOString(),
+        recipe,
+      };
+
+      queryClient.setQueryData(
+        ["currentWeekMeals", weekStartKey],
+        (old: WeeklyMealPlan = {}) => ({
+          ...old,
+          [date]: {
+            ...old[date],
+            [mealType]: optimisticMeal,
+          },
+        })
+      );
 
       return { previousMeals };
     },
@@ -280,41 +246,34 @@ export function MealPlannerClient() {
       handleError(error, "Add meal to plan");
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
+      void queryClient.invalidateQueries({ 
+        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
+      });
       toast.success("Meal added successfully!");
     },
   });
 
   // Remove meal from week mutation with retry and optimistic updates
   const removeMealMutation = useMutation({
-    mutationFn: async ({
-      date,
-      mealType,
-    }: { date: string; mealType: MealType }) => {
-      const response = await fetch(
-        `/api/meal-planner/current-week?date=${date}&mealType=${mealType}`,
-        {
-          method: "DELETE",
-        }
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to remove meal");
-      }
-    },
+    mutationFn: (params: { date: string; mealType: MealType }) =>
+      mealPlannerApi.removeMealFromWeek(params),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onMutate: async ({ date, mealType }) => {
-      await queryClient.cancelQueries({ queryKey: ["currentWeekMeals"] });
+      const weekStartKey = weekStart.toISOString().split("T")[0];
+      
+      await queryClient.cancelQueries({ 
+        queryKey: ["currentWeekMeals", weekStartKey] 
+      });
 
       const previousMeals = queryClient.getQueryData([
         "currentWeekMeals",
-        weekStart.toISOString().split("T")[0],
+        weekStartKey,
       ]);
 
       // Optimistically remove
       queryClient.setQueryData(
-        ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
+        ["currentWeekMeals", weekStartKey],
         (old: WeeklyMealPlan = {}) => {
           const newMeals = { ...old };
           if (newMeals[date]) {
@@ -338,29 +297,17 @@ export function MealPlannerClient() {
       handleError(error, "Remove meal from plan");
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
+      void queryClient.invalidateQueries({ 
+        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
+      });
       toast.success("Meal removed successfully!");
     },
   });
 
   // Save meal plan mutation with retry
   const saveMealPlanMutation = useMutation({
-    mutationFn: async ({
-      name,
-      description,
-    }: { name: string; description?: string }) => {
-      const response = await fetch("/api/meal-planner/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to save meal plan");
-      }
-      const data = await parseApiResponse<{ id: number; name: string; description?: string }>(response);
-      return { id: data.id, name: data.name, description: data.description, userId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as MealPlan;
-    },
+    mutationFn: (params: { name: string; description?: string }) =>
+      mealPlannerApi.saveMealPlan(params),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: () => {
@@ -376,29 +323,14 @@ export function MealPlannerClient() {
 
   // Load meal plan mutation with retry
   const loadMealPlanMutation = useMutation({
-    mutationFn: async (planId: number) => {
-      const response = await fetch("/api/meal-planner/plans", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealPlanId: planId }),
-      });
-      if (!response.ok) {
-        let errorMessage = "Failed to load meal plan";
-        try {
-          const errorData = await response.json() as { error?: string };
-          errorMessage = errorData.error ?? errorMessage;
-        } catch {
-          // Use default error message
-        }
-        throw new Error(errorMessage);
-      }
-      const { parseApiResponse } = await import("~/utils/api-client");
-      return await parseApiResponse<{ mealPlanId: number }>(response);
-    },
+    mutationFn: (planId: number) =>
+      mealPlannerApi.loadMealPlan({ mealPlanId: planId }),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
+      void queryClient.invalidateQueries({ 
+        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
+      });
       toast.success("Meal plan loaded successfully!");
       setShowLoadDialog(false);
       setSelectedPlanId(null);
@@ -508,16 +440,7 @@ export function MealPlannerClient() {
     // Fetch data in background
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          `/api/shopping-lists/generate-enhanced?weekStart=${weekStart.toISOString().split("T")[0]}`
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to generate shopping list");
-        }
-
-        const enhancedData = await parseApiResponse<GenerateEnhancedShoppingListResponse>(response);
+        const enhancedData = await mealPlannerApi.generateEnhancedShoppingList(weekStart);
         setEnhancedShoppingListData(enhancedData);
       } catch (error) {
         handleError(error, "Generate shopping list");
@@ -528,28 +451,36 @@ export function MealPlannerClient() {
     void fetchData();
   }, [currentWeekMeals, weekStart]);
 
-  // Sidebar resize handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isResizing.current = true;
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
+  // Sidebar resize handlers with cleanup
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
 
     const newWidth = e.clientX;
     if (newWidth >= 200 && newWidth <= 400) {
       setSidebarWidth(newWidth);
     }
-  };
+  }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     isResizing.current = false;
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
-  };
+  }, [handleMouseMove]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    e.preventDefault();
+  }, [handleMouseMove, handleMouseUp]);
+
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
 
   if (isLoadingMeals) {
     return (
@@ -559,8 +490,8 @@ export function MealPlannerClient() {
     );
   }
 
-  const weekDates = getWeekDates(weekStart);
-  const mealTypes: MealType[] = ["breakfast", "lunch", "dinner"];
+  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+  const mealTypes: MealType[] = useMemo(() => ["breakfast", "lunch", "dinner"], []);
 
   return (
     <ErrorBoundary>
@@ -605,7 +536,7 @@ export function MealPlannerClient() {
                     onClick={() => setSelectedCategory(category)}
                     className={`text-xs ${
                       category !== "All" && selectedCategory === category
-                        ? `border-2`
+                        ? "border-2"
                         : ""
                     }`}
                     style={{
@@ -960,31 +891,9 @@ export function MealPlannerClient() {
                   try {
                     setIsAddingToShoppingList(true);
 
-                    const response = await fetch(
-                      "/api/shopping-lists/add-from-meal-plan",
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          ingredients: ingredients,
-                        }),
-                      }
-                    );
-
-                    if (!response.ok) {
-                      let errorMessage = "Failed to add items to shopping list";
-                      try {
-                        const errorData = await response.json() as { error?: string };
-                        errorMessage = errorData.error ?? errorMessage;
-                      } catch {
-                        // Use default error message
-                      }
-                      throw new Error(errorMessage);
-                    }
-
-                    const result = await parseApiResponse<{ addedItems: unknown[]; updatedItems: unknown[] }>(response);
+                    const result = await mealPlannerApi.addToShoppingList({
+                      ingredients,
+                    });
 
                     setShowEnhancedShoppingList(false);
                     toast.success(
@@ -994,7 +903,7 @@ export function MealPlannerClient() {
                           : ""
                       } to your shopping list!`,
                       {
-                        duration: Infinity,
+                        duration: Number.MAX_SAFE_INTEGER,
                         action: {
                           label: "View Shopping List",
                           onClick: () => router.push("/shopping-lists"),
