@@ -496,11 +496,11 @@ export function MealPlannerClient() {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-black">
         {/* Resizable Sidebar */}
         <div
           ref={sidebarRef}
-          className="border-r flex flex-col relative"
+          className="border-r flex flex-col relative bg-black"
           style={{ width: sidebarWidth }}
         >
           {/* Sidebar Header */}
@@ -606,7 +606,7 @@ export function MealPlannerClient() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-black">
           {/* Header */}
           <div className="border-b bg-black p-4">
             <div className="flex items-center justify-between">
@@ -695,15 +695,16 @@ export function MealPlannerClient() {
                       dragOverSlot?.mealType === mealType;
 
                     return (
-                      <MealSlot
-                        key={`${date}-${mealType}`}
-                        date={date}
-                        mealType={mealType}
-                        plannedMeal={plannedMeal}
-                        onDrop={handleDrop}
-                        onRemove={handleMealRemove}
-                        isDragOver={isDragOver}
-                      />
+                      <div key={`${date}-${mealType}`} className="border-r border-border last:border-r-0">
+                        <MealSlot
+                          date={date}
+                          mealType={mealType}
+                          plannedMeal={plannedMeal}
+                          onDrop={handleDrop}
+                          onRemove={handleMealRemove}
+                          isDragOver={isDragOver}
+                        />
+                      </div>
                     );
                   })}
                 </div>
