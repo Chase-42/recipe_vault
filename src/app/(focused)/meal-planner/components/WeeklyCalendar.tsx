@@ -6,40 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { MealSlot } from "./MealSlot";
 import { useGridNavigation } from "~/hooks/useKeyboardNavigation";
+import { getWeekStart, getWeekDates, formatDateDisplay } from "~/utils/date-helpers";
 import type { WeeklyCalendarProps, MealType } from "~/types";
-
-// Helper function to get week dates
-function getWeekDates(weekStart: Date): string[] {
-  const dates: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
-    const dateString = date.toISOString().split("T")[0];
-    if (dateString) {
-      dates.push(dateString);
-    }
-  }
-  return dates;
-}
-
-// Helper function to format date for display
-function formatDateDisplay(dateString: string): JSX.Element {
-  const date = new Date(dateString);
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-
-  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-  const dayNumber = date.getDate();
-
-  return (
-    <div
-      className={`text-center ${isToday ? "text-blue-600 font-semibold" : ""}`}
-    >
-      <div className="text-sm font-medium">{dayName}</div>
-      <div className="text-lg">{dayNumber}</div>
-    </div>
-  );
-}
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner"];
 
@@ -94,14 +62,6 @@ export function WeeklyCalendar({
       }
     }
   }, [isMobile]);
-
-  // Helper function to get week start (Monday)
-  function getWeekStart(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-    return new Date(d.setDate(diff));
-  }
 
   // Navigate to previous week
   const goToPreviousWeek = () => {
@@ -229,7 +189,17 @@ export function WeeklyCalendar({
                       day: "numeric",
                     })}`}
                   >
-                    {formatDateDisplay(date)}
+                    {(() => {
+                      const { dayName, dayNumber, isToday } = formatDateDisplay(date);
+                      return (
+                        <div
+                          className={`text-center ${isToday ? "text-blue-600 font-semibold" : ""}`}
+                        >
+                          <div className="text-sm font-medium">{dayName}</div>
+                          <div className="text-lg">{dayNumber}</div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Meal Slots for this day */}
@@ -272,7 +242,17 @@ export function WeeklyCalendar({
                       day: "numeric",
                     })}`}
                   >
-                    {formatDateDisplay(date)}
+                    {(() => {
+                      const { dayName, dayNumber, isToday } = formatDateDisplay(date);
+                      return (
+                        <div
+                          className={`text-center ${isToday ? "text-blue-600 font-semibold" : ""}`}
+                        >
+                          <div className="text-sm font-medium">{dayName}</div>
+                          <div className="text-lg">{dayNumber}</div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
 
