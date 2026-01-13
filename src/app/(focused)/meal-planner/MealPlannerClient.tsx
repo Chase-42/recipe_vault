@@ -482,6 +482,10 @@ export function MealPlannerClient() {
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // Memoize weekDates and mealTypes BEFORE any early returns (Rules of Hooks)
+  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+  const mealTypes: MealType[] = useMemo(() => ["breakfast", "lunch", "dinner"], []);
+
   if (isLoadingMeals) {
     return (
       <div className="flex h-[calc(100vh-80px)] items-center justify-center">
@@ -489,9 +493,6 @@ export function MealPlannerClient() {
       </div>
     );
   }
-
-  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
-  const mealTypes: MealType[] = useMemo(() => ["breakfast", "lunch", "dinner"], []);
 
   return (
     <ErrorBoundary>
