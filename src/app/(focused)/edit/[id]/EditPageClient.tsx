@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/page-transition";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { fetchRecipe } from "~/utils/recipeService";
+import { recipeKey } from "~/utils/query-keys";
 
 interface EditPageClientProps {
   recipeId: number;
@@ -20,18 +21,16 @@ export default function EditPageClient({
   initialRecipe,
 }: EditPageClientProps) {
   const queryClient = useQueryClient();
-  const cachedData = queryClient.getQueryData<Recipe>(["recipe", recipeId]);
+  const cachedData = queryClient.getQueryData<Recipe>(recipeKey(recipeId));
   const hasCachedData = !!cachedData;
 
   const { data: recipe, error, isLoading } = useQuery({
-    queryKey: ["recipe", recipeId],
+    queryKey: recipeKey(recipeId),
     queryFn: () => fetchRecipe(recipeId),
     initialData: cachedData ?? initialRecipe ?? undefined,
     placeholderData: cachedData ?? initialRecipe ?? undefined,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
     refetchOnMount: !hasCachedData,
-    refetchOnWindowFocus: false,
   });
 
   const displayRecipe = recipe ?? cachedData ?? initialRecipe;

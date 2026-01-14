@@ -1,15 +1,12 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { RecipeError } from "~/lib/errors";
-import { schemas } from "~/lib/schemas";
-import type { Recipe, Category } from "~/types";
+import type { Category, CreateRecipeInput } from "~/types";
 import { MAIN_MEAL_CATEGORIES } from "~/types";
 import {
   Select,
@@ -20,31 +17,9 @@ import {
 } from "../../components/ui/select";
 import LoadingSpinner from "./LoadingSpinner";
 import ImageUpload from "./ImageUpload";
-
-type CreateRecipeInput = Omit<
-  Recipe,
-  "id" | "userId" | "blurDataUrl" | "createdAt"
->;
-
-const createRecipe = async (recipe: CreateRecipeInput): Promise<Recipe> => {
-  const response = await fetch("/api/recipes/create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(recipe),
-  });
-
-  if (!response.ok) {
-    throw new RecipeError("Failed to create recipe", response.status);
-  }
-
-  const { parseApiResponse } = await import("~/utils/api-client");
-  return await parseApiResponse<Recipe>(response);
-};
+import { useRecipeMutation } from "~/hooks/useRecipeMutation";
 
 const CreateRecipeClient = () => {
-  const queryClient = useQueryClient();
   const router = useRouter();
   const [uploadLoading, setUploadLoading] = useState(false);
 
@@ -57,22 +32,11 @@ const CreateRecipeClient = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string>("");
 
-  const mutation = useMutation({
-    mutationFn: createRecipe,
-    onError: (_error) => {
-      toast.error("Failed to create recipe");
-    },
-    onSuccess: () => {
-      setTimeout(() => {
-        toast("Recipe created successfully!");
-      }, 200);
-
+  const mutation = useRecipeMutation("create", {
+    onSuccessNavigate: () => {
       setTimeout(() => {
         router.push("/");
       }, 1500);
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
   });
 

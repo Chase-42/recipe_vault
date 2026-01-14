@@ -27,12 +27,23 @@ export interface RemoveMealParams {
   mealType: MealType;
 }
 
+export interface MoveMealParams {
+  mealId: number;
+  newDate: string;
+  newMealType: MealType;
+}
+
 export interface SaveMealPlanParams {
   name: string;
   description?: string;
+  weekStart?: string; // Optional: ISO date string (YYYY-MM-DD)
 }
 
 export interface LoadMealPlanParams {
+  mealPlanId: number;
+}
+
+export interface DeleteMealPlanParams {
   mealPlanId: number;
 }
 
@@ -137,6 +148,26 @@ export async function removeMealFromWeek(
 }
 
 /**
+ * Move a meal within the current week
+ */
+export async function moveMealInWeek(
+  params: MoveMealParams
+): Promise<PlannedMeal> {
+  const response = await fetch("/api/meal-planner/current-week", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to move meal");
+  }
+
+  return parseApiResponse<PlannedMeal>(response);
+}
+
+/**
  * Save a meal plan
  */
 export async function saveMealPlan(
@@ -196,6 +227,28 @@ export async function loadMealPlan(
 }
 
 /**
+ * Delete a meal plan
+ */
+export async function deleteMealPlan(
+  params: DeleteMealPlanParams
+): Promise<void> {
+  const response = await fetch(`/api/meal-planner/plans/${params.mealPlanId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to delete meal plan";
+    try {
+      const errorData = (await response.json()) as { error?: string };
+      errorMessage = errorData.error ?? errorMessage;
+    } catch {
+      // Use default error message
+    }
+    throw new Error(errorMessage);
+  }
+}
+
+/**
  * Generate enhanced shopping list for a week
  */
 export async function generateEnhancedShoppingList(
@@ -245,7 +298,8 @@ export async function addToShoppingList(
 /**
  * Meal Planner API Client
  * 
- * Centralized client for all meal planner operations
+ * Centralized client for all meal planner operations.
+ * All meal planner API calls should go through this client to ensure consistency.
  */
 export const mealPlannerApi = {
   getCurrentWeekMeals,
@@ -253,8 +307,10 @@ export const mealPlannerApi = {
   getSavedMealPlans,
   addMealToWeek,
   removeMealFromWeek,
+  moveMealInWeek,
   saveMealPlan,
   loadMealPlan,
+  deleteMealPlan,
   generateEnhancedShoppingList,
   addToShoppingList,
 };

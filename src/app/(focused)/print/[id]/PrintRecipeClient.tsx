@@ -8,10 +8,11 @@ import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { Button } from "~/components/ui/button";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
 import { fetchRecipe } from "~/utils/recipeService";
+import { recipeKey } from "~/utils/query-keys";
 
 export default function PrintRecipeClient({ id }: { id: number }) {
   const { data: recipe, error } = useQuery({
-    queryKey: ["recipe", id],
+    queryKey: recipeKey(id),
     queryFn: () => fetchRecipe(id),
   });
 
