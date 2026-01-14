@@ -36,6 +36,8 @@ import { handleError } from "~/lib/errorHandler";
 import { logger } from "~/lib/logger";
 import { mealPlannerApi } from "~/utils/api/meal-planner-client";
 import { getWeekStart, getWeekDates, formatDateDisplay } from "~/utils/date-helpers";
+import { useDragAndDrop } from "~/hooks/useDragAndDrop";
+import { currentWeekMealsKey, recipesKey, savedMealPlansKey } from "~/utils/query-keys";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { AnimatedBackButton } from "~/components/ui/page-transition";
@@ -127,11 +129,6 @@ export function MealPlannerClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [sidebarWidth, setSidebarWidth] = useState(280);
-  const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
-  const [dragOverSlot, setDragOverSlot] = useState<{
-    date: string;
-    mealType: MealType;
-  } | null>(null);
 
   // Dialog states
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -158,10 +155,8 @@ export function MealPlannerClient() {
     isLoading: isLoadingMeals,
 
   } = useQuery<WeeklyMealPlan>({
-    queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
+    queryKey: currentWeekMealsKey(weekStart),
     queryFn: () => mealPlannerApi.getCurrentWeekMeals(weekStart),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Fetch available recipes with error handling
@@ -170,148 +165,35 @@ export function MealPlannerClient() {
     isLoading: isLoadingRecipes,
     error: recipesError,
   } = useQuery<{ recipes: Recipe[]; pagination: unknown }>({
-    queryKey: ["recipes"],
+    queryKey: recipesKey(),
     queryFn: () => mealPlannerApi.getRecipes({ limit: 100 }),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const recipes = useMemo(() => recipesData?.recipes ?? [], [recipesData?.recipes]);
 
+  // Drag and drop hook
+  const {
+    dragState,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleMealRemove,
+  } = useDragAndDrop(weekStart);
+
   // Fetch saved meal plans with error handling
   const { data: savedPlans, error: savedPlansError } = useQuery<MealPlan[]>({
-    queryKey: ["savedMealPlans"],
+    queryKey: savedMealPlansKey,
     queryFn: () => mealPlannerApi.getSavedMealPlans(),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Add meal to week mutation with retry and optimistic updates
-  const addMealMutation = useMutation({
-    mutationFn: (params: { recipeId: number; date: string; mealType: MealType }) =>
-      mealPlannerApi.addMealToWeek(params),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onMutate: async ({ recipeId, date, mealType }) => {
-      const weekStartKey = weekStart.toISOString().split("T")[0];
-      
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ 
-        queryKey: ["currentWeekMeals", weekStartKey] 
-      });
-
-      // Snapshot previous value
-      const previousMeals = queryClient.getQueryData([
-        "currentWeekMeals",
-        weekStartKey,
-      ]);
-
-      // Optimistically update with validation
-      const recipe = recipes.find((r: Recipe) => r.id === recipeId);
-      if (!recipe) {
-        throw new Error(`Recipe ${recipeId} not found`);
-      }
-
-      const optimisticMeal: PlannedMeal = {
-        id: -Date.now(),
-        userId: "current",
-        recipeId,
-        date,
-        mealType,
-        createdAt: new Date().toISOString(),
-        recipe,
-      };
-
-      queryClient.setQueryData(
-        ["currentWeekMeals", weekStartKey],
-        (old: WeeklyMealPlan = {}) => ({
-          ...old,
-          [date]: {
-            ...old[date],
-            [mealType]: optimisticMeal,
-          },
-        })
-      );
-
-      return { previousMeals };
-    },
-    onError: (error, variables, context) => {
-      // Rollback optimistic update
-      if (context?.previousMeals) {
-        queryClient.setQueryData(
-          ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
-          context.previousMeals
-        );
-      }
-      handleError(error, "Add meal to plan");
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ 
-        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
-      });
-      toast.success("Meal added successfully!");
-    },
-  });
-
-  // Remove meal from week mutation with retry and optimistic updates
-  const removeMealMutation = useMutation({
-    mutationFn: (params: { date: string; mealType: MealType }) =>
-      mealPlannerApi.removeMealFromWeek(params),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onMutate: async ({ date, mealType }) => {
-      const weekStartKey = weekStart.toISOString().split("T")[0];
-      
-      await queryClient.cancelQueries({ 
-        queryKey: ["currentWeekMeals", weekStartKey] 
-      });
-
-      const previousMeals = queryClient.getQueryData([
-        "currentWeekMeals",
-        weekStartKey,
-      ]);
-
-      // Optimistically remove
-      queryClient.setQueryData(
-        ["currentWeekMeals", weekStartKey],
-        (old: WeeklyMealPlan = {}) => {
-          const newMeals = { ...old };
-          if (newMeals[date]) {
-            const dayMeals = { ...newMeals[date] };
-            delete dayMeals[mealType];
-            newMeals[date] = dayMeals;
-          }
-          return newMeals;
-        }
-      );
-
-      return { previousMeals };
-    },
-    onError: (error, variables, context) => {
-      if (context?.previousMeals) {
-        queryClient.setQueryData(
-          ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
-          context.previousMeals
-        );
-      }
-      handleError(error, "Remove meal from plan");
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ 
-        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
-      });
-      toast.success("Meal removed successfully!");
-    },
-  });
-
-  // Save meal plan mutation with retry
+  // Save meal plan mutation
   const saveMealPlanMutation = useMutation({
     mutationFn: (params: { name: string; description?: string }) =>
       mealPlannerApi.saveMealPlan(params),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
+      void queryClient.invalidateQueries({ queryKey: savedMealPlansKey });
       toast.success("Meal plan saved successfully!");
       setShowSaveDialog(false);
       setPlanName("");
@@ -321,15 +203,13 @@ export function MealPlannerClient() {
     },
   });
 
-  // Load meal plan mutation with retry
+  // Load meal plan mutation
   const loadMealPlanMutation = useMutation({
     mutationFn: (planId: number) =>
       mealPlannerApi.loadMealPlan({ mealPlanId: planId }),
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: () => {
       void queryClient.invalidateQueries({ 
-        queryKey: ["currentWeekMeals", weekStart.toISOString().split("T")[0]] 
+        queryKey: currentWeekMealsKey(weekStart)
       });
       toast.success("Meal plan loaded successfully!");
       setShowLoadDialog(false);
@@ -355,52 +235,6 @@ export function MealPlannerClient() {
       return matchesSearch && matchesCategory;
     });
   }, [recipes, searchTerm, selectedCategory]);
-
-  // Handle drag start - memoized
-  const handleDragStart = useCallback((recipe: Recipe) => {
-    setDraggedRecipe(recipe);
-  }, []);
-
-  // Handle drag end - memoized
-  const handleDragEnd = useCallback(() => {
-    setDraggedRecipe(null);
-    setDragOverSlot(null);
-  }, []);
-
-  // Handle drag over - memoized
-  const handleDragOver = useCallback((date: string, mealType: MealType) => {
-    setDragOverSlot({ date, mealType });
-  }, []);
-
-  // Handle drag leave - memoized
-  const handleDragLeave = useCallback(() => {
-    setDragOverSlot(null);
-  }, []);
-
-  // Handle meal drop - memoized
-  const handleDrop = useCallback(
-    (recipe: Recipe, date: string, mealType: MealType) => {
-      addMealMutation.mutate({
-        recipeId: recipe.id,
-        date,
-        mealType,
-      });
-      setDraggedRecipe(null);
-      setDragOverSlot(null);
-    },
-    [addMealMutation]
-  );
-
-  // Handle meal remove - memoized
-  const handleMealRemove = useCallback(
-    (plannedMeal: PlannedMeal) => {
-      removeMealMutation.mutate({
-        date: plannedMeal.date,
-        mealType: plannedMeal.mealType,
-      });
-    },
-    [removeMealMutation]
-  );
 
   // Handle week navigation - memoized
   const goToPreviousWeek = useCallback(() => {
@@ -691,8 +525,8 @@ export function MealPlannerClient() {
                   {weekDates.map((date) => {
                     const plannedMeal = currentWeekMeals?.[date]?.[mealType];
                     const isDragOver =
-                      dragOverSlot?.date === date &&
-                      dragOverSlot?.mealType === mealType;
+                      dragState.dragOverSlot?.date === date &&
+                      dragState.dragOverSlot?.mealType === mealType;
 
                     return (
                       <div key={`${date}-${mealType}`} className="border-r border-border last:border-r-0">
@@ -897,7 +731,6 @@ export function MealPlannerClient() {
                       ingredients,
                     });
 
-                    setShowEnhancedShoppingList(false);
                     toast.success(
                       `Successfully added ${result.addedItems.length} items${
                         result.updatedItems.length > 0
@@ -905,13 +738,14 @@ export function MealPlannerClient() {
                           : ""
                       } to your shopping list!`,
                       {
-                        duration: Number.MAX_SAFE_INTEGER,
                         action: {
                           label: "View Shopping List",
                           onClick: () => router.push("/shopping-lists"),
                         },
                       }
                     );
+
+                    setShowEnhancedShoppingList(false);
                   } catch (error) {
                     logger.error(
                       "Failed to add ingredients to shopping list",

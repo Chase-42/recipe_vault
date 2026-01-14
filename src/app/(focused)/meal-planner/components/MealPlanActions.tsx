@@ -26,7 +26,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Save, FolderOpen, Trash2 } from "lucide-react";
 import type { MealPlan } from "~/types";
-import { parseApiResponse } from "~/utils/api-client";
+import { mealPlannerApi } from "~/utils/api/meal-planner-client";
 
 interface MealPlanActionsProps {
   savedPlans: MealPlan[];
@@ -38,77 +38,6 @@ function formatDateForAPI(date: Date): string {
   const isoString = date.toISOString();
   const datePart = isoString.split("T")[0];
   return datePart ?? isoString.substring(0, 10);
-}
-
-// API functions
-async function saveMealPlan(
-  name: string,
-  description: string | undefined,
-  weekStart: Date,
-): Promise<MealPlan> {
-  const response = await fetch("/api/meal-planner/plans", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      description,
-      weekStart: formatDateForAPI(weekStart),
-    }),
-  });
-
-  if (!response.ok) {
-    let errorMessage = "Failed to save meal plan";
-    try {
-      const errorData = await response.json() as { error?: string };
-      errorMessage = errorData.error ?? errorMessage;
-    } catch {
-      // Use default error message
-    }
-    throw new Error(errorMessage);
-  }
-
-  const data = await parseApiResponse<{ id: number; name: string; description?: string }>(response);
-  return { id: data.id, name: data.name, description: data.description, userId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as MealPlan;
-}
-
-async function loadMealPlan(mealPlanId: number): Promise<void> {
-  const response = await fetch("/api/meal-planner/plans", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ mealPlanId }),
-  });
-
-  if (!response.ok) {
-    let errorMessage = "Failed to load meal plan";
-    try {
-      const errorData = await response.json() as { error?: string };
-      errorMessage = errorData.error ?? errorMessage;
-    } catch {
-      // Use default error message
-    }
-    throw new Error(errorMessage);
-  }
-}
-
-async function deleteMealPlan(mealPlanId: number): Promise<void> {
-  const response = await fetch(`/api/meal-planner/plans/${mealPlanId}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) {
-    let errorMessage = "Failed to delete meal plan";
-    try {
-      const errorData = await response.json() as { error?: string };
-      errorMessage = errorData.error ?? errorMessage;
-    } catch {
-      // Use default error message
-    }
-    throw new Error(errorMessage);
-  }
 }
 
 export function MealPlanActions({
@@ -135,7 +64,12 @@ export function MealPlanActions({
     }: {
       name: string;
       description?: string;
-    }) => saveMealPlan(name, description, weekStart),
+    }) =>
+      mealPlannerApi.saveMealPlan({
+        name,
+        description,
+        weekStart: formatDateForAPI(weekStart),
+      }),
     onSuccess: (savedPlan) => {
       void queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
       toast.success(`Meal plan "${savedPlan.name}" saved successfully!`);
@@ -150,7 +84,8 @@ export function MealPlanActions({
 
   // Mutation for loading meal plan
   const loadMutation = useMutation({
-    mutationFn: loadMealPlan,
+    mutationFn: (mealPlanId: number) =>
+      mealPlannerApi.loadMealPlan({ mealPlanId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["currentWeekMeals"] });
       toast.success("Meal plan loaded successfully!");
@@ -163,7 +98,8 @@ export function MealPlanActions({
 
   // Mutation for deleting meal plan
   const deleteMutation = useMutation({
-    mutationFn: deleteMealPlan,
+    mutationFn: (mealPlanId: number) =>
+      mealPlannerApi.deleteMealPlan({ mealPlanId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["savedMealPlans"] });
       toast.success("Meal plan deleted successfully!");

@@ -50,10 +50,8 @@ export const createRecipeSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
 });
 
-// For updates, we want to make all fields optional except link which must be a string (can be empty)
-export const updateRecipeSchema = createRecipeSchema.partial().extend({
-  link: z.string(),
-});
+// For updates, we want to make all fields optional
+export const updateRecipeSchema = createRecipeSchema.partial();
 
 // Validation functions
 export const validateCreateRecipe = (data: unknown): CreateRecipeInput => {

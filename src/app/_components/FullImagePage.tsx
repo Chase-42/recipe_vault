@@ -34,6 +34,7 @@ import { useRecipeProgress } from "~/hooks/useRecipeProgress";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
+import { recipeKey } from "~/utils/query-keys";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Constants for resizable panels
@@ -99,18 +100,16 @@ export default function FullImageView({
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const cachedData = queryClient.getQueryData<Recipe>(["recipe", id]);
+  const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
   const hasCachedData = !!cachedData;
 
   const { data: recipe, error, isLoading } = useQuery<Recipe>({
-    queryKey: ["recipe", id],
+    queryKey: recipeKey(id),
     queryFn: () => fetchRecipe(id),
     initialData: cachedData ?? initialRecipe ?? undefined,
     placeholderData: cachedData ?? initialRecipe ?? undefined,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
     refetchOnMount: !hasCachedData,
-    refetchOnWindowFocus: false,
   });
 
   const toggleIngredient = useCallback(

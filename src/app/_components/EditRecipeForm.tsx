@@ -1,15 +1,16 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import type { Recipe, Category } from "~/types";
-import { fetchRecipe, updateRecipe } from "~/utils/recipeService";
+import { fetchRecipe } from "~/utils/recipeService";
+import { useRecipeMutation } from "~/hooks/useRecipeMutation";
+import { recipeKey } from "~/utils/query-keys";
 import {
   Select,
   SelectContent,
@@ -42,100 +43,11 @@ interface FormData {
   tags: string[];
 }
 
-function useRecipeMutation(initialRecipe: Recipe) {
-  const queryClient = useQueryClient();
-  const router = useRouter();
-
-  const mutation = useMutation({
-    mutationFn: updateRecipe,
-    onMutate: async (newRecipe) => {
-      await queryClient.cancelQueries({ queryKey: ["recipes"] });
-      await queryClient.cancelQueries({
-        queryKey: ["recipe", initialRecipe.id],
-      });
-
-      const previousRecipes = queryClient.getQueryData(["recipes"]);
-      const previousRecipe = queryClient.getQueryData<Recipe>([
-        "recipe",
-        initialRecipe.id,
-      ]);
-
-      // Update recipes list
-      queryClient.setQueriesData<{ recipes: Recipe[] }>(
-        { queryKey: ["recipes"] },
-        (old) => {
-          if (!old?.recipes) return old;
-          return {
-            ...old,
-            recipes: old.recipes.map((recipe) =>
-              recipe.id === initialRecipe.id
-                ? { ...recipe, ...newRecipe }
-                : recipe
-            ),
-          };
-        }
-      );
-
-      // Update single recipe
-      queryClient.setQueryData(["recipe", initialRecipe.id], {
-        ...previousRecipe,
-        ...newRecipe,
-      });
-
-      return { previousRecipes, previousRecipe };
-    },
-    onError: (_, __, context) => {
-      if (context?.previousRecipes) {
-        queryClient.setQueriesData(
-          { queryKey: ["recipes"] },
-          context.previousRecipes
-        );
-      }
-      if (context?.previousRecipe) {
-        queryClient.setQueryData(
-          ["recipe", initialRecipe.id],
-          context.previousRecipe
-        );
-      }
-      toast.error("Failed to update recipe");
-    },
-    onSuccess: (updatedRecipe) => {
-      // Update cache with server data
-      queryClient.setQueryData(["recipe", initialRecipe.id], updatedRecipe);
-      queryClient.setQueriesData<{ recipes: Recipe[] }>(
-        { queryKey: ["recipes"] },
-        (old) => {
-          if (!old?.recipes) return old;
-          return {
-            ...old,
-            recipes: old.recipes.map((recipe) =>
-              recipe.id === initialRecipe.id ? updatedRecipe : recipe
-            ),
-          };
-        }
-      );
-
-      // Ensure cache is fresh
-      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      void queryClient.invalidateQueries({
-        queryKey: ["recipe", initialRecipe.id],
-      });
-
-      toast("Recipe updated successfully!");
-
-      // Navigate back after success
-      setTimeout(() => router.back(), 1500);
-    },
-  });
-
-  return { mutation };
-}
-
 const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
   initialRecipe,
 }) => {
   const { data: recipe } = useQuery({
-    queryKey: ["recipe", initialRecipe.id],
+    queryKey: recipeKey(initialRecipe.id),
     queryFn: async () => {
       const data = await fetchRecipe(initialRecipe.id);
       return data;
@@ -153,7 +65,7 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
     tags: recipe?.tags ?? [],
   });
 
-  const { mutation } = useRecipeMutation(initialRecipe);
+  const mutation = useRecipeMutation("update");
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
