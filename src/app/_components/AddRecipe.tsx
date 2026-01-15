@@ -15,6 +15,7 @@ import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { Recipe } from "~/types";
 import { Input } from "~/components/ui/input";
+import { recipesKey } from "~/utils/query-keys";
 
 interface AddRecipeProps {
   onSuccess: () => void;
@@ -72,7 +73,7 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
   const { mutate, isPending } = useMutation<Recipe, Error, string>({
     mutationFn: saveRecipe,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      await queryClient.invalidateQueries({ queryKey: recipesKey() });
       toast("Recipe saved successfully!");
       onSuccess();
     },

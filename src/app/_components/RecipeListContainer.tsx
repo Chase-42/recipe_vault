@@ -9,17 +9,18 @@ import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useUrlParams } from "~/hooks/useUrlParams";
 import { deleteRecipe } from "~/utils/recipeService";
+import { createOptimisticMutation } from "~/utils/optimisticUpdates";
+import { recipesKey } from "~/utils/query-keys";
 import RecipeFilters from "./RecipeFilters";
 import RecipeGrid from "./RecipeGrid";
 import RecipePagination from "./RecipePagination";
 
 const ITEMS_PER_PAGE = 12;
 
-interface RecipeListContainerProps {
-  // initialData is handled by RecipeList parent component via HydrationBoundary
-}
+// initialData is handled by RecipeList parent component via HydrationBoundary
+type RecipeListContainerProps = Record<string, never>;
 
-export default function RecipeListContainer({}: RecipeListContainerProps) {
+export default function RecipeListContainer(_props: RecipeListContainerProps) {
   const { debouncedSearchTerm } = useSearch();
   const queryClient = useQueryClient();
   const { updateParam, getParam } = useUrlParams();
@@ -55,18 +56,20 @@ export default function RecipeListContainer({}: RecipeListContainerProps) {
     mutationFn: deleteRecipe,
     onMutate: async (id) => {
       // Cancel all recipe queries to prevent race conditions
-      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      await queryClient.cancelQueries({ queryKey: recipesKey() });
       
-      // Get the current query key
-      const currentQueryKey = [
-        "recipes",
-        { searchTerm: debouncedSearchTerm, sortOption, category: selectedCategory, page: currentPage },
-      ];
+      // Get the current query key (dynamic)
+      const currentQueryKey = recipesKey({
+        searchTerm: debouncedSearchTerm,
+        sortOption,
+        category: selectedCategory,
+        page: currentPage,
+      });
       
       // Store previous data for rollback
       const previousData = queryClient.getQueryData<PaginatedRecipes>(currentQueryKey);
       
-      // Optimistically update the current query immediately
+      // Optimistically update the current query immediately (dynamic key, handled manually)
       if (previousData) {
         queryClient.setQueryData<PaginatedRecipes>(currentQueryKey, (old) => {
           if (!old) return old;
@@ -81,9 +84,9 @@ export default function RecipeListContainer({}: RecipeListContainerProps) {
         });
       }
       
-      // Also update all other recipe queries that might contain this recipe
+      // Update all other recipe queries that might contain this recipe (using utility pattern)
       queryClient.setQueriesData<PaginatedRecipes>(
-        { queryKey: ["recipes"] },
+        { queryKey: recipesKey() },
         (old) => {
           if (!old) return old;
           const hasRecipe = old.recipes.some((r: Recipe) => r.id === id);
@@ -103,15 +106,17 @@ export default function RecipeListContainer({}: RecipeListContainerProps) {
       return { previousData, currentQueryKey };
     },
     onError: (_, __, context) => {
-      // Rollback the current query
+      // Rollback the current query (dynamic key, handled manually)
       if (context?.previousData && context?.currentQueryKey) {
         queryClient.setQueryData(context.currentQueryKey, context.previousData);
       }
       toast.error("Failed to delete recipe");
     },
-    onSuccess: async () => {
+    onSettled: async () => {
       // Invalidate to sync with server
-      await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      await queryClient.invalidateQueries({ queryKey: recipesKey() });
+    },
+    onSuccess: () => {
       toast.success("Recipe deleted successfully");
     },
   });
