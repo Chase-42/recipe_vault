@@ -23,6 +23,7 @@ import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchRecipe } from "~/utils/recipeService";
+import { recipeKey } from "~/utils/query-keys";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -68,13 +69,12 @@ function RecipeCard({
     void router.prefetch(`/edit/${recipe.id}`);
     void router.prefetch(`/print/${recipe.id}`);
 
-    const cacheKey = ["recipe", recipe.id];
+    const cacheKey = recipeKey(recipe.id);
     if (!queryClient.getQueryData(cacheKey)) {
       void queryClient.prefetchQuery({
         queryKey: cacheKey,
         queryFn: () => fetchRecipe(recipe.id),
-        staleTime: 1000 * 60 * 5,
-        gcTime: 1000 * 60 * 30,
+        gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
       });
     }
   }, [recipe.id, router, queryClient]);

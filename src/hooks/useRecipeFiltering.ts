@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipes } from "~/utils/recipeService";
 import type { Category, SortOption } from "~/types";
+import { recipesKey } from "~/utils/query-keys";
 
 export function useRecipeFiltering(
   searchTerm: string,
@@ -9,7 +10,7 @@ export function useRecipeFiltering(
   page = 1,
   itemsPerPage = 12
 ) {
-  const queryKey = ["recipes", { searchTerm, sortOption, category, page }];
+  const queryKey = recipesKey({ searchTerm, sortOption, category, page });
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey,
@@ -22,9 +23,7 @@ export function useRecipeFiltering(
         limit: itemsPerPage,
       });
     },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-    refetchOnWindowFocus: false,
+    gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
     refetchOnMount: false,
     refetchOnReconnect: true,
   });

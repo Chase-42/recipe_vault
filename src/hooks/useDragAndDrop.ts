@@ -4,84 +4,15 @@ import { useCallback, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { logger } from "~/lib/logger";
-import type { Recipe, PlannedMeal, MealType } from "~/types";
-import { parseApiResponse } from "~/utils/api-client";
+import type { Recipe, PlannedMeal, MealType, WeeklyMealPlan } from "~/types";
+import { mealPlannerApi } from "~/utils/api/meal-planner-client";
+import { currentWeekMealsKey } from "~/utils/query-keys";
 
 // Drag and drop state types
 export interface DragState {
   draggedRecipe: Recipe | null;
   dragOverSlot: { date: string; mealType: MealType } | null;
   isDragging: boolean;
-}
-
-// API functions for meal operations (these will be implemented when API endpoints are ready)
-async function addMealToWeekAPI(
-  recipeId: number,
-  date: string,
-  mealType: MealType
-): Promise<PlannedMeal> {
-  const response = await fetch("/api/meal-planner/current-week", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      recipeId,
-      date,
-      mealType,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to add meal");
-  }
-
-  return await parseApiResponse<PlannedMeal>(response);
-}
-
-async function removeMealFromWeekAPI(
-  date: string,
-  mealType: MealType
-): Promise<void> {
-  const params = new URLSearchParams({ date, mealType });
-  const queryString = params.toString();
-  const response = await fetch(
-    `/api/meal-planner/current-week?${queryString}`,
-    {
-      method: "DELETE",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to remove meal");
-  }
-}
-
-async function moveMealInWeekAPI(
-  mealId: number,
-  newDate: string,
-  newMealType: MealType
-): Promise<PlannedMeal> {
-  const response = await fetch(`/api/meal-planner/current-week`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      mealId,
-      newDate,
-      newMealType,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to move meal");
-  }
-
-  return await parseApiResponse<PlannedMeal>(response);
 }
 
 // Custom hook for drag and drop state management
@@ -95,16 +26,16 @@ export function useDragAndDrop(weekStart: Date) {
 
   // Query key for current week meals - memoized to prevent unnecessary re-renders
   const currentWeekQueryKey = useMemo(
-    () => ["currentWeekMeals", weekStart.toISOString().split("T")[0]],
+    () => currentWeekMealsKey(weekStart),
     [weekStart]
   );
 
-  // Optimistic update helper
+  // Optimistic update helper for WeeklyMealPlan
   const updateCurrentWeekOptimistically = useCallback(
-    (updater: (oldData: PlannedMeal[]) => PlannedMeal[]) => {
+    (updater: (oldData: WeeklyMealPlan) => WeeklyMealPlan) => {
       queryClient.setQueryData(
         currentWeekQueryKey,
-        (oldData: PlannedMeal[] = []) => {
+        (oldData: WeeklyMealPlan = {}) => {
           return updater(oldData);
         }
       );
@@ -127,19 +58,20 @@ export function useDragAndDrop(weekStart: Date) {
       recipeId: number;
       date: string;
       mealType: MealType;
-    }) => addMealToWeekAPI(recipeId, date, mealType),
+    }) => mealPlannerApi.addMealToWeek({ recipeId, date, mealType }),
     onMutate: async ({ recipeId, date, mealType }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
       // Snapshot the previous value
       const previousMeals =
-        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+        queryClient.getQueryData<WeeklyMealPlan>(currentWeekQueryKey);
 
-      // Get the recipe from available recipes query
-      const availableRecipes =
-        queryClient.getQueryData<Recipe[]>(["availableRecipes"]) ?? [];
-      const recipe = availableRecipes.find((r) => r.id === recipeId);
+      // Get the recipe from recipes query
+      const recipesData =
+        queryClient.getQueryData<{ recipes: Recipe[]; pagination: unknown }>(["recipes"]);
+      const recipes = recipesData?.recipes ?? [];
+      const recipe = recipes.find((r) => r.id === recipeId);
 
       if (recipe) {
         // Optimistically add the meal
@@ -153,13 +85,13 @@ export function useDragAndDrop(weekStart: Date) {
           recipe,
         };
 
-        updateCurrentWeekOptimistically((oldMeals) => {
-          // Remove any existing meal in the same slot
-          const filteredMeals = oldMeals.filter(
-            (meal) => !(meal.date === date && meal.mealType === mealType)
-          );
-          return [...filteredMeals, optimisticMeal];
-        });
+        updateCurrentWeekOptimistically((oldMeals) => ({
+          ...oldMeals,
+          [date]: {
+            ...oldMeals[date],
+            [mealType]: optimisticMeal,
+          },
+        }));
       }
 
       // Return context for rollback
@@ -184,14 +116,13 @@ export function useDragAndDrop(weekStart: Date) {
     },
     onSuccess: (newMeal) => {
       // Update with the real meal data from server
-      updateCurrentWeekOptimistically((oldMeals) => {
-        // Remove the optimistic meal and add the real one
-        const filteredMeals = oldMeals.filter(
-          (meal) =>
-            !(meal.date === newMeal.date && meal.mealType === newMeal.mealType)
-        );
-        return [...filteredMeals, newMeal];
-      });
+      updateCurrentWeekOptimistically((oldMeals) => ({
+        ...oldMeals,
+        [newMeal.date]: {
+          ...oldMeals[newMeal.date],
+          [newMeal.mealType]: newMeal,
+        },
+      }));
 
       toast.success("Meal added to your plan!");
     },
@@ -207,19 +138,23 @@ export function useDragAndDrop(weekStart: Date) {
   // Remove meal mutation with optimistic updates
   const removeMealMutation = useMutation({
     mutationFn: ({ date, mealType }: { date: string; mealType: MealType }) =>
-      removeMealFromWeekAPI(date, mealType),
+      mealPlannerApi.removeMealFromWeek({ date, mealType }),
     onMutate: async ({ date, mealType }) => {
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
       const previousMeals =
-        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+        queryClient.getQueryData<WeeklyMealPlan>(currentWeekQueryKey);
 
       // Optimistically remove the meal
-      updateCurrentWeekOptimistically((oldMeals) =>
-        oldMeals.filter(
-          (meal) => !(meal.date === date && meal.mealType === mealType)
-        )
-      );
+      updateCurrentWeekOptimistically((oldMeals) => {
+        const newMeals = { ...oldMeals };
+        if (newMeals[date]) {
+          const dayMeals = { ...newMeals[date] };
+          delete dayMeals[mealType];
+          newMeals[date] = dayMeals;
+        }
+        return newMeals;
+      });
 
       return { previousMeals };
     },
@@ -258,21 +193,59 @@ export function useDragAndDrop(weekStart: Date) {
       mealId: number;
       newDate: string;
       newMealType: MealType;
-    }) => moveMealInWeekAPI(mealId, newDate, newMealType),
+    }) =>
+      mealPlannerApi.moveMealInWeek({
+        mealId,
+        newDate,
+        newMealType,
+      }),
     onMutate: async ({ mealId, newDate, newMealType }) => {
       await queryClient.cancelQueries({ queryKey: currentWeekQueryKey });
 
       const previousMeals =
-        queryClient.getQueryData<PlannedMeal[]>(currentWeekQueryKey);
+        queryClient.getQueryData<WeeklyMealPlan>(currentWeekQueryKey);
 
-      // Optimistically move the meal
-      updateCurrentWeekOptimistically((oldMeals) =>
-        oldMeals.map((meal) =>
-          meal.id === mealId
-            ? { ...meal, date: newDate, mealType: newMealType }
-            : meal
-        )
-      );
+      // Find the meal to move
+      let mealToMove: PlannedMeal | undefined;
+      let oldDate: string | undefined;
+      let oldMealType: MealType | undefined;
+
+      for (const [date, dayMeals] of Object.entries(previousMeals || {})) {
+        for (const mealType of ["breakfast", "lunch", "dinner"] as MealType[]) {
+          const meal = dayMeals[mealType];
+          if (meal && meal.id === mealId) {
+            mealToMove = meal;
+            oldDate = date;
+            oldMealType = mealType;
+            break;
+          }
+        }
+        if (mealToMove) break;
+      }
+
+      if (mealToMove && oldDate && oldMealType) {
+        // Optimistically move the meal
+        updateCurrentWeekOptimistically((oldMeals) => {
+          const newMeals = { ...oldMeals };
+          
+          // Remove from old location
+          if (newMeals[oldDate]) {
+            const dayMeals = { ...newMeals[oldDate] };
+            delete dayMeals[oldMealType];
+            newMeals[oldDate] = dayMeals;
+          }
+          
+          // Add to new location
+          if (mealToMove) {
+            newMeals[newDate] = {
+              ...newMeals[newDate],
+              [newMealType]: { ...mealToMove, date: newDate, mealType: newMealType },
+            };
+          }
+          
+          return newMeals;
+        });
+      }
 
       return { previousMeals };
     },
@@ -294,7 +267,16 @@ export function useDragAndDrop(weekStart: Date) {
       );
       toast.error("Failed to move meal");
     },
-    onSuccess: () => {
+    onSuccess: (movedMeal) => {
+      // Update with the real meal data from server
+      updateCurrentWeekOptimistically((oldMeals) => ({
+        ...oldMeals,
+        [movedMeal.date]: {
+          ...oldMeals[movedMeal.date],
+          [movedMeal.mealType]: movedMeal,
+        },
+      }));
+
       toast.success("Meal moved successfully!");
     },
     onSettled: () => {
