@@ -40,10 +40,9 @@ import { useDragAndDrop } from "~/hooks/useDragAndDrop";
 import { currentWeekMealsKey, recipesKey, savedMealPlansKey } from "~/utils/query-keys";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
-import { AnimatedBackButton } from "~/components/ui/page-transition";
-import { ArrowLeft } from "lucide-react";
 import { GeneratedShoppingList } from "./components/GeneratedShoppingList";
 import { MealSlot } from "./components/MealSlot";
+import { TopNav } from "~/app/_components/topnav";
 
 import type {
   Recipe,
@@ -340,9 +339,6 @@ export function MealPlannerClient() {
           {/* Sidebar Header */}
           <div className="p-4 border-b bg-black">
             <div className="flex items-center gap-3 mb-3">
-              <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-                <ArrowLeft className="h-4 w-4" />
-              </AnimatedBackButton>
               <h2 className="text-lg font-semibold">Recipes</h2>
             </div>
 
@@ -441,36 +437,38 @@ export function MealPlannerClient() {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col bg-black">
-          {/* Header */}
-          <div className="border-b bg-black p-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Meal Planner</h1>
-
-              {/* Week Navigation */}
+          <TopNav
+            showBackButton
+            showSearch={false}
+            showActions={false}
+            centerContent={
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm font-medium px-4">
-                  {weekStart.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                  })}{" "}
-                  -{" "}
-                  {new Date(
-                    weekStart.getTime() + 6 * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-                <Button variant="outline" size="sm" onClick={goToNextWeek}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <h1 className="text-2xl font-bold">Meal Planner</h1>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm font-medium px-4">
+                    {weekStart.toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                    })}{" "}
+                    -{" "}
+                    {new Date(
+                      weekStart.getTime() + 6 * 24 * 60 * 60 * 1000
+                    ).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={goToNextWeek}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </div>
+            }
+          />
 
           {/* Weekly Grid */}
           <div className="flex-1 p-4">

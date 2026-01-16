@@ -40,7 +40,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <TopNav />
         </div>
       )}
-      <main className="overflow-y-auto">
+      <main className="overflow-y-auto bg-grid-pattern">
         {children}
       </main>
     </div>

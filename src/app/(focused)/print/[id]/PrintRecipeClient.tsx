@@ -2,13 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import Image from "next/image";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { Button } from "~/components/ui/button";
-import { AnimatedBackButton } from "~/components/ui/page-transition";
 import { fetchRecipe } from "~/utils/recipeService";
 import { recipeKey } from "~/utils/query-keys";
+import { TopNav } from "~/app/_components/topnav";
 
 export default function PrintRecipeClient({ id }: { id: number }) {
   const { data: recipe, error } = useQuery({
@@ -21,17 +21,19 @@ export default function PrintRecipeClient({ id }: { id: number }) {
 
   return (
     <div className="mx-auto max-w-3xl p-8 print:p-4">
-      <div className="mb-6 flex items-center justify-between print:hidden">
-        <div className="flex items-center gap-4">
-          <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-            <ArrowLeft className="h-4 w-4" />
-          </AnimatedBackButton>
-          <h1 className="text-2xl font-bold">Print Recipe</h1>
-        </div>
-        <Button onClick={() => window.print()}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print
-        </Button>
+      <div className="mb-6 print:hidden">
+        <TopNav
+          showBackButton
+          showSearch={false}
+          showActions={false}
+          centerContent={<h1 className="text-2xl font-bold">Print Recipe</h1>}
+          rightContent={
+            <Button onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+          }
+        />
       </div>
 
       <article className="space-y-6">

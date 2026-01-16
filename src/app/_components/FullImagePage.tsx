@@ -6,7 +6,6 @@ import {
   ChefHat,
   Edit,
   ShoppingCart,
-  ArrowLeft,
   GripVertical,
   GripHorizontal,
   Check,
@@ -15,11 +14,9 @@ import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { PageTransition } from "~/components/ui/page-transition";
 import { Button } from "~/components/ui/button";
+import { TopNav } from "~/app/_components/topnav";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -310,18 +307,56 @@ export default function FullImageView({
       return <>{loadingFallback}</>;
     }
     return (
-      <div className="h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" fullHeight={false} />
+      <div className="flex h-full w-full flex-col">
+        <TopNav
+          showBackButton
+          showSearch={false}
+          showActions={false}
+          centerContent={<h1 className="text-xl font-semibold">Loading Recipe...</h1>}
+        />
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <LoadingSpinner size="md" fullHeight={false} />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error && !displayRecipe) {
-    return <div>Failed to load recipe.</div>;
+    return (
+      <div className="flex h-full w-full flex-col">
+        <TopNav
+          showBackButton
+          showSearch={false}
+          showActions={false}
+          centerContent={<h1 className="text-xl font-semibold">Error</h1>}
+        />
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="text-xl">Failed to load recipe.</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!displayRecipe) {
-    return <div>Recipe not found.</div>;
+    return (
+      <div className="flex h-full w-full flex-col">
+        <TopNav
+          showBackButton
+          showSearch={false}
+          showActions={false}
+          centerContent={<h1 className="text-xl font-semibold">Not Found</h1>}
+        />
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="text-xl">Recipe not found.</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const ingredients = displayRecipe.ingredients
@@ -334,18 +369,19 @@ export default function FullImageView({
   return (
     <PageTransition>
       <div className="h-screen w-full">
-        {/* Header */}
-        <div className="z-50 flex items-center justify-between px-4 h-14 border-b bg-black">
-          <div className="flex items-center gap-6">
-            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4 text-white" />
-            </AnimatedBackButton>
+        <TopNav
+          showBackButton
+          showSearch={false}
+          showActions={false}
+          centerContent={
             <div className="flex items-center gap-2">
               <ChefHat className="h-5 w-5 text-primary" />
               <h1 className="text-xl font-semibold text-white">
                 {displayRecipe.name}
               </h1>
             </div>
+          }
+          rightContent={
             <TooltipProvider>
               <div className="flex items-center gap-2">
                 <Tooltip>
@@ -406,8 +442,8 @@ export default function FullImageView({
                 </Tooltip>
               </div>
             </TooltipProvider>
-          </div>
-        </div>
+          }
+        />
 
         {/* Main Content */}
         <div ref={containerRef} className="flex h-[calc(100vh-7rem)] relative">

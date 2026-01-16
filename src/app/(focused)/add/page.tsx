@@ -1,27 +1,24 @@
 "use client";
-import { ArrowLeft } from "lucide-react";
 import AddRecipeForm from "~/app/_components/AddRecipeForm";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { PageTransition } from "~/components/ui/page-transition";
+import { TopNav } from "~/app/_components/topnav";
 
 export default function AddPage() {
-
   return (
     <PageTransition>
       <div className="flex h-full min-h-0 w-full min-w-0">
         <div className="flex h-full w-full flex-col">
-          <div className="border-b p-2 flex items-center gap-4">
-            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4" />
-            </AnimatedBackButton>
-            <h1 className="text-lg font-bold flex-1 text-center">
-              Add New Recipe
-            </h1>
-            <div className="w-8" /> {/* Spacer for centering */}
+          <TopNav
+            showBackButton
+            showSearch={false}
+            showActions={false}
+            centerContent={
+              <h1 className="text-lg font-bold">Add New Recipe</h1>
+            }
+          />
+          <div className="flex-1 overflow-y-auto">
+            <AddRecipeForm />
           </div>
-          <AddRecipeForm />
         </div>
       </div>
     </PageTransition>
