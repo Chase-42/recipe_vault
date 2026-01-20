@@ -43,6 +43,42 @@ const MAX_PANEL_SIZE = 80;
 const DEFAULT_LEFT_PANEL_WIDTH = 45;
 const DEFAULT_IMAGE_HEIGHT = 50;
 
+// Calculate optimal panel sizes based on image dimensions
+const calculateOptimalPanelSizes = (
+  naturalWidth: number,
+  naturalHeight: number,
+  viewportWidth: number,
+  viewportHeight: number
+): { leftPanelWidth: number; imageHeight: number } => {
+  // Available height for main content (minus header and footer ~7rem = 112px)
+  const availableHeight = viewportHeight - 112;
+
+  // Calculate what percentage would show the image at its natural size
+  // Left panel width as percentage of viewport
+  let optimalLeftPanelWidth = (naturalWidth / viewportWidth) * 100;
+
+  // Constrain to min/max
+  optimalLeftPanelWidth = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, optimalLeftPanelWidth));
+
+  // Calculate the actual pixel width of the left panel
+  const leftPanelPixelWidth = (optimalLeftPanelWidth / 100) * viewportWidth;
+
+  // Calculate the height the image needs to maintain aspect ratio at this width
+  const aspectRatio = naturalWidth / naturalHeight;
+  const imagePixelHeight = leftPanelPixelWidth / aspectRatio;
+
+  // Image height as percentage of available height
+  let optimalImageHeight = (imagePixelHeight / availableHeight) * 100;
+
+  // Constrain to min/max
+  optimalImageHeight = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, optimalImageHeight));
+
+  return {
+    leftPanelWidth: optimalLeftPanelWidth,
+    imageHeight: optimalImageHeight,
+  };
+};
+
 // Helper to toggle an item in a Set
 const toggleSetItem = <T,>(set: Set<T>, item: T): Set<T> => {
   const newSet = new Set(set);
@@ -93,6 +129,33 @@ export default function FullImageView({
   const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
   const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
   const [isDraggingVertical, setIsDraggingVertical] = useState(false);
+  const [hasCalculatedInitialSize, setHasCalculatedInitialSize] = useState(false);
+
+  // Handler to calculate optimal panel sizes when image loads
+  const handleImageLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      if (hasCalculatedInitialSize) return;
+
+      const img = e.currentTarget;
+      const naturalWidth = img.naturalWidth;
+      const naturalHeight = img.naturalHeight;
+
+      if (naturalWidth && naturalHeight && typeof window !== "undefined") {
+        const { leftPanelWidth: optimalWidth, imageHeight: optimalHeight } =
+          calculateOptimalPanelSizes(
+            naturalWidth,
+            naturalHeight,
+            window.innerWidth,
+            window.innerHeight
+          );
+
+        setLeftPanelWidth(optimalWidth);
+        setImageHeight(optimalHeight);
+        setHasCalculatedInitialSize(true);
+      }
+    },
+    [hasCalculatedInitialSize]
+  );
 
   const horizontalDividerRef = useRef<HTMLDivElement>(null);
   const verticalDividerRef = useRef<HTMLDivElement>(null);
@@ -414,12 +477,18 @@ export default function FullImageView({
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
-            className="flex flex-col border-r border-border relative"
+            className={cn(
+              "flex flex-col border-r border-border relative",
+              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+            )}
             style={{ width: `${leftPanelWidth}%` }}
           >
             {/* Image Section */}
             <div
-              className="relative overflow-hidden"
+              className={cn(
+                "relative overflow-hidden",
+                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+              )}
               style={{ height: `${imageHeight}%` }}
             >
               <Image
@@ -429,6 +498,7 @@ export default function FullImageView({
                 priority
                 sizes={`${leftPanelWidth}vw`}
                 className="object-cover"
+                onLoad={handleImageLoad}
               />
             </div>
 
@@ -447,7 +517,10 @@ export default function FullImageView({
 
             {/* Ingredients Section */}
             <div
-              className="flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40"
+              className={cn(
+                "flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40",
+                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+              )}
               style={{ height: `${100 - imageHeight}%` }}
             >
               {displayRecipe.tags && displayRecipe.tags.length > 0 && (
@@ -510,7 +583,10 @@ export default function FullImageView({
 
           {/* Right Panel (Instructions) */}
           <div
-            className="flex-1 overflow-hidden"
+            className={cn(
+              "flex-1 overflow-hidden",
+              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+            )}
             style={{ width: `${100 - leftPanelWidth}%` }}
           >
             <div className="p-4 h-full overflow-y-auto bg-black/40">
