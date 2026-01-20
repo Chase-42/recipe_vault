@@ -25,7 +25,10 @@ export async function PUT(
 
     const { id: idParam } = await params;
     const id = validateId(idParam);
-    const updateData = await validateRequestBody(request, schemas.updatedRecipe.partial().extend({ link: z.string().optional() })) as UpdateRecipeInput;
+    const updateData = (await validateRequestBody(
+      request,
+      schemas.updatedRecipe.partial().extend({ link: z.string().optional() })
+    )) as UpdateRecipeInput;
 
     // Validate and sanitize the update data
     const validatedData = validateUpdateRecipe(updateData);
@@ -72,7 +75,7 @@ export async function GET(
     }
 
     const response = apiSuccess(recipe);
-    
+
     // React Query handles caching, but allow browser to cache for short period
     // This helps with back/forward navigation while React Query manages freshness
     response.headers.set(

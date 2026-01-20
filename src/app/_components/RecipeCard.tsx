@@ -43,8 +43,10 @@ function RecipeCard({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const cardRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const prefetchedRef = useRef(false);
+  const imagePreloadedRef = useRef(false);
   const { searchTerm } = useSearch();
 
   const handleFavoriteToggle = useCallback(() => {
@@ -61,7 +63,7 @@ function RecipeCard({
     }
   }, [handleImageLoadComplete]);
 
-  const handleMouseEnter = useCallback(() => {
+  const doPrefetch = useCallback(() => {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
 
@@ -74,10 +76,40 @@ function RecipeCard({
       void queryClient.prefetchQuery({
         queryKey: cacheKey,
         queryFn: () => fetchRecipe(recipe.id),
-        gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
+        gcTime: 1000 * 60 * 30,
       });
     }
   }, [recipe.id, router, queryClient]);
+
+  // Prefetch when card enters viewport
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || prefetchedRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          doPrefetch();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [doPrefetch]);
+
+  const handlePointerEnter = useCallback(() => {
+    doPrefetch();
+    if (imagePreloadedRef.current) return;
+    imagePreloadedRef.current = true;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = recipe.imageUrl;
+    document.head.appendChild(link);
+  }, [doPrefetch, recipe.imageUrl]);
 
   const highlightMatches = useCallback(
     (text: string, matches?: Array<[number, number]>) => {
@@ -137,8 +169,9 @@ function RecipeCard({
 
   return (
     <div
+      ref={cardRef}
       className="recipe-card group relative flex max-w-md flex-col items-center rounded-md p-4 text-white shadow-md overflow-hidden"
-      onMouseEnter={handleMouseEnter}
+      onPointerEnter={handlePointerEnter}
     >
       <svg
         className="absolute inset-0 w-full h-full rounded-md pointer-events-none"

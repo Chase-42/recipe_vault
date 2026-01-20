@@ -45,7 +45,7 @@ const sortStrategies: Record<SortOption, SQL[]> = {
 function getRelevanceSort(searchQuery: string): SQL[] {
   const searchTerm = searchQuery.toLowerCase();
   const relevanceScore = sql<number>`
-    CASE 
+    CASE
       WHEN LOWER(${recipes.name}) LIKE ${`%${searchTerm}%`} THEN 3
       WHEN LOWER(${recipes.categories}::text) LIKE ${`%${searchTerm}%`} THEN 2
       WHEN LOWER(${recipes.tags}::text) LIKE ${`%${searchTerm}%`} THEN 1
@@ -65,7 +65,7 @@ function getSortOrder(sortBy?: SortOption, searchQuery?: string): SQL[] {
 export async function getMyRecipes(
   userId: string,
   { offset, limit }: PaginationOptions,
-  options?: RecipeQueryOptions
+  options?: RecipeQueryOptions,
 ) {
   const conditions: SQL[] = [eq(recipes.userId, userId)];
 
@@ -74,7 +74,7 @@ export async function getMyRecipes(
     const searchCondition = or(
       ilike(recipes.name, searchTerm),
       sql`${recipes.categories}::text ILIKE ${searchTerm}`,
-      sql`${recipes.tags}::text ILIKE ${searchTerm}`
+      sql`${recipes.tags}::text ILIKE ${searchTerm}`,
     );
     if (searchCondition) {
       conditions.push(searchCondition);
@@ -88,24 +88,35 @@ export async function getMyRecipes(
   const whereClause =
     conditions.length === 1 ? conditions[0] : and(...conditions);
 
-  const result = await db
-    .select({ total: count() })
-    .from(recipes)
-    .where(whereClause);
-
-  const total = result[0]?.total ?? 0;
-
-  const paginatedRecipes = await db
-    .select()
+  const results = await db
+    .select({
+      id: recipes.id,
+      link: recipes.link,
+      name: recipes.name,
+      userId: recipes.userId,
+      imageUrl: recipes.imageUrl,
+      blurDataUrl: recipes.blurDataUrl,
+      instructions: recipes.instructions,
+      ingredients: recipes.ingredients,
+      favorite: recipes.favorite,
+      createdAt: recipes.createdAt,
+      categories: recipes.categories,
+      tags: recipes.tags,
+      totalCount: sql<number>`cast(count(*) over() as integer)`,
+    })
     .from(recipes)
     .where(whereClause)
     .orderBy(...getSortOrder(options?.sortBy, options?.searchQuery))
     .limit(limit)
     .offset(offset);
 
+  const total = results[0]?.totalCount ?? 0;
+
   return {
-    recipes: paginatedRecipes.map(serializeRecipe),
-    total: Number(total),
+    recipes: results.map(({ totalCount, ...recipe }) =>
+      serializeRecipe(recipe),
+    ),
+    total,
   };
 }
 
@@ -147,10 +158,7 @@ export async function deleteRecipe(id: number, req: NextRequest) {
     await tx
       .delete(shoppingItems)
       .where(
-        and(
-          eq(shoppingItems.recipeId, id),
-          eq(shoppingItems.userId, userId)
-        )
+        and(eq(shoppingItems.recipeId, id), eq(shoppingItems.userId, userId)),
       );
 
     // Now delete the recipe (cascade will handle any remaining references)
@@ -170,7 +178,7 @@ export async function deleteRecipe(id: number, req: NextRequest) {
 export async function updateRecipe(
   id: number,
   data: Partial<typeof recipes.$inferInsert>,
-  req: NextRequest
+  req: NextRequest,
 ) {
   const userId = await getUserIdFromRequest(req);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -191,7 +199,7 @@ export async function updateRecipe(
 
 export async function createRecipe(
   data: Omit<typeof recipes.$inferInsert, "userId">,
-  req: NextRequest
+  req: NextRequest,
 ) {
   const userId = await getUserIdFromRequest(req);
 
