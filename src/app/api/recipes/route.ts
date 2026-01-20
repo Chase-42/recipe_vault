@@ -1,6 +1,6 @@
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 import { ValidationError, handleApiError } from "~/lib/errors";
 import { withRateLimit } from "~/lib/rateLimit";
 import { schemas } from "~/lib/schemas";
@@ -9,7 +9,10 @@ import { recipes } from "~/server/db/schema";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { logger } from "~/lib/logger";
 import { getOrSetCorrelationId } from "~/lib/request-context";
-import { validateRequestBody, validateRequestParams } from "~/lib/middleware/validate-request";
+import {
+  validateRequestBody,
+  validateRequestParams,
+} from "~/lib/middleware/validate-request";
 import { validateUrl } from "~/lib/validation";
 import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
@@ -44,7 +47,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const userId = await getServerUserIdFromRequest(req);
         const rawParams = {
           offset: Number(new URL(req.url).searchParams.get("offset")) ?? 0,
-          limit: Number(new URL(req.url).searchParams.get("limit")) ?? DEFAULT_LIMIT,
+          limit:
+            Number(new URL(req.url).searchParams.get("limit")) ?? DEFAULT_LIMIT,
           search: new URL(req.url).searchParams.get("search") ?? undefined,
           category: new URL(req.url).searchParams.get("category") ?? "All",
           sort: new URL(req.url).searchParams.get("sort") ?? "newest",
@@ -100,7 +104,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       try {
         const userId = await getServerUserIdFromRequest(req);
-        const { link } = await validateRequestBody(req, schemas.createRecipeRequest);
+        const { link } = await validateRequestBody(
+          req,
+          schemas.createRecipeRequest
+        );
 
         if (!link.trim()) {
           throw new ValidationError("Valid link required");
