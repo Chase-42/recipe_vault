@@ -8,13 +8,7 @@ import { Button } from "~/components/ui/button";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import type { Recipe, MealType } from "~/types";
-
-// HSL color system for meal types
-const mealTypeColors = {
-  breakfast: "hsl(25, 70%, 50%)", // Orange
-  lunch: "hsl(210, 70%, 50%)", // Blue
-  dinner: "hsl(270, 70%, 50%)", // Purple
-} as const;
+import { mealTypeColors } from "~/constants/meal-planner";
 
 interface VirtualizedRecipeListProps {
   recipes: Recipe[];
