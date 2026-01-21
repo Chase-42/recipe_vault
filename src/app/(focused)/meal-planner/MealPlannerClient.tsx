@@ -49,12 +49,14 @@ import type {
   Recipe,
   MealType,
   WeeklyMealPlan,
-  PlannedMeal,
   Category,
   MealPlan,
   GenerateEnhancedShoppingListResponse,
   ProcessedIngredient,
 } from "~/types";
+import { mealTypeColors } from "~/constants/meal-planner";
+
+const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
 
 // Memoized recipe card component for better performance
 const MemoizedRecipeCard = memo(
@@ -116,13 +118,6 @@ const MemoizedRecipeCard = memo(
 
 MemoizedRecipeCard.displayName = "MemoizedRecipeCard";
 
-// HSL color system for meal types
-const mealTypeColors = {
-  breakfast: "hsl(25, 70%, 50%)", // Orange
-  lunch: "hsl(210, 70%, 50%)", // Blue
-  dinner: "hsl(270, 70%, 50%)", // Purple
-} as const;
-
 export function MealPlannerClient() {
   const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(new Date()));
@@ -169,15 +164,10 @@ export function MealPlannerClient() {
     queryFn: () => mealPlannerApi.getRecipes({ limit: 100 }),
   });
 
-  const recipes = useMemo(() => recipesData?.recipes ?? [], [recipesData?.recipes]);
-
-  // Drag and drop hook
   const {
     dragState,
     handleDragStart,
     handleDragEnd,
-    handleDragOver,
-    handleDragLeave,
     handleDrop,
     handleMealRemove,
   } = useDragAndDrop(weekStart);
@@ -220,8 +210,8 @@ export function MealPlannerClient() {
     },
   });
 
-  // Filter recipes based on search and category - memoized for performance
   const filteredRecipes = useMemo(() => {
+    const recipes = recipesData?.recipes ?? [];
     return recipes.filter((recipe: Recipe) => {
       const matchesSearch =
         searchTerm === "" ||
@@ -234,34 +224,29 @@ export function MealPlannerClient() {
 
       return matchesSearch && matchesCategory;
     });
-  }, [recipes, searchTerm, selectedCategory]);
+  }, [recipesData?.recipes, searchTerm, selectedCategory]);
 
-  // Handle week navigation - memoized
-  const goToPreviousWeek = useCallback(() => {
+  const goToPreviousWeek = () => {
     const newWeekStart = new Date(weekStart);
     newWeekStart.setDate(weekStart.getDate() - 7);
     setWeekStart(newWeekStart);
-  }, [weekStart]);
+  };
 
-  const goToNextWeek = useCallback(() => {
+  const goToNextWeek = () => {
     const newWeekStart = new Date(weekStart);
     newWeekStart.setDate(weekStart.getDate() + 7);
     setWeekStart(newWeekStart);
-  }, [weekStart]);
+  };
 
-  // Handle save week - memoized
-  const handleSaveWeek = useCallback(() => {
-    setShowSaveDialog(true);
-  }, []);
+  const handleSaveWeek = () => setShowSaveDialog(true);
 
-  // Handle load week - memoized
-  const handleLoadWeek = useCallback(() => {
+  const handleLoadWeek = () => {
     if (!savedPlans?.length) {
       toast.error("No saved meal plans available");
       return;
     }
     setShowLoadDialog(true);
-  }, [savedPlans]);
+  };
 
   // Handle generate enhanced shopping list - open modal immediately, then fetch data
   const handleGenerateEnhancedShoppingList = useCallback(() => {
@@ -316,9 +301,7 @@ export function MealPlannerClient() {
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  // Memoize weekDates and mealTypes BEFORE any early returns (Rules of Hooks)
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
-  const mealTypes: MealType[] = useMemo(() => ["breakfast", "lunch", "dinner"], []);
 
   if (isLoadingMeals) {
     return (
@@ -414,7 +397,7 @@ export function MealPlannerClient() {
               </div>
             ) : filteredRecipes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                {recipes.length === 0
+                {!recipesData?.recipes?.length
                   ? "No recipes found. Add some recipes first!"
                   : "No recipes match your search criteria."}
               </div>
@@ -499,7 +482,7 @@ export function MealPlannerClient() {
                       </div>
                       {/* Meal type indicators */}
                       <div className="flex justify-center gap-1 mt-2">
-                        {mealTypes.map((mealType) => (
+                        {MEAL_TYPES.map((mealType) => (
                           <div
                             key={mealType}
                             className="w-2 h-2 rounded-full"
@@ -516,7 +499,7 @@ export function MealPlannerClient() {
               </div>
 
               {/* Grid Body */}
-              {mealTypes.map((mealType) => (
+              {MEAL_TYPES.map((mealType) => (
                 <div
                   key={mealType}
                   className="grid grid-cols-7 border-b last:border-b-0"
@@ -554,7 +537,7 @@ export function MealPlannerClient() {
                 <span className="text-sm font-medium text-muted-foreground">
                   Meal Types:
                 </span>
-                {mealTypes.map((mealType) => (
+                {MEAL_TYPES.map((mealType) => (
                   <div key={mealType} className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full"

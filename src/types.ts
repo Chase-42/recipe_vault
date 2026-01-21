@@ -439,29 +439,6 @@ export interface DragState {
   isDragging: boolean;
 }
 
-// Meal Planning Component Props
-export interface WeeklyCalendarProps {
-  weekStart: Date;
-  meals: WeeklyMealPlan;
-  onMealDrop: (recipe: Recipe, date: string, mealType: MealType) => void;
-  onMealRemove: (plannedMeal: PlannedMeal) => void;
-  onMealMove?: (
-    meal: PlannedMeal,
-    newDate: string,
-    newMealType: MealType
-  ) => void;
-  onWeekChange?: (newWeekStart: Date) => void;
-  dragState?: DragState;
-  isDragOverSlot?: (date: string, mealType: MealType) => boolean;
-  canDropOnSlot?: (date: string, mealType: MealType) => boolean;
-  isMobile?: boolean;
-  swipeHandlers?: {
-    onTouchStart: (e: React.TouchEvent) => void;
-    onTouchMove: (e: React.TouchEvent) => void;
-    onTouchEnd: (e: React.TouchEvent) => void;
-  };
-}
-
 export interface MealSlotProps {
   date: string;
   mealType: MealType;

@@ -57,20 +57,6 @@ export function handleError(
   }
 }
 
-// Async error handler for promises
-export async function handleAsyncError<T>(
-  promise: Promise<T>,
-  context: string,
-  options?: ErrorHandlerOptions
-): Promise<T | null> {
-  try {
-    return await promise;
-  } catch (error) {
-    handleError(error, context, options);
-    return null;
-  }
-}
-
 // Error boundary fallback component props
 export interface ErrorFallbackProps {
   error: Error;

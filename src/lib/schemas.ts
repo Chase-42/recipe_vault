@@ -24,11 +24,6 @@ const recipe = z.object({
   tags: z.array(z.string()).default([]),
 });
 
-const recipeWithCategories = recipe.extend({
-  categories: z.array(z.string()).default([]),
-  tags: z.array(z.string()).default([]),
-});
-
 const paginationMetadata = z.object({
   total: z.number(),
   offset: z.number(),
@@ -134,7 +129,6 @@ const sortOption = z.enum(["favorite", "newest", "oldest"]);
 
 export const schemas = {
   recipe,
-  recipeWithCategories,
   paginatedRecipes,
   flaskApiResponse,
   fallbackApiResponse,
