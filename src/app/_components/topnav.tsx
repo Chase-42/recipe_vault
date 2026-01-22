@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -17,6 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { useSearch } from "~/providers";
+import type { Session, User } from "better-auth/types";
+
+interface AuthSession {
+  session: Session;
+  user: User;
+}
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -35,30 +41,56 @@ const AddRecipe = dynamic(() => import("./AddRecipe"), {
 interface TopNavProps {
   showSearch?: boolean;
   showActions?: boolean;
+  session: AuthSession | null;
 }
 
 export const TopNav = ({ 
   showSearch = true, 
-  showActions = true 
+  showActions = true,
+  session 
 }: TopNavProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { searchTerm, setSearchTerm } = useSearch();
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const navRef = useRef<HTMLElement>(null);
 
-  // Hide topnav on focused pages (recipe viewing, editing, adding, printing, meal planner)
-  if (
+  // Check if focused page - this will be false on initial render, then update after hydration
+  const isFocusedPage =
     pathname?.startsWith("/img/") ||
     pathname === "/add" ||
     pathname?.startsWith("/edit/") ||
     pathname?.startsWith("/print/") ||
     pathname === "/shopping-lists" ||
-    pathname === "/meal-planner"
-  ) {
-    return null;
-  }
+    pathname === "/meal-planner";
+
+  // Update grid offset CSS variable when nav height changes
+  useEffect(() => {
+    if (isFocusedPage) {
+      document.documentElement.style.setProperty("--grid-offset", "0px");
+      return;
+    }
+
+    const updateGridOffset = () => {
+      if (navRef.current) {
+        const height = navRef.current.offsetHeight;
+        document.documentElement.style.setProperty(
+          "--grid-offset",
+          `${height}px`
+        );
+      } else {
+        document.documentElement.style.setProperty("--grid-offset", "0px");
+      }
+    };
+
+    const timeoutId = setTimeout(updateGridOffset, 0);
+    window.addEventListener("resize", updateGridOffset);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", updateGridOffset);
+    };
+  }, [isFocusedPage]);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -94,7 +126,10 @@ export const TopNav = ({
   };
 
   return (
-    <nav className="z-50 flex flex-col items-center justify-between border-b bg-black p-4 text-xl font-semibold md:flex-row print:hidden">
+    <nav 
+      ref={navRef}
+      className={`z-50 flex flex-col items-center justify-between border-b bg-black p-4 text-xl font-semibold md:flex-row print:hidden ${isFocusedPage ? "hidden" : ""}`}
+    >
       <div className="mb-4 flex items-center gap-2 md:mb-0">
         <Image
           src="/recipe_vault_image.svg"
