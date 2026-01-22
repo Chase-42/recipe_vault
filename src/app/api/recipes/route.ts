@@ -138,6 +138,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           .values({
             link,
             imageUrl: processedData.imageUrl,
+            imageWidth: processedData.imageWidth,
+            imageHeight: processedData.imageHeight,
             blurDataUrl: processedData.blurDataURL,
             instructions: processedData.instructions,
             ingredients: processedData.ingredients.join("\n"),

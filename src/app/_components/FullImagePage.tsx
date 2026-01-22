@@ -43,40 +43,33 @@ const MAX_PANEL_SIZE = 80;
 const DEFAULT_LEFT_PANEL_WIDTH = 45;
 const DEFAULT_IMAGE_HEIGHT = 50;
 
-// Calculate optimal panel sizes based on image dimensions
-const calculateOptimalPanelSizes = (
-  naturalWidth: number,
-  naturalHeight: number,
-  viewportWidth: number,
-  viewportHeight: number
+// Reference viewport dimensions for calculating proportional sizes
+const REFERENCE_VIEWPORT_WIDTH = 1440;
+const REFERENCE_VIEWPORT_HEIGHT = 900;
+// Available height after header/footer (~7rem = 112px)
+const AVAILABLE_HEIGHT_RATIO = (REFERENCE_VIEWPORT_HEIGHT - 112) / REFERENCE_VIEWPORT_HEIGHT;
+
+// Calculate panel sizes based on actual image dimensions
+const calculatePanelSizes = (
+  imageWidth: number,
+  imageHeight: number
 ): { leftPanelWidth: number; imageHeight: number } => {
-  // Available height for main content (minus header and footer ~7rem = 112px)
-  const availableHeight = viewportHeight - 112;
+  // Calculate what percentage of reference viewport the image would occupy
+  const widthPercent = (imageWidth / REFERENCE_VIEWPORT_WIDTH) * 100;
+  const heightPercent = (imageHeight / (REFERENCE_VIEWPORT_HEIGHT * AVAILABLE_HEIGHT_RATIO)) * 100;
 
-  // Calculate what percentage would show the image at its natural size
-  // Left panel width as percentage of viewport
-  let optimalLeftPanelWidth = (naturalWidth / viewportWidth) * 100;
+  // Panel width: proportional to image width, with some padding
+  // Add ~10% padding so image doesn't fill panel edge-to-edge
+  let panelWidth = widthPercent * 1.1;
 
-  // Constrain to min/max
-  optimalLeftPanelWidth = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, optimalLeftPanelWidth));
+  // Image section height: proportional to image height
+  let imgHeight = heightPercent * 1.1;
 
-  // Calculate the actual pixel width of the left panel
-  const leftPanelPixelWidth = (optimalLeftPanelWidth / 100) * viewportWidth;
+  // Clamp to min/max bounds
+  panelWidth = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, panelWidth));
+  imgHeight = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, imgHeight));
 
-  // Calculate the height the image needs to maintain aspect ratio at this width
-  const aspectRatio = naturalWidth / naturalHeight;
-  const imagePixelHeight = leftPanelPixelWidth / aspectRatio;
-
-  // Image height as percentage of available height
-  let optimalImageHeight = (imagePixelHeight / availableHeight) * 100;
-
-  // Constrain to min/max
-  optimalImageHeight = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, optimalImageHeight));
-
-  return {
-    leftPanelWidth: optimalLeftPanelWidth,
-    imageHeight: optimalImageHeight,
-  };
+  return { leftPanelWidth: panelWidth, imageHeight: imgHeight };
 };
 
 // Helper to toggle an item in a Set
@@ -124,33 +117,40 @@ export default function FullImageView({
     setCheckedInstructions,
   } = useRecipeProgress(id);
 
-  // Resizable panel states
+  const queryClient = useQueryClient();
+  const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
+  const hasCachedData = !!cachedData;
+
+  // Resizable panel states - start with defaults
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
   const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
   const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
   const [isDraggingVertical, setIsDraggingVertical] = useState(false);
   const [hasCalculatedInitialSize, setHasCalculatedInitialSize] = useState(false);
 
-  // Handler to calculate optimal panel sizes when image loads
+  // Calculate panel sizes from stored dimensions after mount
+  useEffect(() => {
+    const source = cachedData ?? initialRecipe;
+    if (source?.imageWidth && source?.imageHeight && !hasCalculatedInitialSize) {
+      const sizes = calculatePanelSizes(source.imageWidth, source.imageHeight);
+      setLeftPanelWidth(sizes.leftPanelWidth);
+      setImageHeight(sizes.imageHeight);
+      setHasCalculatedInitialSize(true);
+    }
+  }, [cachedData, initialRecipe, hasCalculatedInitialSize]);
+
+  // Fallback: calculate panel sizes when image loads (for recipes without stored dimensions)
   const handleImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       if (hasCalculatedInitialSize) return;
 
       const img = e.currentTarget;
-      const naturalWidth = img.naturalWidth;
-      const naturalHeight = img.naturalHeight;
+      const { naturalWidth, naturalHeight } = img;
 
-      if (naturalWidth && naturalHeight && typeof window !== "undefined") {
-        const { leftPanelWidth: optimalWidth, imageHeight: optimalHeight } =
-          calculateOptimalPanelSizes(
-            naturalWidth,
-            naturalHeight,
-            window.innerWidth,
-            window.innerHeight
-          );
-
-        setLeftPanelWidth(optimalWidth);
-        setImageHeight(optimalHeight);
+      if (naturalWidth && naturalHeight) {
+        const sizes = calculatePanelSizes(naturalWidth, naturalHeight);
+        setLeftPanelWidth(sizes.leftPanelWidth);
+        setImageHeight(sizes.imageHeight);
         setHasCalculatedInitialSize(true);
       }
     },
@@ -161,10 +161,6 @@ export default function FullImageView({
   const verticalDividerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
-
-  const queryClient = useQueryClient();
-  const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
-  const hasCachedData = !!cachedData;
 
   const { data: recipe, error, isLoading } = useQuery<Recipe>({
     queryKey: recipeKey(id),
@@ -479,7 +475,7 @@ export default function FullImageView({
             ref={leftPanelRef}
             className={cn(
               "flex flex-col border-r border-border relative",
-              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              hasCalculatedInitialSize && !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
             )}
             style={{ width: `${leftPanelWidth}%` }}
           >
@@ -487,7 +483,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "relative overflow-hidden",
-                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                hasCalculatedInitialSize && !isDraggingVertical && "transition-[height] duration-300 ease-out"
               )}
               style={{ height: `${imageHeight}%` }}
             >
@@ -519,7 +515,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40",
-                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                hasCalculatedInitialSize && !isDraggingVertical && "transition-[height] duration-300 ease-out"
               )}
               style={{ height: `${100 - imageHeight}%` }}
             >
@@ -585,7 +581,7 @@ export default function FullImageView({
           <div
             className={cn(
               "flex-1 overflow-hidden",
-              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              hasCalculatedInitialSize && !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
             )}
             style={{ width: `${100 - leftPanelWidth}%` }}
           >
