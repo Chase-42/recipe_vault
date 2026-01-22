@@ -4,12 +4,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useSearch } from "~/providers";
-import type { Category, PaginatedRecipes, Recipe, SortOption } from "~/types";
+import type { Category, PaginatedRecipes, SortOption } from "~/types";
 import { useRecipeFiltering } from "~/hooks/useRecipeFiltering";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useUrlParams } from "~/hooks/useUrlParams";
 import { deleteRecipe } from "~/utils/recipeService";
-import { createOptimisticMutation } from "~/utils/optimisticUpdates";
 import { recipesKey } from "~/utils/query-keys";
 import RecipeFilters from "./RecipeFilters";
 import RecipeGrid from "./RecipeGrid";
@@ -57,44 +56,18 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
     onMutate: async (id) => {
       // Cancel all recipe queries to prevent race conditions
       await queryClient.cancelQueries({ queryKey: recipesKey() });
-      
-      // Get the current query key (dynamic)
-      const currentQueryKey = recipesKey({
-        searchTerm: debouncedSearchTerm,
-        sortOption,
-        category: selectedCategory,
-        page: currentPage,
-      });
-      
-      // Store previous data for rollback
-      const previousData = queryClient.getQueryData<PaginatedRecipes>(currentQueryKey);
-      
-      // Optimistically update the current query immediately (dynamic key, handled manually)
-      if (previousData) {
-        queryClient.setQueryData<PaginatedRecipes>(currentQueryKey, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            recipes: old.recipes.filter((recipe: Recipe) => recipe.id !== id),
-            pagination: {
-              ...old.pagination,
-              total: Math.max(0, old.pagination.total - 1),
-            },
-          };
-        });
-      }
-      
-      // Update all other recipe queries that might contain this recipe (using utility pattern)
+
+      // Optimistically remove recipe from all cached queries
       queryClient.setQueriesData<PaginatedRecipes>(
         { queryKey: recipesKey() },
         (old) => {
           if (!old) return old;
-          const hasRecipe = old.recipes.some((r: Recipe) => r.id === id);
-          if (!hasRecipe) return old; // Don't update if recipe not in this query
-          
+          const hasRecipe = old.recipes.some((r) => r.id === id);
+          if (!hasRecipe) return old;
+
           return {
             ...old,
-            recipes: old.recipes.filter((recipe: Recipe) => recipe.id !== id),
+            recipes: old.recipes.filter((r) => r.id !== id),
             pagination: {
               ...old.pagination,
               total: Math.max(0, old.pagination.total - 1),
@@ -102,18 +75,12 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
           };
         }
       );
-
-      return { previousData, currentQueryKey };
     },
-    onError: (_, __, context) => {
-      // Rollback the current query (dynamic key, handled manually)
-      if (context?.previousData && context?.currentQueryKey) {
-        queryClient.setQueryData(context.currentQueryKey, context.previousData);
-      }
+    onError: () => {
       toast.error("Failed to delete recipe");
     },
     onSettled: async () => {
-      // Invalidate to sync with server
+      // Invalidate to sync with server (also handles rollback on error)
       await queryClient.invalidateQueries({ queryKey: recipesKey() });
     },
     onSuccess: () => {
@@ -124,9 +91,13 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
   // Event handlers
   const handleDelete = useCallback(
     (id: number) => {
+      // Prevent duplicate deletes - recipe is removed from list optimistically
+      if (!recipes.some((r) => r.id === id)) {
+        return;
+      }
       deleteRecipeMutation.mutate(id);
     },
-    [deleteRecipeMutation]
+    [deleteRecipeMutation, recipes]
   );
 
   const handlePageChange = (page: number) => {
