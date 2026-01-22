@@ -122,6 +122,8 @@ export const recipes = createTable(
     name: text("name").notNull(),
     userId: varchar("userId", { length: 256 }).notNull(),
     imageUrl: text("imageUrl").notNull(),
+    imageWidth: integer("imageWidth"),
+    imageHeight: integer("imageHeight"),
     blurDataUrl: text("blurDataUrl").notNull(),
     instructions: text("instructions").notNull(),
     ingredients: text("ingredients").notNull(),

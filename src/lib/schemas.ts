@@ -14,6 +14,8 @@ const recipe = z.object({
   name: z.string(),
   link: z.string(),
   imageUrl: z.string(),
+  imageWidth: z.number().nullable().optional(),
+  imageHeight: z.number().nullable().optional(),
   blurDataUrl: z.string(),
   instructions: z.string(),
   ingredients: z.string(),
@@ -72,6 +74,8 @@ const fallbackApiResponse = z.object({
 const processedData = z.object({
   name: z.string(),
   imageUrl: z.string(),
+  imageWidth: z.number(),
+  imageHeight: z.number(),
   instructions: z.string(),
   ingredients: z.array(z.string()),
   blurDataURL: z.string(),

@@ -13,6 +13,8 @@ export interface Recipe {
   name: string;
   link: string;
   imageUrl: string;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
   blurDataUrl: string;
   instructions: string;
   ingredients: string;
@@ -116,6 +118,8 @@ export interface FallbackApiResponse {
 export interface ProcessedData {
   name: string;
   imageUrl: string;
+  imageWidth: number;
+  imageHeight: number;
   instructions: string;
   ingredients: string[];
   blurDataURL: string;
