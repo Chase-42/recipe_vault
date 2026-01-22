@@ -30,6 +30,8 @@ function serializeRecipe(recipe: Recipe) {
   return {
     ...recipe,
     createdAt: recipe.createdAt.toISOString(),
+    imageWidth: recipe.imageWidth ?? null,
+    imageHeight: recipe.imageHeight ?? null,
     categories: recipe.categories,
     tags: recipe.tags,
   };
@@ -95,6 +97,8 @@ export async function getMyRecipes(
       name: recipes.name,
       userId: recipes.userId,
       imageUrl: recipes.imageUrl,
+      imageWidth: recipes.imageWidth,
+      imageHeight: recipes.imageHeight,
       blurDataUrl: recipes.blurDataUrl,
       instructions: recipes.instructions,
       ingredients: recipes.ingredients,

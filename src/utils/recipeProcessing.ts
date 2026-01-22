@@ -41,14 +41,16 @@ export async function processRecipeData(
   const finalImageUrl = imageUrl ?? PLACEHOLDER_IMAGE_URL;
 
   try {
-    const [uploadedImageUrl, blurDataURL] = await Promise.all([
+    const [uploadResult, blurDataURL] = await Promise.all([
       uploadImage(finalImageUrl),
       dynamicBlurDataUrl(finalImageUrl),
     ]);
 
     return schemas.processedData.parse({
       name,
-      imageUrl: uploadedImageUrl,
+      imageUrl: uploadResult.url,
+      imageWidth: uploadResult.width,
+      imageHeight: uploadResult.height,
       blurDataURL,
       instructions,
       ingredients: sanitizedIngredients,
