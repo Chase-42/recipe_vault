@@ -3,34 +3,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ExternalLink,
-  ChefHat,
-  Edit,
   ShoppingCart,
-  ArrowLeft,
   GripVertical,
   GripHorizontal,
   Check,
 } from "lucide-react";
-import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { PageTransition } from "~/components/ui/page-transition";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeProgress } from "~/hooks/useRecipeProgress";
+import { useHeaderContext } from "~/providers/HeaderContext";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
@@ -76,10 +62,9 @@ export default function FullImageView({
   initialRecipe,
   loadingFallback,
 }: FullPageImageViewProps) {
-  const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
-  const { toggleFavorite } = useFavoriteToggle();
-  
+  const { setRecipeData } = useHeaderContext();
+
   // Use localStorage hook for persistence (will be initialized from localStorage)
   const {
     checkedIngredients,
@@ -111,6 +96,20 @@ export default function FullImageView({
     gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
     refetchOnMount: !hasCachedData,
   });
+
+  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
+
+  // Set recipe data in header context
+  useEffect(() => {
+    if (displayRecipe) {
+      setRecipeData({
+        id: displayRecipe.id,
+        name: displayRecipe.name,
+        favorite: displayRecipe.favorite,
+      });
+    }
+    return () => setRecipeData(null);
+  }, [displayRecipe?.id, displayRecipe?.name, displayRecipe?.favorite, setRecipeData]);
 
   const toggleIngredient = useCallback(
     (index: number) => {
@@ -303,8 +302,6 @@ export default function FullImageView({
     };
   }, [handleMouseDown, handleTouchStart]);
 
-  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
-
   if (isLoading && !displayRecipe) {
     if (loadingFallback) {
       return <>{loadingFallback}</>;
@@ -334,83 +331,8 @@ export default function FullImageView({
   return (
     <PageTransition>
       <div className="h-screen w-full">
-        {/* Header */}
-        <div className="z-50 flex items-center justify-between px-4 h-14 border-b bg-black">
-          <div className="flex items-center gap-6">
-            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4 text-white" />
-            </AnimatedBackButton>
-            <div className="flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-white">
-                {displayRecipe.name}
-              </h1>
-            </div>
-            <TooltipProvider>
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => router.push(`/edit/${displayRecipe.id}`)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit Recipe</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowAddToList(true)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to Shopping List</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleFavorite(displayRecipe)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <IconHeart
-                        size={16}
-                        className={cn(
-                          "transition-colors duration-300",
-                          displayRecipe.favorite
-                            ? "text-destructive fill-current"
-                            : "text-white"
-                        )}
-                        strokeWidth={2}
-                      />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {displayRecipe.favorite ? "Remove from Favorites" : "Add to Favorites"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-          </div>
-        </div>
-
         {/* Main Content */}
-        <div ref={containerRef} className="flex h-[calc(100vh-7rem)] relative">
+        <div ref={containerRef} className="flex h-[calc(100vh-3.5rem)] relative">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
@@ -580,29 +502,32 @@ export default function FullImageView({
 
         {/* Footer */}
         <div className="h-14 px-4 border-t border-border bg-black flex items-center justify-between">
-          {displayRecipe.link && (
-            <Button
-              variant="ghost"
-              className="text-sm h-8 text-white hover:bg-zinc-800"
-              onClick={() => window.open(displayRecipe.link, "_blank")}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-              View Original Recipe
-            </Button>
-          )}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {displayRecipe.link && (
+              <Button
+                variant="ghost"
+                className="text-sm h-8 text-white hover:bg-zinc-800"
+                onClick={() => window.open(displayRecipe.link, "_blank")}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                View Original
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               onClick={() => window.print()}
               className="text-sm h-8 text-white hover:bg-zinc-800"
             >
-              Print Recipe
+              Print
             </Button>
             <Button
               onClick={() => setShowAddToList(true)}
-              className="text-sm h-8 text-white hover:bg-zinc-800"
+              className="text-sm h-8"
             >
-              Add to Shopping List
+              <ShoppingCart className="h-4 w-4 mr-1.5" />
+              Add to List
             </Button>
           </div>
         </div>

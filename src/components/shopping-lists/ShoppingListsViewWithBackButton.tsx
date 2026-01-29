@@ -1,18 +1,7 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Search,
-  Trash2,
-  ChefHat,
-  Filter,
-  Calendar,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { Search, Trash2, ChefHat, Filter } from "lucide-react";
+import { PageTransition } from "~/components/ui/page-transition";
 import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
@@ -46,7 +35,6 @@ import { parseApiResponse } from "~/utils/api-client";
 type FilterType = "all" | "meal-plan" | "manual";
 
 export function ShoppingListsViewWithBackButton() {
-  const router = useRouter();
   const [items, setItems] = useState<ShoppingItem[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("all");
@@ -110,27 +98,6 @@ export function ShoppingListsViewWithBackButton() {
   if (items === null) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="h-8 w-8 rounded-full"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-2xl font-semibold">Shopping Lists</h2>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a href="/meal-planner">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Meal Planner
-                </a>
-              </Button>
-            </div>
-          </div>
-        </div>
         <div className="flex h-64 items-center justify-center rounded-md border p-4">
           <LoadingSpinner size="md" />
         </div>
@@ -284,38 +251,26 @@ export function ShoppingListsViewWithBackButton() {
   return (
     <PageTransition>
       <div className="mx-auto max-w-4xl space-y-4">
-        {/* Header Section */}
+        {/* Controls Section */}
         <div className="space-y-4 border-b border-border pb-4">
-          {/* Title Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-                <ArrowLeft className="h-4 w-4" />
-              </AnimatedBackButton>
-              <div>
-                <h1 className="text-2xl font-semibold">Shopping Lists</h1>
-                {items && items.length > 0 && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">
-                      {filteredItems.length} of {items.length} items
-                      {filterType !== "all" || searchQuery
-                        ? " shown"
-                        : ""}
-                    </span>
-                    {mealPlanItemsCount > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs flex items-center gap-1"
-                      >
-                        <ChefHat className="h-3 w-3" />
-                        {mealPlanItemsCount} from meal plan
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
+          {/* Item Count Info */}
+          {items && items.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {filteredItems.length} of {items.length} items
+                {filterType !== "all" || searchQuery ? " shown" : ""}
+              </span>
+              {mealPlanItemsCount > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-xs flex items-center gap-1"
+                >
+                  <ChefHat className="h-3 w-3" />
+                  {mealPlanItemsCount} from meal plan
+                </Badge>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Controls Row */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">

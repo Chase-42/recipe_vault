@@ -352,9 +352,9 @@ const LandingPage = () => (
             Zero AI. Forever.
           </h2>
           <p className="max-w-xl text-lg leading-relaxed text-gray-400">
-            No chatbots suggesting dinner. No algorithms rewriting your
-            grandma's recipe. Just good old fashioned code that does exactly
-            what you tell it to. Your recipes stay yours.
+            No chatbots suggesting dinner. No algorithms rewriting your favorite
+            recipes. Just good old fashioned code that does exactly what you
+            tell it to. Your recipes stay yours.
           </p>
         </div>
       </div>
@@ -380,7 +380,10 @@ const LandingPage = () => (
   </div>
 );
 
-export default function HomeContent({ isAuthenticated, initialData }: HomeContentProps) {
+export default function HomeContent({
+  isAuthenticated,
+  initialData,
+}: HomeContentProps) {
   if (isAuthenticated && initialData) {
     return <RecipeList initialData={initialData} />;
   }
