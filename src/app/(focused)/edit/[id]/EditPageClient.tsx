@@ -1,12 +1,9 @@
 "use client";
-import { ArrowLeft } from "lucide-react";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EditRecipeForm from "~/app/_components/EditRecipeForm";
 import type { Recipe } from "~/types";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { PageTransition } from "~/components/ui/page-transition";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { fetchRecipe } from "~/utils/recipeService";
 import { recipeKey } from "~/utils/query-keys";
@@ -38,21 +35,8 @@ export default function EditPageClient({
   if (isLoading && !displayRecipe) {
     return (
       <PageTransition>
-        <div className="flex h-full w-full flex-col">
-          <div className="border-b p-2 flex items-center gap-4">
-            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4" />
-            </AnimatedBackButton>
-            <h1 className="text-lg font-bold flex-1 text-center">
-              Edit Recipe
-            </h1>
-            <div className="w-8" />
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex min-h-[60vh] items-center justify-center">
-              <LoadingSpinner size="md" fullHeight={false} />
-            </div>
-          </div>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="md" fullHeight={false} />
         </div>
       </PageTransition>
     );
@@ -80,14 +64,7 @@ export default function EditPageClient({
 
   return (
     <PageTransition>
-      <div className="flex h-full w-full flex-col">
-        <div className="border-b p-2 flex items-center gap-4">
-          <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-            <ArrowLeft className="h-4 w-4" />
-          </AnimatedBackButton>
-          <h1 className="text-lg font-bold flex-1 text-center">Edit Recipe</h1>
-          <div className="w-8" />
-        </div>
+      <div className="h-full w-full bg-background">
         <div className="flex-1 overflow-y-auto p-4">
           <EditRecipeForm initialRecipe={displayRecipe} />
         </div>
