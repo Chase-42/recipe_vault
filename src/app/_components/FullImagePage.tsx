@@ -3,34 +3,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ExternalLink,
-  ChefHat,
-  Edit,
   ShoppingCart,
-  ArrowLeft,
   GripVertical,
   GripHorizontal,
   Check,
 } from "lucide-react";
-import { IconHeart } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  PageTransition,
-  AnimatedBackButton,
-} from "~/components/ui/page-transition";
+import { PageTransition } from "~/components/ui/page-transition";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { useRecipeProgress } from "~/hooks/useRecipeProgress";
+import { useHeaderContext } from "~/providers/HeaderContext";
 import type { Recipe } from "~/types";
 import { cn } from "~/lib/utils";
 import { fetchRecipe } from "~/utils/recipeService";
@@ -39,38 +25,9 @@ import LoadingSpinner from "./LoadingSpinner";
 
 // Constants for resizable panels
 const MIN_PANEL_SIZE = 20;
-const MAX_PANEL_SIZE = 80;
-const DEFAULT_LEFT_PANEL_WIDTH = 45;
-const DEFAULT_IMAGE_HEIGHT = 50;
-
-// Reference viewport dimensions for calculating proportional sizes
-const REFERENCE_VIEWPORT_WIDTH = 1440;
-const REFERENCE_VIEWPORT_HEIGHT = 900;
-// Available height after header/footer (~7rem = 112px)
-const AVAILABLE_HEIGHT_RATIO = (REFERENCE_VIEWPORT_HEIGHT - 112) / REFERENCE_VIEWPORT_HEIGHT;
-
-// Calculate panel sizes based on actual image dimensions
-const calculatePanelSizes = (
-  imageWidth: number,
-  imageHeight: number
-): { leftPanelWidth: number; imageHeight: number } => {
-  // Calculate what percentage of reference viewport the image would occupy
-  const widthPercent = (imageWidth / REFERENCE_VIEWPORT_WIDTH) * 100;
-  const heightPercent = (imageHeight / (REFERENCE_VIEWPORT_HEIGHT * AVAILABLE_HEIGHT_RATIO)) * 100;
-
-  // Panel width: proportional to image width, with some padding
-  // Add ~10% padding so image doesn't fill panel edge-to-edge
-  let panelWidth = widthPercent * 1.1;
-
-  // Image section height: proportional to image height
-  let imgHeight = heightPercent * 1.1;
-
-  // Clamp to min/max bounds
-  panelWidth = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, panelWidth));
-  imgHeight = Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, imgHeight));
-
-  return { leftPanelWidth: panelWidth, imageHeight: imgHeight };
-};
+const MAX_PANEL_SIZE = 55;
+const DEFAULT_LEFT_PANEL_WIDTH = 38;
+const DEFAULT_IMAGE_HEIGHT = 40;
 
 // Helper to toggle an item in a Set
 const toggleSetItem = <T,>(set: Set<T>, item: T): Set<T> => {
@@ -105,10 +62,9 @@ export default function FullImageView({
   initialRecipe,
   loadingFallback,
 }: FullPageImageViewProps) {
-  const router = useRouter();
   const [showAddToList, setShowAddToList] = useState(false);
-  const { toggleFavorite } = useFavoriteToggle();
-  
+  const { setRecipeData } = useHeaderContext();
+
   // Use localStorage hook for persistence (will be initialized from localStorage)
   const {
     checkedIngredients,
@@ -121,41 +77,11 @@ export default function FullImageView({
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
   const hasCachedData = !!cachedData;
 
-  // Resizable panel states - start with defaults
+  // Resizable panel states
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
   const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
   const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
   const [isDraggingVertical, setIsDraggingVertical] = useState(false);
-  const [hasCalculatedInitialSize, setHasCalculatedInitialSize] = useState(false);
-
-  // Calculate panel sizes from stored dimensions after mount
-  useEffect(() => {
-    const source = cachedData ?? initialRecipe;
-    if (source?.imageWidth && source?.imageHeight && !hasCalculatedInitialSize) {
-      const sizes = calculatePanelSizes(source.imageWidth, source.imageHeight);
-      setLeftPanelWidth(sizes.leftPanelWidth);
-      setImageHeight(sizes.imageHeight);
-      setHasCalculatedInitialSize(true);
-    }
-  }, [cachedData, initialRecipe, hasCalculatedInitialSize]);
-
-  // Fallback: calculate panel sizes when image loads (for recipes without stored dimensions)
-  const handleImageLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      if (hasCalculatedInitialSize) return;
-
-      const img = e.currentTarget;
-      const { naturalWidth, naturalHeight } = img;
-
-      if (naturalWidth && naturalHeight) {
-        const sizes = calculatePanelSizes(naturalWidth, naturalHeight);
-        setLeftPanelWidth(sizes.leftPanelWidth);
-        setImageHeight(sizes.imageHeight);
-        setHasCalculatedInitialSize(true);
-      }
-    },
-    [hasCalculatedInitialSize]
-  );
 
   const horizontalDividerRef = useRef<HTMLDivElement>(null);
   const verticalDividerRef = useRef<HTMLDivElement>(null);
@@ -170,6 +96,20 @@ export default function FullImageView({
     gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
     refetchOnMount: !hasCachedData,
   });
+
+  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
+
+  // Set recipe data in header context
+  useEffect(() => {
+    if (displayRecipe) {
+      setRecipeData({
+        id: displayRecipe.id,
+        name: displayRecipe.name,
+        favorite: displayRecipe.favorite,
+      });
+    }
+    return () => setRecipeData(null);
+  }, [displayRecipe?.id, displayRecipe?.name, displayRecipe?.favorite, setRecipeData]);
 
   const toggleIngredient = useCallback(
     (index: number) => {
@@ -362,8 +302,6 @@ export default function FullImageView({
     };
   }, [handleMouseDown, handleTouchStart]);
 
-  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
-
   if (isLoading && !displayRecipe) {
     if (loadingFallback) {
       return <>{loadingFallback}</>;
@@ -393,89 +331,14 @@ export default function FullImageView({
   return (
     <PageTransition>
       <div className="h-screen w-full">
-        {/* Header */}
-        <div className="z-50 flex items-center justify-between px-4 h-14 border-b bg-black">
-          <div className="flex items-center gap-6">
-            <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4 text-white" />
-            </AnimatedBackButton>
-            <div className="flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-white">
-                {displayRecipe.name}
-              </h1>
-            </div>
-            <TooltipProvider>
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => router.push(`/edit/${displayRecipe.id}`)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit Recipe</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowAddToList(true)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to Shopping List</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleFavorite(displayRecipe)}
-                      className="h-8 w-8 text-white hover:bg-zinc-800"
-                    >
-                      <IconHeart
-                        size={16}
-                        className={cn(
-                          "transition-colors duration-300",
-                          displayRecipe.favorite
-                            ? "text-destructive fill-current"
-                            : "text-white"
-                        )}
-                        strokeWidth={2}
-                      />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {displayRecipe.favorite ? "Remove from Favorites" : "Add to Favorites"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-          </div>
-        </div>
-
         {/* Main Content */}
-        <div ref={containerRef} className="flex h-[calc(100vh-7rem)] relative">
+        <div ref={containerRef} className="flex h-[calc(100vh-3.5rem)] relative">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
             className={cn(
               "flex flex-col border-r border-border relative",
-              hasCalculatedInitialSize && !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
             )}
             style={{ width: `${leftPanelWidth}%` }}
           >
@@ -483,7 +346,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "relative overflow-hidden",
-                hasCalculatedInitialSize && !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                !isDraggingVertical && "transition-[height] duration-300 ease-out"
               )}
               style={{ height: `${imageHeight}%` }}
             >
@@ -494,7 +357,6 @@ export default function FullImageView({
                 priority
                 sizes={`${leftPanelWidth}vw`}
                 className="object-cover"
-                onLoad={handleImageLoad}
               />
             </div>
 
@@ -515,7 +377,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40",
-                hasCalculatedInitialSize && !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                !isDraggingVertical && "transition-[height] duration-300 ease-out"
               )}
               style={{ height: `${100 - imageHeight}%` }}
             >
@@ -581,7 +443,7 @@ export default function FullImageView({
           <div
             className={cn(
               "flex-1 overflow-hidden",
-              hasCalculatedInitialSize && !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
             )}
             style={{ width: `${100 - leftPanelWidth}%` }}
           >
@@ -640,29 +502,32 @@ export default function FullImageView({
 
         {/* Footer */}
         <div className="h-14 px-4 border-t border-border bg-black flex items-center justify-between">
-          {displayRecipe.link && (
-            <Button
-              variant="ghost"
-              className="text-sm h-8 text-white hover:bg-zinc-800"
-              onClick={() => window.open(displayRecipe.link, "_blank")}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-              View Original Recipe
-            </Button>
-          )}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {displayRecipe.link && (
+              <Button
+                variant="ghost"
+                className="text-sm h-8 text-white hover:bg-zinc-800"
+                onClick={() => window.open(displayRecipe.link, "_blank")}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                View Original
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               onClick={() => window.print()}
               className="text-sm h-8 text-white hover:bg-zinc-800"
             >
-              Print Recipe
+              Print
             </Button>
             <Button
               onClick={() => setShowAddToList(true)}
-              className="text-sm h-8 text-white hover:bg-zinc-800"
+              className="text-sm h-8"
             >
-              Add to Shopping List
+              <ShoppingCart className="h-4 w-4 mr-1.5" />
+              Add to List
             </Button>
           </div>
         </div>

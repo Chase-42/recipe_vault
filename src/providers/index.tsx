@@ -95,3 +95,5 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };
+
+export { HeaderProvider, useHeaderContext } from "./HeaderContext";

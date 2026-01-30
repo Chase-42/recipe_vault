@@ -2,14 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { PaginatedRecipes, Recipe } from "~/types";
 import { toggleFavorite as toggleFavoriteApi } from "~/utils/recipeService";
-import { createOptimisticMutation } from "~/utils/optimisticUpdates";
 import { recipesKey, recipeKey } from "~/utils/query-keys";
+
+type FavoriteToggleInput = Pick<Recipe, "id" | "favorite">;
 
 export function useFavoriteToggle() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (recipe: Recipe) => {
+    mutationFn: async (recipe: FavoriteToggleInput) => {
       const response = await toggleFavoriteApi(recipe.id);
       return { id: recipe.id, favorite: response };
     },
