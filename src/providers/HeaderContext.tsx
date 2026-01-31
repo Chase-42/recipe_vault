@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
+import { ValidationError } from "~/lib/errors";
 
 interface HeaderRecipeData {
   id: number;
@@ -29,7 +30,9 @@ export function HeaderProvider({ children }: { children: ReactNode }) {
 export function useHeaderContext() {
   const context = useContext(HeaderContext);
   if (!context) {
-    throw new Error("useHeaderContext must be used within a HeaderProvider");
+    throw new ValidationError(
+      "useHeaderContext must be used within a HeaderProvider"
+    );
   }
   return context;
 }

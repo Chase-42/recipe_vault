@@ -145,6 +145,18 @@ const FloatingShapes = () => (
   </div>
 );
 
+// Fixed particle offsets for deterministic animation
+const PARTICLE_OFFSETS = [
+  { y: -38, x: -15 },
+  { y: -42, x: 12 },
+  { y: -35, x: -8 },
+  { y: -45, x: 18 },
+  { y: -40, x: -12 },
+  { y: -36, x: 5 },
+  { y: -44, x: -18 },
+  { y: -39, x: 10 },
+];
+
 const ChopSizzleTitle = () => {
   const text = "Recipe Vault";
 
@@ -178,7 +190,7 @@ const ChopSizzleTitle = () => {
           </motion.span>
         ))}
       </h1>
-      {[...Array(8)].map((_, i) => (
+      {PARTICLE_OFFSETS.map((offset, i) => (
         <motion.div
           key={i}
           className="absolute top-1/2 h-1 w-1 rounded-full bg-red-500"
@@ -186,8 +198,8 @@ const ChopSizzleTitle = () => {
           initial={{ opacity: 0, y: 0, scale: 0 }}
           animate={{
             opacity: [0, 1, 0],
-            y: [0, -30 - Math.random() * 20, -50],
-            x: (Math.random() - 0.5) * 40,
+            y: [0, offset.y, -50],
+            x: offset.x,
             scale: [0, 1, 0.5],
           }}
           transition={{
@@ -304,34 +316,37 @@ const LandingPage = () => (
           </h2>
         </div>
         <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                delay: feature.delay,
-                type: "spring",
-                stiffness: 100,
-              }}
-              viewport={{ once: true }}
-            >
-              <TiltCard>
-                <Card className="h-full rounded-xl border-gray-800/50 bg-gray-900/50 transition-colors duration-300 hover:border-red-600/30">
-                  <CardHeader>
-                    <feature.icon className="mb-4 h-12 w-12 text-red-600" />
-                    <CardTitle className="text-white">
-                      {feature.title}
-                    </CardTitle>
-                    <CardDescription className="text-base leading-relaxed text-gray-400">
-                      {feature.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </TiltCard>
-            </motion.div>
-          ))}
+          {features.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.6,
+                  delay: feature.delay,
+                  type: "spring",
+                  stiffness: 100,
+                }}
+                viewport={{ once: true }}
+              >
+                <TiltCard>
+                  <Card className="h-full rounded-xl border-gray-800/50 bg-gray-900/50 transition-colors duration-300 hover:border-red-600/30">
+                    <CardHeader>
+                      <Icon className="mb-4 h-12 w-12 text-red-600" />
+                      <CardTitle className="text-white">
+                        {feature.title}
+                      </CardTitle>
+                      <CardDescription className="text-base leading-relaxed text-gray-400">
+                        {feature.description}
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </TiltCard>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </motion.section>

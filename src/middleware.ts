@@ -24,10 +24,12 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  // Protected API routes - require authentication
   if (
     !sessionCookie &&
     (pathname.startsWith("/api/shopping-lists") ||
       pathname.startsWith("/api/recipes") ||
+      pathname.startsWith("/api/meal-planner") ||
       pathname.startsWith("/api/upload"))
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: response.headers });
