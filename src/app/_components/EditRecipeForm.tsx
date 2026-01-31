@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "~/components/ui/select";
 import { MAIN_MEAL_CATEGORIES } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
 

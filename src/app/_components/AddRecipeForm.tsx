@@ -14,7 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "~/components/ui/select";
 import LoadingSpinner from "./LoadingSpinner";
 import ImageUpload from "./ImageUpload";
 import { useRecipeMutation } from "~/hooks/useRecipeMutation";

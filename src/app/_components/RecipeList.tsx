@@ -6,6 +6,7 @@ import {
   dehydrate,
 } from "@tanstack/react-query";
 import type { PaginatedRecipes } from "~/types";
+import { recipesKey } from "~/utils/query-keys";
 import RecipeListContainer from "./RecipeListContainer";
 
 interface RecipeListProps {
@@ -13,15 +14,11 @@ interface RecipeListProps {
 }
 
 export default function RecipeList({ initialData }: RecipeListProps) {
-  // If we have initial data, hydrate it into the query client
   if (initialData) {
     const queryClient = new QueryClient();
 
     queryClient.setQueryData(
-      [
-        "recipes",
-        { searchTerm: "", sortOption: "newest", category: "All", page: 1 },
-      ],
+      recipesKey({ searchTerm: "", sortOption: "newest", category: "All", page: 1 }),
       initialData
     );
 
@@ -32,6 +29,5 @@ export default function RecipeList({ initialData }: RecipeListProps) {
     );
   }
 
-  // No initial data, just render normally
   return <RecipeListContainer />;
 }

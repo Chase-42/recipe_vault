@@ -190,34 +190,27 @@ function RecipeCard({
           strokeWidth="2"
         />
       </svg>
-      {recipe.favorite ? (
-        <button
-          type="button"
-          onClick={handleFavoriteToggle}
-          className="absolute right-0 top-0 z-20 p-2 transition-opacity duration-300 group-hover:opacity-100"
-          aria-label="Unfavorite"
-        >
-          <IconHeart
-            size={24}
-            className="text-[hsl(var(--recipe-red))] transition-colors duration-300"
-            strokeWidth={2}
-            fill="currentColor"
-          />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={handleFavoriteToggle}
-          className="absolute right-0 top-0 z-20 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          aria-label="Favorite"
-        >
-          <IconHeart
-            size={24}
-            className="text-white transition-colors duration-300"
-            strokeWidth={2}
-          />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleFavoriteToggle}
+        className={cn(
+          "absolute right-0 top-0 z-20 p-2 transition-opacity duration-300 group-hover:opacity-100",
+          !recipe.favorite && "opacity-0"
+        )}
+        aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
+      >
+        <IconHeart
+          size={24}
+          className={cn(
+            "transition-colors duration-300",
+            recipe.favorite
+              ? "text-[hsl(var(--recipe-red))]"
+              : "text-white"
+          )}
+          strokeWidth={2}
+          fill={recipe.favorite ? "currentColor" : "none"}
+        />
+      </button>
       <div className="relative z-10 w-full">
 
       <div className="flex w-full flex-col items-center">
@@ -331,33 +324,39 @@ function RecipeCard({
   );
 }
 
+function searchMatchesEqual(
+  a: RecipeSearchMatch[] | undefined,
+  b: RecipeSearchMatch[] | undefined
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.key !== b[i]?.key) return false;
+    const aIndices = a[i]?.indices;
+    const bIndices = b[i]?.indices;
+    if (aIndices?.length !== bIndices?.length) return false;
+    if (aIndices && bIndices) {
+      for (let j = 0; j < aIndices.length; j++) {
+        if (
+          aIndices[j]?.[0] !== bIndices[j]?.[0] ||
+          aIndices[j]?.[1] !== bIndices[j]?.[1]
+        ) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 export default memo(RecipeCard, (prevProps, nextProps) => {
   if (prevProps.recipe.id !== nextProps.recipe.id) return false;
   if (prevProps.recipe.favorite !== nextProps.recipe.favorite) return false;
   if (prevProps.priority !== nextProps.priority) return false;
   if (prevProps.onDelete !== nextProps.onDelete) return false;
   if (prevProps.onFavoriteToggle !== nextProps.onFavoriteToggle) return false;
-  
-  const prevMatches = prevProps.searchMatches;
-  const nextMatches = nextProps.searchMatches;
-  if (prevMatches === nextMatches) return true;
-  if (!prevMatches || !nextMatches) return false;
-  if (prevMatches.length !== nextMatches.length) return false;
-  
-  for (let i = 0; i < prevMatches.length; i++) {
-    if (prevMatches[i]?.key !== nextMatches[i]?.key) return false;
-    const prevIndices = prevMatches[i]?.indices;
-    const nextIndices = nextMatches[i]?.indices;
-    if (prevIndices?.length !== nextIndices?.length) return false;
-    if (prevIndices && nextIndices) {
-      for (let j = 0; j < prevIndices.length; j++) {
-        if (prevIndices[j]?.[0] !== nextIndices[j]?.[0] || 
-            prevIndices[j]?.[1] !== nextIndices[j]?.[1]) {
-          return false;
-        }
-      }
-    }
-  }
-  
-  return true;
+
+  return searchMatchesEqual(prevProps.searchMatches, nextProps.searchMatches);
 });

@@ -1,7 +1,6 @@
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import {
-  AuthorizationError,
   NotFoundError,
   ValidationError,
   handleApiError,
@@ -14,81 +13,95 @@ import { validateRequestBody } from "~/lib/middleware/validate-request";
 import type { UpdateRecipeInput } from "~/types";
 import { apiSuccess, apiError } from "~/lib/api-response";
 import { schemas } from "~/lib/schemas";
+import { withRateLimit } from "~/lib/rateLimit";
+
+const recipeIdRateLimiter = {
+  maxRequests: 100,
+  windowMs: 60 * 1000,
+  path: "/api/recipes/[id]",
+} as const;
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  getOrSetCorrelationId(request);
-  try {
-    const userId = await getServerUserIdFromRequest(request);
+): Promise<NextResponse> {
+  return withRateLimit(
+    request,
+    async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
+      try {
+        // Validate authentication (userId used for auth check, not in update logic)
+        await getServerUserIdFromRequest(req);
 
-    const { id: idParam } = await params;
-    const id = validateId(idParam);
-    const updateData = (await validateRequestBody(
-      request,
-      schemas.updatedRecipe.partial().extend({ link: z.string().optional() })
-    )) as UpdateRecipeInput;
+        const { id: idParam } = await params;
+        const id = validateId(idParam);
+        const updateData = (await validateRequestBody(
+          req,
+          schemas.updatedRecipe.partial().extend({ link: z.string().optional() })
+        )) as UpdateRecipeInput;
 
-    // Validate and sanitize the update data
-    const validatedData = validateUpdateRecipe(updateData);
+        const validatedData = validateUpdateRecipe(updateData);
 
-    if (Object.keys(validatedData).length === 0) {
-      throw new ValidationError("No valid fields provided for update");
-    }
+        if (Object.keys(validatedData).length === 0) {
+          throw new ValidationError("No valid fields provided for update");
+        }
 
-    const updatedRecipe = await updateRecipe(id, validatedData, request);
+        const updatedRecipe = await updateRecipe(id, validatedData, req);
 
-    const response = apiSuccess(updatedRecipe);
-    // Ensure no caching for update responses
-    response.headers.set(
-      "Cache-Control",
-      "no-cache, no-store, must-revalidate"
-    );
-    response.headers.set("Pragma", "no-cache");
-    response.headers.set("Expires", "0");
+        const response = apiSuccess(updatedRecipe);
+        response.headers.set(
+          "Cache-Control",
+          "no-cache, no-store, must-revalidate"
+        );
+        response.headers.set("Pragma", "no-cache");
+        response.headers.set("Expires", "0");
 
-    return response;
-  } catch (error) {
-    const { error: errorMessage, statusCode } = handleApiError(error);
-    return apiError(errorMessage, undefined, statusCode);
-  }
+        return response;
+      } catch (error) {
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        return apiError(errorMessage, undefined, statusCode);
+      }
+    },
+    recipeIdRateLimiter
+  );
 }
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  getOrSetCorrelationId(req);
-  try {
-    const userId = await getServerUserIdFromRequest(req);
-    const { id: idParam } = await params;
-    const id = Number.parseInt(idParam, 10);
+): Promise<NextResponse> {
+  return withRateLimit(
+    request,
+    async (req: NextRequest): Promise<NextResponse> => {
+      getOrSetCorrelationId(req);
+      try {
+        const userId = await getServerUserIdFromRequest(req);
+        const { id: idParam } = await params;
+        const id = Number.parseInt(idParam, 10);
 
-    if (Number.isNaN(id)) {
-      throw new ValidationError("Invalid ID");
-    }
+        if (Number.isNaN(id)) {
+          throw new ValidationError("Invalid ID");
+        }
 
-    const recipe = await getRecipe(id, userId);
-    if (!recipe) {
-      throw new NotFoundError("Recipe not found");
-    }
+        const recipe = await getRecipe(id, userId);
+        if (!recipe) {
+          throw new NotFoundError("Recipe not found");
+        }
 
-    const response = apiSuccess(recipe);
+        const response = apiSuccess(recipe);
+        response.headers.set(
+          "Cache-Control",
+          "private, max-age=0, must-revalidate"
+        );
+        response.headers.set("X-Content-Type-Options", "nosniff");
+        response.headers.set("Vary", "Accept-Encoding");
 
-    // React Query handles caching, but allow browser to cache for short period
-    // This helps with back/forward navigation while React Query manages freshness
-    response.headers.set(
-      "Cache-Control",
-      "private, max-age=0, must-revalidate"
-    );
-    // Performance headers
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Vary", "Accept-Encoding");
-
-    return response;
-  } catch (error) {
-    const { error: errorMessage, statusCode } = handleApiError(error);
-    return apiError(errorMessage, undefined, statusCode);
-  }
+        return response;
+      } catch (error) {
+        const { error: errorMessage, statusCode } = handleApiError(error);
+        return apiError(errorMessage, undefined, statusCode);
+      }
+    },
+    recipeIdRateLimiter
+  );
 }

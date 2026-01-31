@@ -9,10 +9,7 @@ import { recipes } from "~/server/db/schema";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
 import { logger } from "~/lib/logger";
 import { getOrSetCorrelationId } from "~/lib/request-context";
-import {
-  validateRequestBody,
-  validateRequestParams,
-} from "~/lib/middleware/validate-request";
+import { validateRequestBody } from "~/lib/middleware/validate-request";
 import { validateUrl } from "~/lib/validation";
 import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
@@ -45,13 +42,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       try {
         const userId = await getServerUserIdFromRequest(req);
+        const searchParams = new URL(req.url).searchParams;
+
+        const limitParam = searchParams.get("limit");
+        const offsetParam = searchParams.get("offset");
+
         const rawParams = {
-          offset: Number(new URL(req.url).searchParams.get("offset")) ?? 0,
+          offset: offsetParam ? Number(offsetParam) : 0,
           limit:
-            Number(new URL(req.url).searchParams.get("limit")) ?? DEFAULT_LIMIT,
-          search: new URL(req.url).searchParams.get("search") ?? undefined,
-          category: new URL(req.url).searchParams.get("category") ?? "All",
-          sort: new URL(req.url).searchParams.get("sort") ?? "newest",
+            limitParam && limitParam !== ""
+              ? Number(limitParam)
+              : DEFAULT_LIMIT,
+          search: searchParams.get("search") ?? undefined,
+          category: searchParams.get("category") ?? "All",
+          sort: searchParams.get("sort") ?? "newest",
         };
         const params = schemas.searchParamsSchema.parse(rawParams);
 
