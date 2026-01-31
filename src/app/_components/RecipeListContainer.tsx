@@ -79,8 +79,9 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
     onError: () => {
       toast.error("Failed to delete recipe");
     },
+    // Rollback strategy: refetch from server rather than restore cached state.
+    // This differs from update mutations which explicitly restore previous cache.
     onSettled: async () => {
-      // Invalidate to sync with server (also handles rollback on error)
       await queryClient.invalidateQueries({ queryKey: recipesKey() });
     },
     onSuccess: () => {
@@ -146,7 +147,7 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
         onSortChange={handleSortChange}
       />
 
-      <div className="min-h-[calc(100vh-160px)]">
+      <div>
         <RecipeGrid
           recipes={recipes}
           isLoading={isLoading}
