@@ -64,7 +64,7 @@ export default function EditPageClient({
 
   return (
     <PageTransition>
-      <div className="h-full w-full bg-background">
+      <div className="h-full w-full">
         <div className="flex-1 overflow-y-auto p-4">
           <EditRecipeForm initialRecipe={displayRecipe} />
         </div>

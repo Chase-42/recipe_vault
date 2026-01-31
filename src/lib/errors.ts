@@ -1,4 +1,5 @@
-// Custom error classes
+import { logger } from "./logger";
+
 export class RecipeError extends Error {
   constructor(
     message: string,
@@ -29,8 +30,6 @@ export class NotFoundError extends RecipeError {
     this.name = "NotFoundError";
   }
 }
-
-import { logger } from "./logger";
 
 // Error handling utilities
 export function handleApiError(error: unknown): {
