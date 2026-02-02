@@ -14,6 +14,7 @@ import type { UpdateRecipeInput } from "~/types";
 import { apiSuccess, apiError } from "~/lib/api-response";
 import { schemas } from "~/lib/schemas";
 import { withRateLimit } from "~/lib/rateLimit";
+import { revalidatePath } from "next/cache";
 
 const recipeIdRateLimiter = {
   maxRequests: 100,
@@ -47,6 +48,9 @@ export async function PUT(
         }
 
         const updatedRecipe = await updateRecipe(id, validatedData, req);
+
+        revalidatePath("/");
+        revalidatePath(`/img/${id}`);
 
         const response = apiSuccess(updatedRecipe);
         response.headers.set(

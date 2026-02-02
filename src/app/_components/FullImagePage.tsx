@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { PageTransition } from "~/components/ui/page-transition";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
@@ -75,7 +74,7 @@ export default function FullImageView({
 
   const queryClient = useQueryClient();
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
-  const hasCachedData = !!cachedData;
+  const hasData = !!(cachedData ?? initialRecipe);
 
   // Resizable panel states
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
@@ -92,24 +91,28 @@ export default function FullImageView({
     queryKey: recipeKey(id),
     queryFn: () => fetchRecipe(id),
     initialData: cachedData ?? initialRecipe ?? undefined,
-    placeholderData: cachedData ?? initialRecipe ?? undefined,
-    gcTime: 1000 * 60 * 30, // 30 minutes (longer than default for recipe data)
-    refetchOnMount: !hasCachedData,
+    gcTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: !hasData,
   });
 
   const displayRecipe = recipe ?? cachedData ?? initialRecipe;
 
+  const recipeId = displayRecipe?.id;
+  const recipeName = displayRecipe?.name;
+  const recipeFavorite = displayRecipe?.favorite;
+
   // Set recipe data in header context
   useEffect(() => {
-    if (displayRecipe) {
+    if (recipeId !== undefined && recipeName !== undefined) {
       setRecipeData({
-        id: displayRecipe.id,
-        name: displayRecipe.name,
-        favorite: displayRecipe.favorite,
+        id: recipeId,
+        name: recipeName,
+        favorite: recipeFavorite ?? false,
       });
     }
     return () => setRecipeData(null);
-  }, [displayRecipe?.id, displayRecipe?.name, displayRecipe?.favorite, setRecipeData]);
+  }, [recipeId, recipeName, recipeFavorite, setRecipeData]);
 
   const toggleIngredient = useCallback(
     (index: number) => {
@@ -329,8 +332,7 @@ export default function FullImageView({
     .filter((line) => line.trim() !== "");
 
   return (
-    <PageTransition>
-      <div className="h-screen w-full">
+    <div className="h-screen w-full">
         {/* Main Content */}
         <div ref={containerRef} className="flex h-[calc(100vh-3.5rem)] relative">
           {/* Left Panel */}
@@ -338,7 +340,7 @@ export default function FullImageView({
             ref={leftPanelRef}
             className={cn(
               "flex flex-col border-r border-border relative",
-              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              !isDraggingHorizontal && "transition-[width] duration-150 ease-out"
             )}
             style={{ width: `${leftPanelWidth}%` }}
           >
@@ -346,7 +348,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "relative overflow-hidden",
-                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                !isDraggingVertical && "transition-[height] duration-150 ease-out"
               )}
               style={{ height: `${imageHeight}%` }}
             >
@@ -377,7 +379,7 @@ export default function FullImageView({
             <div
               className={cn(
                 "flex flex-col min-h-0 flex-1 p-4 overflow-hidden bg-black/40",
-                !isDraggingVertical && "transition-[height] duration-300 ease-out"
+                !isDraggingVertical && "transition-[height] duration-150 ease-out"
               )}
               style={{ height: `${100 - imageHeight}%` }}
             >
@@ -443,7 +445,7 @@ export default function FullImageView({
           <div
             className={cn(
               "flex-1 overflow-hidden",
-              !isDraggingHorizontal && "transition-[width] duration-300 ease-out"
+              !isDraggingHorizontal && "transition-[width] duration-150 ease-out"
             )}
             style={{ width: `${100 - leftPanelWidth}%` }}
           >
@@ -539,7 +541,6 @@ export default function FullImageView({
           recipeId={displayRecipe.id}
           recipeName={displayRecipe.name}
         />
-      </div>
-    </PageTransition>
+    </div>
   );
 }
