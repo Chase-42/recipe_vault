@@ -70,3 +70,4 @@ scripts/*.md
 docs/*.md
 
 .kiro
+.claude

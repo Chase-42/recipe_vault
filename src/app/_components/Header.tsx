@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { useSearch, useHeaderContext } from "~/providers";
+import { useSearch, useHeaderContext, useSession } from "~/providers";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { cn } from "~/lib/utils";
 
@@ -201,7 +201,7 @@ export function Header() {
   const router = useRouter();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { data: session } = authClient.useSession();
+  const session = useSession();
   const config = getHeaderConfig(pathname);
 
   // Update grid offset CSS variable when header height changes
