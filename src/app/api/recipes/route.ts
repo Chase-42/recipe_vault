@@ -15,6 +15,7 @@ import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
 import type { FlaskApiResponse } from "~/types";
 import { apiSuccess, apiPaginated, apiError } from "~/lib/api-response";
+import { revalidatePath } from "next/cache";
 
 // Constants
 const FLASK_BASE_URL =
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const totalPages = Math.ceil(total / params.limit);
         const currentPage = Math.floor(params.offset / params.limit) + 1;
 
-        return apiPaginated(recipeList, {
+        const response = apiPaginated(recipeList, {
           total,
           offset: params.offset,
           limit: params.limit,
@@ -88,6 +89,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           totalPages,
           currentPage,
         });
+
+        response.headers.set(
+          "Cache-Control",
+          "private, max-age=300, stale-while-revalidate=600"
+        );
+
+        return response;
       } catch (error) {
         log.error("Failed to fetch recipes", error as Error);
         const { error: errorMessage, statusCode } = handleApiError(error);
@@ -157,6 +165,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         log.info("Recipe created successfully", { recipeId: recipe.id, link });
+        revalidatePath("/");
 
         return apiSuccess(recipe, 201);
       } catch (error) {
@@ -193,6 +202,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         await deleteRecipe(id, req);
 
         log.info("Recipe deleted successfully", { recipeId: id });
+        revalidatePath("/");
 
         return apiSuccess({ id }, 200);
       } catch (error) {

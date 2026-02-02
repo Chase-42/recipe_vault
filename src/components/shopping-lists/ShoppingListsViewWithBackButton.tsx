@@ -1,7 +1,6 @@
 "use client";
 
 import { Search, Trash2, ChefHat, Filter } from "lucide-react";
-import { PageTransition } from "~/components/ui/page-transition";
 import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import {
@@ -249,8 +248,7 @@ export function ShoppingListsViewWithBackButton() {
   };
 
   return (
-    <PageTransition>
-      <div className="mx-auto max-w-4xl space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
         {/* Controls Section */}
         <div className="space-y-4 border-b border-border pb-4">
           {/* Item Count Info */}
@@ -413,7 +411,6 @@ export function ShoppingListsViewWithBackButton() {
             )}
           </div>
         </ScrollArea>
-      </div>
-    </PageTransition>
+    </div>
   );
 }

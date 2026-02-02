@@ -97,3 +97,4 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export { HeaderProvider, useHeaderContext } from "./HeaderContext";
+export { SessionProvider, useSession } from "./SessionProvider";
