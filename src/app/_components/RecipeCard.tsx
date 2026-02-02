@@ -41,6 +41,7 @@ function RecipeCard({
   priority = false,
 }: RecipeCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -48,6 +49,15 @@ function RecipeCard({
   const prefetchedRef = useRef(false);
   const imagePreloadedRef = useRef(false);
   const { searchTerm } = useSearch();
+
+  const handleNavigate = useCallback(
+    (e: React.MouseEvent, href: string) => {
+      e.preventDefault();
+      setIsNavigating(true);
+      router.push(href);
+    },
+    [router]
+  );
 
   const handleFavoriteToggle = useCallback(() => {
     onFavoriteToggle(recipe.id);
@@ -155,22 +165,25 @@ function RecipeCard({
   const imageLoadingState = useMemo(
     () => ({
       className: cn(
-        "h-full w-full object-cover transition-all duration-300",
+        "h-full w-full object-cover transition-transform duration-[10ms]",
         !isImageLoaded && "blur-sm",
-        "group-hover:scale-105 group-active:scale-100"
+        isNavigating ? "scale-95 brightness-75" : "group-hover:scale-105"
       ),
       style: {
         transform: "translateZ(0)",
         willChange: "transform",
       },
     }),
-    [isImageLoaded]
+    [isImageLoaded, isNavigating]
   );
 
   return (
     <div
       ref={cardRef}
-      className="recipe-card group relative flex max-w-md flex-col items-center rounded-md p-4 text-white shadow-md overflow-hidden"
+      className={cn(
+        "recipe-card group relative flex max-w-md flex-col items-center rounded-md p-4 text-white shadow-md overflow-hidden",
+        isNavigating && "scale-[0.97] opacity-70"
+      )}
       onPointerEnter={handlePointerEnter}
     >
       <svg
@@ -194,7 +207,7 @@ function RecipeCard({
         type="button"
         onClick={handleFavoriteToggle}
         className={cn(
-          "absolute right-0 top-0 z-20 p-2 transition-opacity duration-300 group-hover:opacity-100",
+          "absolute right-0 top-0 z-20 p-2 transition-opacity duration-150 group-hover:opacity-100",
           !recipe.favorite && "opacity-0"
         )}
         aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
@@ -202,7 +215,7 @@ function RecipeCard({
         <IconHeart
           size={24}
           className={cn(
-            "transition-colors duration-300",
+            "transition-colors duration-150",
             recipe.favorite
               ? "text-[hsl(var(--recipe-red))]"
               : "text-white"
@@ -241,9 +254,17 @@ function RecipeCard({
         )}
         <Link
           href={`/img/${recipe.id}`}
-          className="group relative mb-4 w-full"
+          prefetch={true}
+          onClick={(e) => handleNavigate(e, `/img/${recipe.id}`)}
+          className={cn(
+            "group relative mb-4 w-full",
+            isNavigating && "pointer-events-none"
+          )}
         >
-          <div className="relative aspect-square w-full overflow-hidden rounded-md">
+          <div className={cn(
+            "relative aspect-square w-full overflow-hidden rounded-md transition-transform duration-[10ms]",
+            isNavigating && "scale-[0.97]"
+          )}>
             <Image
               ref={imageRef}
               src={recipe.imageUrl}
@@ -271,21 +292,21 @@ function RecipeCard({
           </div>
         </Link>
 
-        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-          <Link href={`/edit/${recipe.id}`} aria-label={`Edit recipe: ${recipe.name}`}>
+        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+          <Link href={`/edit/${recipe.id}`} prefetch={true} onClick={(e) => handleNavigate(e, `/edit/${recipe.id}`)} aria-label={`Edit recipe: ${recipe.name}`}>
             <Button
               variant="secondary"
               size="sm"
-              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-200 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
+              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-150 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
             >
               Edit
             </Button>
           </Link>
-          <Link href={`/print/${recipe.id}`} aria-label={`Print recipe: ${recipe.name}`}>
+          <Link href={`/print/${recipe.id}`} prefetch={true} onClick={(e) => handleNavigate(e, `/print/${recipe.id}`)} aria-label={`Print recipe: ${recipe.name}`}>
             <Button
               variant="secondary"
               size="sm"
-              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-200 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
+              className="bg-gray-700 text-white border border-gray-500 backdrop-blur-sm transition-all duration-150 hover:bg-gray-600 hover:border-gray-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
             >
               Print
             </Button>
@@ -295,7 +316,7 @@ function RecipeCard({
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-red-600 text-white border border-red-500 backdrop-blur-sm transition-all duration-200 hover:bg-red-700 hover:border-red-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
+                className="bg-red-600 text-white border border-red-500 backdrop-blur-sm transition-all duration-150 hover:bg-red-700 hover:border-red-400 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black shadow-lg font-medium"
                 aria-label={`Delete recipe: ${recipe.name}`}
               >
                 Delete
