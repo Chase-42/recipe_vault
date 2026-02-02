@@ -9,6 +9,8 @@ import {
   LogOut,
   ArrowLeft,
   Edit,
+  Menu,
+  X,
 } from "lucide-react";
 import { IconHeart } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
@@ -29,6 +31,7 @@ import {
 import { useSearch, useHeaderContext, useSession } from "~/providers";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { cn } from "~/lib/utils";
+import { Drawer } from "~/components/ui/drawer";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
   ssr: false,
@@ -194,6 +197,9 @@ function getHeaderConfig(pathname: string | null): HeaderConfig {
 export function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
+  const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const { searchTerm, setSearchTerm } = useSearch();
   const { recipeData } = useHeaderContext();
   const { toggleFavorite } = useFavoriteToggle();
@@ -231,12 +237,33 @@ export function Header() {
     };
   }, [config.hidden, session, pathname]);
 
+  // Close nav drawer and mobile search on route change
+  useEffect(() => {
+    setIsNavDrawerOpen(false);
+    setIsMobileSearchExpanded(false);
+  }, [pathname]);
+
+  // Focus mobile search input when expanded
+  useEffect(() => {
+    if (isMobileSearchExpanded && mobileSearchRef.current) {
+      mobileSearchRef.current.focus();
+    }
+  }, [isMobileSearchExpanded]);
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+  };
+
+  const handleOpenModalFromDrawer = () => {
+    setIsNavDrawerOpen(false);
+    // Small delay to let drawer close animation start
+    setTimeout(() => {
+      setIsModalOpen(true);
+    }, 150);
   };
 
   const handleSignOut = async () => {
@@ -280,56 +307,62 @@ export function Header() {
     <>
       <header
         ref={headerRef}
-        className="z-50 flex items-center justify-between border-b bg-black p-4 text-xl font-semibold print:hidden"
+        className="z-50 flex items-center justify-between border-b bg-black px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:py-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
       >
         {/* Left side */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           {config.showBackButton && (
             <Link
               href={config.backDestination}
-              className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+              className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent"
+              aria-label="Go back"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </Link>
           )}
 
           {config.showLogo && (
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex h-11 min-w-[44px] items-center gap-2">
               <Image
                 src="/recipe_vault_image.svg"
                 alt="Recipe Vault Icon"
                 width={28}
                 height={28}
+                className="flex-shrink-0"
               />
-              <Link href="/" className="text-white hover:underline">
+              <span className="hidden text-white hover:underline sm:inline">
                 Recipe Vault
-              </Link>
-            </div>
+              </span>
+            </Link>
           )}
 
           {displayTitle && (
-            <h1 className="text-lg font-bold">{displayTitle}</h1>
+            <h1 className="max-w-[120px] truncate text-base font-bold sm:max-w-[180px] sm:text-lg md:max-w-[280px]">
+              {displayTitle}
+            </h1>
           )}
 
           {/* Recipe Actions (edit, favorite) for image viewer */}
           {config.showRecipeActions && recipeData && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => router.push(`/edit/${recipeData.id}`)}
-                className="h-8 w-8 text-white hover:bg-zinc-800"
+                className="h-11 w-11 text-white hover:bg-zinc-800"
+                aria-label="Edit recipe"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleToggleFavorite}
-                className="h-8 w-8 text-white hover:bg-zinc-800"
+                className="h-11 w-11 text-white hover:bg-zinc-800"
+                aria-label={recipeData.favorite ? "Remove from favorites" : "Add to favorites"}
               >
                 <IconHeart
-                  size={16}
+                  size={20}
                   className={cn(
                     "transition-colors duration-300",
                     recipeData.favorite
@@ -344,9 +377,54 @@ export function Header() {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          {/* Mobile search - icon that expands to full-width */}
           {config.showSearch && (
-            <div className="relative">
+            <div className="md:hidden">
+              {isMobileSearchExpanded ? (
+                <div className="relative flex items-center">
+                  <Input
+                    ref={mobileSearchRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onBlur={() => {
+                      // Delay to allow click events to fire
+                      setTimeout(() => setIsMobileSearchExpanded(false), 150);
+                    }}
+                    placeholder="Search recipes..."
+                    className="w-[200px] pl-9 pr-9 placeholder:text-zinc-400"
+                  />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setIsMobileSearchExpanded(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4 text-zinc-400" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMobileSearchExpanded(true)}
+                  className="h-11 w-11 text-white hover:bg-zinc-800"
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Desktop search - expand on focus */}
+          {config.showSearch && (
+            <div className="relative hidden md:block">
               <Input
                 type="text"
                 value={searchTerm}
@@ -354,14 +432,28 @@ export function Header() {
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
                 placeholder={isSearchFocused ? "Search recipes..." : "Search"}
-                className="w-28 pl-9 transition-[width] duration-300 placeholder:text-zinc-400 focus:w-64"
+                className="w-32 pl-9 transition-[width] duration-300 placeholder:text-zinc-400 focus:w-72 lg:focus:w-80"
               />
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             </div>
           )}
 
+          {/* Mobile hamburger menu - visible below md */}
           {config.showNav && (
-            <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsNavDrawerOpen(true)}
+              className="h-11 w-11 text-white hover:bg-zinc-800 md:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          )}
+
+          {/* Desktop nav - hidden below md */}
+          {config.showNav && (
+            <div className="hidden items-center gap-4 md:flex">
               <Button
                 onClick={handleOpenModal}
                 className="flex items-center gap-2"
@@ -397,7 +489,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-700 text-sm font-medium text-white transition-colors hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-700 text-sm font-medium text-white transition-colors hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
                   aria-label="User menu"
                 >
                   {getUserInitials()}
@@ -429,6 +521,65 @@ export function Header() {
           )}
         </div>
       </header>
+
+      {/* Mobile navigation drawer */}
+      {config.showNav && (
+        <Drawer
+          open={isNavDrawerOpen}
+          onOpenChange={setIsNavDrawerOpen}
+          side="left"
+        >
+          <nav className="flex flex-col p-6 pt-12">
+            <div className="mb-6 flex items-center gap-3">
+              <Image
+                src="/recipe_vault_image.svg"
+                alt="Recipe Vault"
+                width={32}
+                height={32}
+              />
+              <span className="text-lg font-semibold">Recipe Vault</span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={handleOpenModalFromDrawer}
+                className="h-12 w-full justify-start gap-3 text-base"
+              >
+                <Plus className="h-5 w-5" />
+                Add Recipe
+              </Button>
+
+              <Button
+                asChild
+                variant="ghost"
+                className="h-12 w-full justify-start gap-3 text-base"
+              >
+                <Link
+                  href="/meal-planner"
+                  onClick={() => setIsNavDrawerOpen(false)}
+                >
+                  <Calendar className="h-5 w-5" />
+                  Meal Planner
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="ghost"
+                className="h-12 w-full justify-start gap-3 text-base"
+              >
+                <Link
+                  href="/shopping-lists"
+                  onClick={() => setIsNavDrawerOpen(false)}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Shopping Lists
+                </Link>
+              </Button>
+            </div>
+          </nav>
+        </Drawer>
+      )}
 
       {config.showNav && isModalOpen && (
         <Modal onClose={handleCloseModal}>
