@@ -187,17 +187,17 @@ function RecipeCard({
       onPointerEnter={handlePointerEnter}
     >
       <svg
-        className="absolute inset-0 w-full h-full rounded-md pointer-events-none"
+        className="absolute inset-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] pointer-events-none"
         fill="none"
         aria-hidden="true"
       >
         <title>Decorative card border</title>
         <rect
           className="animated-border"
-          x="1"
-          y="1"
-          width="calc(100% - 2px)"
-          height="calc(100% - 2px)"
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
           rx="6"
           stroke="white"
           strokeWidth="2"

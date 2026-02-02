@@ -249,17 +249,16 @@ dialog:modal {
 }
 
 .recipe-card .animated-border {
-  stroke-dasharray: 2000;
-  stroke-dashoffset: 2000;
+  stroke-dasharray: 3000;
+  stroke-dashoffset: 3000;
   transition: stroke-dashoffset 0.2s ease-out;
 }
 
-.recipe-card:hover .animated-border {
-  stroke-dashoffset: 0;
-}
-
-.recipe-card:not(:hover) .animated-border {
-  stroke-dashoffset: 2000;
+/* Only apply hover effect on devices with true hover (mouse/trackpad) */
+@media (hover: hover) and (pointer: fine) {
+  .recipe-card:hover .animated-border {
+    stroke-dashoffset: 0;
+  }
 }
 
 @media (max-width: 768px) {

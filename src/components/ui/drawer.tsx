@@ -23,6 +23,8 @@ interface DrawerContentProps {
 
 const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps>(
   ({ children, className, side = "bottom", onClose }, ref) => {
+    const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+
     const sideVariants = {
       left: {
         initial: { x: "-100%" },
@@ -47,15 +49,25 @@ const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps>(
     };
 
     const sideClasses = {
-      left: "left-0 top-0 h-full w-80 max-w-[80vw]",
-      right: "right-0 top-0 h-full w-80 max-w-[80vw]",
-      top: "top-0 left-0 w-full h-80 max-h-[80vh]",
-      bottom: "bottom-0 left-0 w-full h-[70vh] max-h-[70vh] rounded-t-lg",
+      left: "left-0 top-0 h-full w-80 max-w-[80vw] pl-[env(safe-area-inset-left)]",
+      right: "right-0 top-0 h-full w-80 max-w-[80vw] pr-[env(safe-area-inset-right)]",
+      top: "top-0 left-0 w-full h-80 max-h-[80vh] pt-[env(safe-area-inset-top)]",
+      bottom: "bottom-0 left-0 w-full h-[70vh] max-h-[70vh] rounded-t-lg pb-[env(safe-area-inset-bottom)]",
     };
+
+    // Focus close button when drawer opens
+    React.useEffect(() => {
+      const timer = setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }, []);
 
     return (
       <motion.div
         ref={ref}
+        role="dialog"
+        aria-modal="true"
         className={cn(
           "fixed z-50 bg-background border shadow-lg",
           sideClasses[side],
@@ -66,13 +78,14 @@ const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps>(
         exit={sideVariants[side].exit}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
       >
-        {/* Close button */}
+        {/* Close button - 44x44 touch target */}
         <button
+          ref={closeButtonRef}
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-md ring-offset-background transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close"
         >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <X className="h-5 w-5" />
         </button>
 
         {/* Drag handle for bottom drawer */}
