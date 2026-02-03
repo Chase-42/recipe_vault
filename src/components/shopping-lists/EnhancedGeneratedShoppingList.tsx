@@ -208,9 +208,9 @@ const EnhancedGeneratedShoppingList = memo(
 
     return (
       <ErrorBoundary>
-        <div className="flex gap-6 h-full overflow-hidden">
+        <div className="flex flex-col gap-6 h-full overflow-hidden lg:flex-row">
           {/* Left Panel: New Ingredients */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex flex-1 flex-col min-w-0 lg:max-h-full max-h-[50%]">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ const EnhancedGeneratedShoppingList = memo(
           </div>
 
           {/* Right Panel: Existing Shopping List */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex flex-1 flex-col min-w-0 lg:max-h-full max-h-[50%]">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">

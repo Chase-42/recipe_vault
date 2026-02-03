@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { Drawer } from "~/components/ui/drawer";
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,7 +29,9 @@ import {
   ShoppingCart,
   AlertCircle,
   Loader2,
+  Menu,
 } from "lucide-react";
+import { useIsMobile } from "~/hooks/useMediaQuery";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
@@ -120,10 +123,12 @@ MemoizedRecipeCard.displayName = "MemoizedRecipeCard";
 
 export function MealPlannerClient() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(new Date()));
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [showRecipeDrawer, setShowRecipeDrawer] = useState(false);
 
   // Dialog states
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -311,184 +316,198 @@ export function MealPlannerClient() {
     );
   }
 
+  // Recipe list content - shared between sidebar and drawer
+  const recipeListContent = (
+    <>
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          type="text"
+          placeholder="Search recipes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Category Filter Buttons */}
+      <div className="flex flex-wrap gap-1 mb-4">
+        {(["All", "Breakfast", "Lunch", "Dinner"] as Category[]).map(
+          (category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category)}
+              className={`text-xs ${
+                category !== "All" && selectedCategory === category
+                  ? "border-2"
+                  : ""
+              }`}
+              style={{
+                borderColor:
+                  category !== "All" && selectedCategory === category
+                    ? mealTypeColors[category.toLowerCase() as MealType]
+                    : undefined,
+                backgroundColor:
+                  category !== "All" && selectedCategory === category
+                    ? mealTypeColors[category.toLowerCase() as MealType]
+                    : undefined,
+              }}
+            >
+              {category}
+            </Button>
+          )
+        )}
+      </div>
+
+      {/* Recipe List */}
+      <div className="flex-1 overflow-y-auto">
+        {recipesError ? (
+          <div className="text-center py-8 space-y-4">
+            <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+            <div className="text-sm text-muted-foreground">
+              Failed to load recipes. Please try refreshing the page.
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Refresh
+            </Button>
+          </div>
+        ) : isLoadingRecipes ? (
+          <div className="flex h-64 items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : filteredRecipes.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            {!recipesData?.recipes?.length
+              ? "No recipes found. Add some recipes first!"
+              : "No recipes match your search criteria."}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredRecipes.map((recipe: Recipe) => (
+              <MemoizedRecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-black">
-        {/* Resizable Sidebar */}
-        <div
-          ref={sidebarRef}
-          className="border-r flex flex-col relative bg-black"
-          style={{ width: sidebarWidth }}
-        >
-          {/* Sidebar Header */}
-          <div className="p-4 border-b bg-black">
-            <div className="flex items-center gap-3 mb-3">
-              <AnimatedBackButton className="h-8 w-8 rounded-md bg-transparent hover:bg-accent flex items-center justify-center">
-                <ArrowLeft className="h-4 w-4" />
-              </AnimatedBackButton>
-              <h2 className="text-lg font-semibold">Recipes</h2>
-            </div>
-
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search recipes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Category Filter Buttons */}
-            <div className="flex flex-wrap gap-1">
-              {(["All", "Breakfast", "Lunch", "Dinner"] as Category[]).map(
-                (category) => (
-                  <Button
-                    key={category}
-                    variant={
-                      selectedCategory === category ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className={`text-xs ${
-                      category !== "All" && selectedCategory === category
-                        ? "border-2"
-                        : ""
-                    }`}
-                    style={{
-                      borderColor:
-                        category !== "All" && selectedCategory === category
-                          ? mealTypeColors[category.toLowerCase() as MealType]
-                          : undefined,
-                      backgroundColor:
-                        category !== "All" && selectedCategory === category
-                          ? mealTypeColors[category.toLowerCase() as MealType]
-                          : undefined,
-                    }}
-                  >
-                    {category}
-                  </Button>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Recipe List */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {recipesError ? (
-              <div className="text-center py-8 space-y-4">
-                <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-                <div className="text-sm text-muted-foreground">
-                  Failed to load recipes. Please try refreshing the page.
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                >
-                  Refresh
-                </Button>
-              </div>
-            ) : isLoadingRecipes ? (
-              <div className="flex h-64 items-center justify-center">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : filteredRecipes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {!recipesData?.recipes?.length
-                  ? "No recipes found. Add some recipes first!"
-                  : "No recipes match your search criteria."}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredRecipes.map((recipe: Recipe) => (
-                  <MemoizedRecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Resize Handle */}
+      <div className="flex h-screen flex-col bg-black md:flex-row">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
           <div
-            className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-border hover:bg-muted-foreground/20 transition-colors"
-            onMouseDown={handleMouseDown}
-          />
-        </div>
+            ref={sidebarRef}
+            className="relative flex flex-col border-r bg-black"
+            style={{ width: sidebarWidth }}
+          >
+            <div className="border-b bg-black p-4">
+              <div className="mb-3 flex items-center gap-3">
+                <AnimatedBackButton className="flex h-8 w-8 items-center justify-center rounded-md bg-transparent hover:bg-accent">
+                  <ArrowLeft className="h-4 w-4" />
+                </AnimatedBackButton>
+                <h2 className="text-lg font-semibold">Recipes</h2>
+              </div>
+            </div>
+            <div className="flex flex-1 flex-col overflow-hidden p-4">
+              {recipeListContent}
+            </div>
+            <div
+              className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-border transition-colors hover:bg-muted-foreground/20"
+              onMouseDown={handleMouseDown}
+            />
+          </div>
+        )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col bg-black">
+        <div className="flex flex-1 flex-col bg-black">
           {/* Header */}
-          <div className="border-b bg-black p-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Meal Planner</h1>
+          <div className="border-b bg-black p-3 md:p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                {isMobile && (
+                  <AnimatedBackButton className="flex h-10 w-10 items-center justify-center rounded-md bg-transparent hover:bg-accent">
+                    <ArrowLeft className="h-4 w-4" />
+                  </AnimatedBackButton>
+                )}
+                <h1 className="text-xl font-bold md:text-2xl">Meal Planner</h1>
+                {isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowRecipeDrawer(true)}
+                    className="ml-auto"
+                  >
+                    <Menu className="mr-2 h-4 w-4" />
+                    Recipes
+                  </Button>
+                )}
+              </div>
 
               {/* Week Navigation */}
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-4">
+                <span className="px-2 text-center text-xs font-medium md:px-4 md:text-sm">
                   {weekStart.toLocaleDateString("en-US", {
-                    month: "long",
+                    month: "short",
                     day: "numeric",
                   })}{" "}
                   -{" "}
                   {new Date(
                     weekStart.getTime() + 6 * 24 * 60 * 60 * 1000
                   ).toLocaleDateString("en-US", {
-                    month: "long",
+                    month: "short",
                     day: "numeric",
-                    year: "numeric",
                   })}
                 </span>
                 <Button variant="outline" size="sm" onClick={goToNextWeek}>
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Weekly Grid */}
-          <div className="flex-1 p-4">
-            <div className="bg-card rounded-lg border overflow-hidden">
+          <div className="flex-1 overflow-x-auto p-2 md:p-4">
+            <div className={`rounded-lg border bg-card ${isMobile ? "min-w-[700px]" : ""}`}>
               {/* Grid Header */}
               <div className="grid grid-cols-7 border-b">
                 {weekDates.map((date) => {
-                  const { dayName, dayNumber, isToday } =
-                    formatDateDisplay(date);
+                  const { dayName, dayNumber, isToday } = formatDateDisplay(date);
                   return (
                     <div
                       key={date}
-                      className={`p-3 text-center border-r last:border-r-0 ${
+                      className={`border-r p-2 text-center last:border-r-0 md:p-3 ${
                         isToday ? "bg-primary/10" : "bg-muted"
                       }`}
                     >
-                      <div
-                        className={`font-medium ${isToday ? "text-primary" : ""}`}
-                      >
-                        {dayName}
+                      <div className={`text-xs font-medium md:text-sm ${isToday ? "text-primary" : ""}`}>
+                        {isMobile ? dayName.slice(0, 3) : dayName}
                       </div>
-                      <div
-                        className={`text-lg ${isToday ? "text-primary font-semibold" : "text-muted-foreground"}`}
-                      >
+                      <div className={`text-sm md:text-lg ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                         {dayNumber}
                       </div>
-                      {/* Meal type indicators */}
-                      <div className="flex justify-center gap-1 mt-2">
+                      <div className="mt-1 flex justify-center gap-1 md:mt-2">
                         {MEAL_TYPES.map((mealType) => (
                           <div
                             key={mealType}
-                            className="w-2 h-2 rounded-full"
-                            style={{
-                              backgroundColor: mealTypeColors[mealType],
-                            }}
+                            className="h-1.5 w-1.5 rounded-full md:h-2 md:w-2"
+                            style={{ backgroundColor: mealTypeColors[mealType] }}
                             title={mealType}
                           />
                         ))}
@@ -500,11 +519,7 @@ export function MealPlannerClient() {
 
               {/* Grid Body */}
               {MEAL_TYPES.map((mealType) => (
-                <div
-                  key={mealType}
-                  className="grid grid-cols-7 border-b last:border-b-0"
-                >
-                  {/* Meal Slots */}
+                <div key={mealType} className="grid grid-cols-7 border-b last:border-b-0">
                   {weekDates.map((date) => {
                     const plannedMeal = currentWeekMeals?.[date]?.[mealType];
                     const isDragOver =
@@ -520,6 +535,7 @@ export function MealPlannerClient() {
                           onDrop={handleDrop}
                           onRemove={handleMealRemove}
                           isDragOver={isDragOver}
+                          isMobile={isMobile}
                         />
                       </div>
                     );
@@ -530,28 +546,24 @@ export function MealPlannerClient() {
           </div>
 
           {/* Action Bar */}
-          <div className="border-t border-border bg-black p-4">
-            <div className="flex items-center justify-between">
-              {/* Color Legend */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Meal Types:
-                </span>
+          <div className="border-t border-border bg-black p-3 md:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Color Legend - hidden on mobile */}
+              <div className="hidden items-center gap-4 md:flex">
+                <span className="text-sm font-medium text-muted-foreground">Meal Types:</span>
                 {MEAL_TYPES.map((mealType) => (
                   <div key={mealType} className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: mealTypeColors[mealType] }}
                     />
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {mealType}
-                    </span>
+                    <span className="text-sm capitalize text-muted-foreground">{mealType}</span>
                   </div>
                 ))}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
@@ -561,43 +573,62 @@ export function MealPlannerClient() {
                     !currentWeekMeals ||
                     Object.keys(currentWeekMeals).length === 0
                   }
+                  className="flex-1 md:flex-none"
                 >
                   {saveMealPlanMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <Save className="w-4 h-4 mr-2" />
+                    <Save className="mr-2 h-4 w-4" />
                   )}
-                  {saveMealPlanMutation.isPending ? "Saving..." : "Save Week"}
+                  <span className="hidden sm:inline">
+                    {saveMealPlanMutation.isPending ? "Saving..." : "Save"}
+                  </span>
+                  <span className="sm:hidden">Save</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleLoadWeek}
                   disabled={loadMealPlanMutation.isPending || !!savedPlansError}
+                  className="flex-1 md:flex-none"
                 >
                   {loadMealPlanMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <FolderOpen className="w-4 h-4 mr-2" />
+                    <FolderOpen className="mr-2 h-4 w-4" />
                   )}
-                  {loadMealPlanMutation.isPending ? "Loading..." : "Load Week"}
+                  <span className="hidden sm:inline">
+                    {loadMealPlanMutation.isPending ? "Loading..." : "Load"}
+                  </span>
+                  <span className="sm:hidden">Load</span>
                 </Button>
                 <Button
                   variant="default"
                   size="sm"
                   onClick={handleGenerateEnhancedShoppingList}
-                  disabled={
-                    !currentWeekMeals ||
-                    Object.keys(currentWeekMeals).length === 0
-                  }
+                  disabled={!currentWeekMeals || Object.keys(currentWeekMeals).length === 0}
+                  className="w-full md:w-auto"
                 >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Generate Shopping List
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Generate Shopping List</span>
+                  <span className="sm:hidden">Shopping List</span>
                 </Button>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile Recipe Drawer */}
+        {isMobile && (
+          <Drawer open={showRecipeDrawer} onOpenChange={setShowRecipeDrawer} side="left">
+            <div className="flex h-full flex-col pt-14">
+              <h2 className="mb-4 px-4 text-lg font-semibold">Recipes</h2>
+              <div className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
+                {recipeListContent}
+              </div>
+            </div>
+          </Drawer>
+        )}
       </div>
 
       {/* Save Plan Dialog */}
