@@ -207,8 +207,8 @@ function RecipeCard({
         type="button"
         onClick={handleFavoriteToggle}
         className={cn(
-          "absolute right-0 top-0 z-20 p-2 transition-opacity duration-150 group-hover:opacity-100",
-          !recipe.favorite && "opacity-0"
+          "recipe-card-favorite absolute right-0 top-0 z-20 p-2 transition-opacity duration-150",
+          recipe.favorite && "is-favorite"
         )}
         aria-label={recipe.favorite ? "Unfavorite" : "Favorite"}
       >
@@ -292,7 +292,7 @@ function RecipeCard({
           </div>
         </Link>
 
-        <div className="flex w-full justify-center gap-3 pt-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="recipe-card-actions flex w-full justify-center gap-3 pt-2 transition-opacity duration-150">
           <Link href={`/edit/${recipe.id}`} prefetch={true} onClick={(e) => handleNavigate(e, `/edit/${recipe.id}`)} aria-label={`Edit recipe: ${recipe.name}`}>
             <Button
               variant="secondary"

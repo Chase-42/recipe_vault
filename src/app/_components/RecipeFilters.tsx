@@ -42,12 +42,12 @@ export default function RecipeFilters({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         <Select
           value={selectedCategory}
           onValueChange={(value: Category) => setSelectedCategory(value)}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -61,7 +61,7 @@ export default function RecipeFilters({
         </Select>
 
         <Select value={sortOption} onValueChange={onSortChange}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
