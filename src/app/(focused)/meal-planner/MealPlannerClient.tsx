@@ -538,6 +538,15 @@ export function MealPlannerClient() {
                       >
                         <span className="text-xs font-medium">{dayName.slice(0, 3)}</span>
                         <span className="text-lg font-semibold">{dayNumber}</span>
+                        <div className="mt-1 flex justify-center gap-0.5">
+                          {MEAL_TYPES.map((mealType) => (
+                            <div
+                              key={mealType}
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ backgroundColor: mealTypeColors[mealType] }}
+                            />
+                          ))}
+                        </div>
                       </button>
                     );
                   })}
