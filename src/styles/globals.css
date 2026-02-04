@@ -259,6 +259,26 @@ dialog:modal {
   .recipe-card:hover .animated-border {
     stroke-dashoffset: 0;
   }
+
+  /* Hide actions by default, show on hover - only on devices with hover capability */
+  .recipe-card-actions {
+    opacity: 0;
+  }
+
+  .recipe-card:hover .recipe-card-actions,
+  .recipe-card:focus-within .recipe-card-actions {
+    opacity: 1;
+  }
+
+  /* Favorite button: hide when not active, show on hover */
+  .recipe-card-favorite:not(.is-favorite) {
+    opacity: 0;
+  }
+
+  .recipe-card:hover .recipe-card-favorite,
+  .recipe-card:focus-within .recipe-card-favorite {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {

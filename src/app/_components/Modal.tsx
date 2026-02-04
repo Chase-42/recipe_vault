@@ -69,7 +69,7 @@ export function Modal({ children, onClose }: ModalProps) {
             <button
               type="button"
               onClick={handleClose}
-              className="absolute right-2 top-2 z-[100] flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+              className="absolute right-2 top-2 z-[100] flex h-11 w-11 items-center justify-center rounded-md bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
               aria-label="Close modal"
             >
               <svg

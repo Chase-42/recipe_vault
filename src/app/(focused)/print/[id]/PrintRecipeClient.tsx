@@ -19,18 +19,18 @@ export default function PrintRecipeClient({ id }: { id: number }) {
   if (!recipe) return <LoadingSpinner />;
 
   return (
-    <div className="mx-auto max-w-3xl p-8 print:p-4">
+    <div className="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8 print:p-4">
       <div className="mb-6 flex items-center justify-end print:hidden">
-        <Button onClick={() => window.print()}>
+        <Button onClick={() => window.print()} className="h-11">
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
       </div>
 
       <article className="space-y-6">
-        <h1 className="text-3xl font-bold">{recipe.name}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{recipe.name}</h1>
 
-        <div className="relative h-64 w-full overflow-hidden rounded-lg">
+        <div className="relative h-48 w-full overflow-hidden rounded-lg sm:h-56 md:h-64">
           <Image
             src={recipe.imageUrl}
             alt={recipe.name}

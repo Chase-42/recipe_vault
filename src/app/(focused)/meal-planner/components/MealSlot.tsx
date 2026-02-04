@@ -26,6 +26,11 @@ const mealTypeColors: Record<MealType, string> = {
   dinner: "hsl(270, 70%, 50%)",
 };
 
+interface ExtendedMealSlotProps extends MealSlotProps {
+  pendingRecipe?: Recipe | null;
+  onMobilePlacement?: (date: string, mealType: MealType) => void;
+}
+
 export function MealSlot({
   date,
   mealType,
@@ -34,13 +39,22 @@ export function MealSlot({
   onRemove,
   canDrop = true,
   isMobile = false,
-}: MealSlotProps) {
+  pendingRecipe,
+  onMobilePlacement,
+}: ExtendedMealSlotProps) {
   const [dragState, setDragState] = useState<DragState>("idle");
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [showRecipeDetail, setShowRecipeDetail] = useState(false);
 
   const isEmpty = !plannedMeal;
   const borderColor = mealTypeColors[mealType];
+  const hasPendingRecipe = isMobile && pendingRecipe && isEmpty;
+
+  const handleSlotClick = () => {
+    if (hasPendingRecipe && onMobilePlacement) {
+      onMobilePlacement(date, mealType);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -99,19 +113,23 @@ export function MealSlot({
   return (
     <div
       className={`bg-transparent p-2 transition-all duration-200 ${
-        isMobile ? "min-h-[120px] min-w-[140px] flex-shrink-0" : "min-h-[80px]"
-      }`}
+        isMobile ? "min-h-[100px]" : "min-h-[80px]"
+      } ${hasPendingRecipe ? "cursor-pointer" : ""}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onClick={handleSlotClick}
       role="gridcell"
       tabIndex={0}
       data-meal-slot="true"
       data-date={date}
       data-meal-type={mealType}
       onKeyDown={(e) => {
-        if ((e.key === "Enter" || e.key === " ") && !isEmpty) {
+        if ((e.key === "Enter" || e.key === " ") && hasPendingRecipe) {
+          e.preventDefault();
+          handleSlotClick();
+        } else if ((e.key === "Enter" || e.key === " ") && !isEmpty) {
           e.preventDefault();
           setShowRecipeDetail(true);
         } else if ((e.key === "Delete" || e.key === "Backspace") && !isEmpty) {
@@ -121,20 +139,22 @@ export function MealSlot({
       }}
     >
       <div
-        className={`h-full p-2 rounded-md border-2 ${isEmpty ? "border-dashed" : "border-solid"}`}
-        style={{ borderColor }}
+        className={`h-full p-2 rounded-md border-2 transition-colors ${isEmpty ? "border-dashed" : "border-solid"} ${
+          hasPendingRecipe ? "bg-primary/10 border-primary" : ""
+        }`}
+        style={{ borderColor: hasPendingRecipe ? undefined : borderColor }}
       >
         <div
           className={`font-medium capitalize mb-2 ${isMobile ? "text-sm" : "text-xs"}`}
-          style={{ color: borderColor }}
+          style={{ color: hasPendingRecipe ? "hsl(var(--primary))" : borderColor }}
         >
           {formatMealType(mealType)}
         </div>
 
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-4 text-center">
-            <div className="text-gray-400 dark:text-gray-500 text-sm">
-              {dragState === "canDrop" ? "Drop here" : "Empty"}
+            <div className={`text-sm ${hasPendingRecipe ? "text-primary font-medium" : "text-gray-400 dark:text-gray-500"}`}>
+              {hasPendingRecipe ? "Tap to place" : dragState === "canDrop" ? "Drop here" : "Empty"}
             </div>
           </div>
         ) : (
