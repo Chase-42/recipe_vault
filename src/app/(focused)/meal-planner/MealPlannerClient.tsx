@@ -67,54 +67,62 @@ const MemoizedRecipeCard = memo(
     recipe,
     onDragStart,
     onDragEnd,
+    onTap,
+    isSelected,
   }: {
     recipe: Recipe;
-    onDragStart: (recipe: Recipe) => void;
-    onDragEnd: () => void;
+    onDragStart?: (recipe: Recipe) => void;
+    onDragEnd?: () => void;
+    onTap?: (recipe: Recipe) => void;
+    isSelected?: boolean;
   }) => {
     const handleDragStart = (e: React.DragEvent) => {
-      onDragStart(recipe);
-      e.dataTransfer.setData("application/json", JSON.stringify(recipe));
+      if (onDragStart) {
+        onDragStart(recipe);
+        e.dataTransfer.setData("application/json", JSON.stringify(recipe));
+      }
     };
 
     return (
       <div
-        key={recipe.id}
-        draggable
+        draggable={!!onDragStart}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        className="p-3 bg-card rounded-lg border cursor-grab active:cursor-grabbing hover:bg-accent transition-colors"
+        onClick={() => onTap?.(recipe)}
+        className={`p-3 bg-card rounded-lg border transition-colors ${
+          onDragStart ? "cursor-grab active:cursor-grabbing" : "cursor-pointer active:bg-accent"
+        } ${isSelected ? "ring-2 ring-primary bg-primary/10" : "hover:bg-accent"}`}
       >
-      <div className="flex items-center gap-3">
-        <div className="relative w-12 h-12 rounded-md overflow-hidden">
-          <Image
-            src={recipe.imageUrl}
-            alt={recipe.name}
-            fill
-            className="object-cover"
-            sizes="48px"
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-sm truncate">{recipe.name}</h3>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {recipe.categories.slice(0, 2).map((category) => (
-              <span
-                key={category}
-                className="text-xs px-2 py-0.5 rounded-full text-white"
-                style={{
-                  backgroundColor:
-                    mealTypeColors[category.toLowerCase() as MealType] ||
-                    "hsl(var(--muted))",
-                }}
-              >
-                {category}
-              </span>
-            ))}
+        <div className="flex items-center gap-3">
+          <div className="relative w-12 h-12 rounded-md overflow-hidden">
+            <Image
+              src={recipe.imageUrl}
+              alt={recipe.name}
+              fill
+              className="object-cover"
+              sizes="48px"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm truncate">{recipe.name}</h3>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {recipe.categories.slice(0, 2).map((category) => (
+                <span
+                  key={category}
+                  className="text-xs px-2 py-0.5 rounded-full text-white"
+                  style={{
+                    backgroundColor:
+                      mealTypeColors[category.toLowerCase() as MealType] ||
+                      "hsl(var(--muted))",
+                  }}
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     );
   }
 );
@@ -129,6 +137,14 @@ export function MealPlannerClient() {
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [showRecipeDrawer, setShowRecipeDrawer] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
+    // Default to today's index within the week (0-6)
+    const today = new Date();
+    const start = getWeekStart(new Date());
+    const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.min(6, diffDays));
+  });
+  const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
 
   // Dialog states
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -308,6 +324,19 @@ export function MealPlannerClient() {
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
+  // Mobile tap-to-place handler
+  const handleMobileRecipeTap = useCallback((recipe: Recipe) => {
+    setPendingRecipe(recipe);
+    setShowRecipeDrawer(false);
+  }, []);
+
+  const handleMobilePlacement = useCallback((date: string, mealType: MealType) => {
+    if (pendingRecipe) {
+      handleDrop(pendingRecipe, date, mealType);
+      setPendingRecipe(null);
+    }
+  }, [pendingRecipe, handleDrop]);
+
   if (isLoadingMeals) {
     return (
       <div className="flex h-[calc(100vh-80px)] items-center justify-center">
@@ -394,8 +423,10 @@ export function MealPlannerClient() {
               <MemoizedRecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
+                onDragStart={isMobile ? undefined : handleDragStart}
+                onDragEnd={isMobile ? undefined : handleDragEnd}
+                onTap={isMobile ? handleMobileRecipeTap : undefined}
+                isSelected={isMobile && pendingRecipe?.id === recipe.id}
               />
             ))}
           </div>
@@ -406,12 +437,12 @@ export function MealPlannerClient() {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen flex-col bg-black md:flex-row">
+      <div className="flex min-h-screen flex-col md:flex-row">
         {/* Desktop Sidebar */}
         {!isMobile && (
           <div
             ref={sidebarRef}
-            className="relative flex flex-col border-r bg-black"
+            className="relative flex flex-col border-r bg-black/80 backdrop-blur"
             style={{ width: sidebarWidth }}
           >
             <div className="border-b bg-black p-4">
@@ -433,9 +464,9 @@ export function MealPlannerClient() {
         )}
 
         {/* Main Content */}
-        <div className="flex flex-1 flex-col bg-black">
+        <div className="flex flex-1 flex-col bg-transparent">
           {/* Header */}
-          <div className="border-b bg-black p-3 md:p-4">
+          <div className="border-b bg-black/80 p-3 backdrop-blur md:p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 {isMobile && (
@@ -483,70 +514,155 @@ export function MealPlannerClient() {
           </div>
 
           {/* Weekly Grid */}
-          <div className="flex-1 overflow-x-auto p-2 md:p-4">
-            <div className={`rounded-lg border bg-card ${isMobile ? "min-w-[700px]" : ""}`}>
-              {/* Grid Header */}
-              <div className="grid grid-cols-7 border-b">
-                {weekDates.map((date) => {
-                  const { dayName, dayNumber, isToday } = formatDateDisplay(date);
-                  return (
-                    <div
-                      key={date}
-                      className={`border-r p-2 text-center last:border-r-0 md:p-3 ${
-                        isToday ? "bg-primary/10" : "bg-muted"
-                      }`}
-                    >
-                      <div className={`text-xs font-medium md:text-sm ${isToday ? "text-primary" : ""}`}>
-                        {isMobile ? dayName.slice(0, 3) : dayName}
-                      </div>
-                      <div className={`text-sm md:text-lg ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                        {dayNumber}
-                      </div>
-                      <div className="mt-1 flex justify-center gap-1 md:mt-2">
-                        {MEAL_TYPES.map((mealType) => (
-                          <div
-                            key={mealType}
-                            className="h-1.5 w-1.5 rounded-full md:h-2 md:w-2"
-                            style={{ backgroundColor: mealTypeColors[mealType] }}
-                            title={mealType}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="flex-1 overflow-y-auto p-2 md:overflow-x-auto md:p-4">
+            {isMobile ? (
+              /* Mobile: Single day with tabs */
+              <div className="flex h-full flex-col">
+                {/* Day tabs */}
+                <div className="mb-3 flex gap-1 overflow-x-auto pb-2">
+                  {weekDates.map((date, index) => {
+                    const { dayName, dayNumber, isToday } = formatDateDisplay(date);
+                    const isSelected = index === selectedDayIndex;
+                    return (
+                      <button
+                        key={date}
+                        type="button"
+                        onClick={() => setSelectedDayIndex(index)}
+                        className={`flex min-w-[52px] flex-col items-center rounded-lg px-3 py-2 text-center transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : isToday
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        <span className="text-xs font-medium">{dayName.slice(0, 3)}</span>
+                        <span className="text-lg font-semibold">{dayNumber}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {/* Grid Body */}
-              {MEAL_TYPES.map((mealType) => (
-                <div key={mealType} className="grid grid-cols-7 border-b last:border-b-0">
-                  {weekDates.map((date) => {
-                    const plannedMeal = currentWeekMeals?.[date]?.[mealType];
+                {/* Pending recipe indicator */}
+                {pendingRecipe && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary/10 p-3 border border-primary/30">
+                    <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
+                      <Image
+                        src={pendingRecipe.imageUrl}
+                        alt={pendingRecipe.name}
+                        fill
+                        className="object-cover"
+                        sizes="40px"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{pendingRecipe.name}</p>
+                      <p className="text-xs text-muted-foreground">Tap a meal slot to place</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPendingRecipe(null)}
+                      className="h-8 px-2 text-muted-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+
+                {/* Selected day's meals */}
+                <div className="flex-1 space-y-3">
+                  {MEAL_TYPES.map((mealType) => {
+                    const selectedDate = weekDates[selectedDayIndex];
+                    const plannedMeal = selectedDate ? currentWeekMeals?.[selectedDate]?.[mealType] : undefined;
                     const isDragOver =
-                      dragState.dragOverSlot?.date === date &&
+                      dragState.dragOverSlot?.date === selectedDate &&
                       dragState.dragOverSlot?.mealType === mealType;
 
                     return (
-                      <div key={`${date}-${mealType}`} className="border-r border-border last:border-r-0">
+                      <div key={mealType} className="rounded-lg border bg-card">
                         <MealSlot
-                          date={date}
+                          date={selectedDate ?? ""}
                           mealType={mealType}
                           plannedMeal={plannedMeal}
                           onDrop={handleDrop}
                           onRemove={handleMealRemove}
                           isDragOver={isDragOver}
                           isMobile={isMobile}
+                          pendingRecipe={pendingRecipe}
+                          onMobilePlacement={handleMobilePlacement}
                         />
                       </div>
                     );
                   })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              /* Desktop: 7-column grid */
+              <div className="rounded-lg border bg-card">
+                {/* Grid Header */}
+                <div className="grid grid-cols-7 border-b">
+                  {weekDates.map((date) => {
+                    const { dayName, dayNumber, isToday } = formatDateDisplay(date);
+                    return (
+                      <div
+                        key={date}
+                        className={`border-r p-3 text-center last:border-r-0 ${
+                          isToday ? "bg-primary/10" : "bg-muted"
+                        }`}
+                      >
+                        <div className={`text-sm font-medium ${isToday ? "text-primary" : ""}`}>
+                          {dayName}
+                        </div>
+                        <div className={`text-lg ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                          {dayNumber}
+                        </div>
+                        <div className="mt-2 flex justify-center gap-1">
+                          {MEAL_TYPES.map((mealType) => (
+                            <div
+                              key={mealType}
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: mealTypeColors[mealType] }}
+                              title={mealType}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Grid Body */}
+                {MEAL_TYPES.map((mealType) => (
+                  <div key={mealType} className="grid grid-cols-7 border-b last:border-b-0">
+                    {weekDates.map((date) => {
+                      const plannedMeal = currentWeekMeals?.[date]?.[mealType];
+                      const isDragOver =
+                        dragState.dragOverSlot?.date === date &&
+                        dragState.dragOverSlot?.mealType === mealType;
+
+                      return (
+                        <div key={`${date}-${mealType}`} className="border-r border-border last:border-r-0">
+                          <MealSlot
+                            date={date}
+                            mealType={mealType}
+                            plannedMeal={plannedMeal}
+                            onDrop={handleDrop}
+                            onRemove={handleMealRemove}
+                            isDragOver={isDragOver}
+                            isMobile={false}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action Bar */}
-          <div className="border-t border-border bg-black p-3 md:p-4">
+          <div className="border-t border-border bg-black/80 p-3 backdrop-blur md:p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Color Legend - hidden on mobile */}
               <div className="hidden items-center gap-4 md:flex">
