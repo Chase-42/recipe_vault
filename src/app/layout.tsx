@@ -1,5 +1,6 @@
 import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
+import type { Metadata, Viewport } from "next";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { Toaster } from "~/components/ui/sonner";
 import {
@@ -10,10 +11,27 @@ import {
 } from "~/providers";
 import { Header } from "~/app/_components/Header";
 import { getServerSession } from "~/lib/auth-helpers";
+import { ServiceWorkerRegistration } from "~/components/ServiceWorkerRegistration";
 
-export const metadata = {
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export const metadata: Metadata = {
   title: "Recipe Vault",
-  icons: [{ rel: "icon", url: "/recipe_vault_image.svg" }],
+  description: "Your personal recipe collection",
+  icons: [
+    { rel: "icon", url: "/recipe_vault_image.svg" },
+    { rel: "apple-touch-icon", url: "/apple-touch-icon.png" },
+  ],
+  appleWebApp: {
+    capable: true,
+    title: "Recipe Vault",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default async function RootLayout({
@@ -39,6 +57,7 @@ export default async function RootLayout({
                 <Header />
                 <ErrorBoundary>{children}</ErrorBoundary>
                 <div id="modal-root" />
+                <ServiceWorkerRegistration />
               </HeaderProvider>
             </SearchProvider>
           </SessionProvider>
