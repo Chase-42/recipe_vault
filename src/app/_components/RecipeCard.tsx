@@ -167,7 +167,7 @@ function RecipeCard({
       className: cn(
         "h-full w-full object-cover transition-transform duration-[10ms]",
         !isImageLoaded && "blur-sm",
-        isNavigating ? "scale-95 brightness-75" : "group-hover:scale-105"
+        isNavigating ? "scale-95 brightness-75" : "group-hover:scale-105 group-active:scale-105"
       ),
       style: {
         transform: "translateZ(0)",
@@ -185,6 +185,7 @@ function RecipeCard({
         isNavigating && "scale-[0.97] opacity-70"
       )}
       onPointerEnter={handlePointerEnter}
+      onTouchStart={() => {}}
     >
       <svg
         className="absolute inset-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] pointer-events-none"

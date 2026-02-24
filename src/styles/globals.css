@@ -259,6 +259,16 @@ dialog:modal {
   .recipe-card:hover .animated-border {
     stroke-dashoffset: 0;
   }
+}
+
+/* Activate card border animation on touch press */
+@media (hover: none) {
+  .recipe-card:active .animated-border {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
 
   /* Hide actions by default, show on hover - only on devices with hover capability */
   .recipe-card-actions {
