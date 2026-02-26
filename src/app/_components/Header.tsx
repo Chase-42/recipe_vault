@@ -312,13 +312,20 @@ export function Header() {
         {/* Left side */}
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           {config.showBackButton && (
-            <Link
-              href={config.backDestination}
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(config.backDestination);
+                }
+              }}
               className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent"
               aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Link>
+            </button>
           )}
 
           {config.showLogo && (
