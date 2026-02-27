@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { logger } from "~/lib/logger";
 
 interface RecipeProgress {
   checkedIngredients: number[];
@@ -30,7 +31,7 @@ export function useRecipeProgress(recipeId: number) {
         };
       }
     } catch (error) {
-      console.error("Failed to load recipe progress from localStorage:", error);
+      logger.error("Failed to load recipe progress from localStorage", error instanceof Error ? error : new Error(String(error)));
     }
 
     return { checkedIngredients: [], checkedInstructions: [] };
@@ -46,11 +47,10 @@ export function useRecipeProgress(recipeId: number) {
     try {
       localStorage.setItem(storageKey, JSON.stringify(progress));
     } catch (error) {
-      console.error("Failed to save recipe progress to localStorage:", error);
-      // Handle quota exceeded error gracefully
       if (error instanceof DOMException && error.name === "QuotaExceededError") {
-        console.warn("localStorage quota exceeded, clearing old progress data");
-        // Optionally: clear old entries or notify user
+        logger.warn("localStorage quota exceeded, clearing old progress data");
+      } else {
+        logger.error("Failed to save recipe progress to localStorage", error instanceof Error ? error : new Error(String(error)));
       }
     }
   }, [progress, storageKey]);
@@ -80,7 +80,7 @@ export function useRecipeProgress(recipeId: number) {
       localStorage.removeItem(storageKey);
       setProgress({ checkedIngredients: [], checkedInstructions: [] });
     } catch (error) {
-      console.error("Failed to clear recipe progress:", error);
+      logger.error("Failed to clear recipe progress", error instanceof Error ? error : new Error(String(error)));
     }
   }, [storageKey]);
 

@@ -2,6 +2,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
+import { logger } from "~/lib/logger";
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -47,7 +48,7 @@ async function checkRateLimit(
       resetTime,
     };
   } catch (error) {
-    console.error("Rate limit KV error:", error);
+    logger.error("Rate limit KV error", error instanceof Error ? error : new Error(String(error)));
     
     return {
       allowed: true,

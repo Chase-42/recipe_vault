@@ -284,7 +284,8 @@ const LandingPage = () => (
             className="mx-auto mb-12 max-w-2xl text-xl leading-relaxed text-gray-400"
           >
             Save recipes from anywhere, sort them by meal type, and generate
-            grocery lists. No life stories—just the recipe.
+            grocery lists. No ads, no stories, no scrolling through someone's
+            life story to find the ingredients.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

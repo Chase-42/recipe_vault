@@ -346,7 +346,7 @@ export function ShoppingListsViewWithBackButton() {
           </div>
         </div>
         {/* Shopping List Items */}
-        <ScrollArea className="h-[calc(100vh-280px)] rounded-md border p-4">
+        <ScrollArea className="h-[calc(100vh-280px)] rounded-md border bg-black p-4">
           <div className="space-y-2">
             {filteredItems.length === 0 ? (
               <div className="text-center text-muted-foreground space-y-2">
