@@ -163,8 +163,6 @@ export function MealPlannerClient() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
 
-  // Removed auto-generation of shopping lists - users must manually generate them
-
   // Fetch current week meals with error handling
   const {
     data: currentWeekMeals,

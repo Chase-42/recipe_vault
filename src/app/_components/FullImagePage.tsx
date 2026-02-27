@@ -400,7 +400,10 @@ export default function FullImageView({
 
   // Mobile layout - stacked vertically, no resize
   const mobileContent = (
-    <div className="flex h-screen w-full flex-col">
+    <div
+      className="flex w-full flex-col"
+      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
+    >
       <div className="flex-1 overflow-y-auto">
         {/* Image - fixed aspect ratio */}
         <div className="relative aspect-[4/3] w-full">
@@ -481,8 +484,11 @@ export default function FullImageView({
 
   // Desktop layout - resizable panels
   const desktopContent = (
-    <div className="h-screen w-full">
-      <div ref={containerRef} className="relative flex h-[calc(100vh-3.5rem)]">
+    <div
+      className="w-full flex flex-col"
+      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
+    >
+      <div ref={containerRef} className="relative flex flex-1 min-h-0">
         {/* Left Panel */}
         <div
           ref={leftPanelRef}
@@ -585,7 +591,7 @@ export default function FullImageView({
       </div>
 
       {/* Footer */}
-      <div className="flex h-14 items-center justify-between border-t border-border bg-black px-4">
+      <div className="flex h-14 flex-shrink-0 items-center justify-between border-t border-border bg-black px-4">
         <div className="flex items-center gap-2">
           {displayRecipe.link && (
             <Button
