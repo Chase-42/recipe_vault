@@ -189,7 +189,6 @@ Bake for 25-30 minutes`}
             <Button
               type="submit"
               disabled={mutation.isPending}
-              onClick={handleSubmit}
             >
               Create
             </Button>

@@ -54,10 +54,11 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
   const deleteRecipeMutation = useMutation({
     mutationFn: deleteRecipe,
     onMutate: async (id) => {
-      // Cancel all recipe queries to prevent race conditions
       await queryClient.cancelQueries({ queryKey: recipesKey() });
 
-      // Optimistically remove recipe from all cached queries
+      // Snapshot all matching cache entries for rollback
+      const snapshots = queryClient.getQueriesData<PaginatedRecipes>({ queryKey: recipesKey() });
+
       queryClient.setQueriesData<PaginatedRecipes>(
         { queryKey: recipesKey() },
         (old) => {
@@ -75,12 +76,15 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
           };
         }
       );
+
+      return { snapshots };
     },
-    onError: () => {
+    onError: (_, __, context) => {
+      context?.snapshots.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       toast.error("Failed to delete recipe");
     },
-    // Rollback strategy: refetch from server rather than restore cached state.
-    // This differs from update mutations which explicitly restore previous cache.
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: recipesKey() });
     },

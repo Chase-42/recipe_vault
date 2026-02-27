@@ -1,6 +1,7 @@
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { type NextRequest, NextResponse } from "next/server";
 import { AuthorizationError, handleApiError, RecipeError } from "~/lib/errors";
+import { revalidatePath } from "next/cache";
 import { validateCreateRecipe } from "~/lib/validation";
 import type { CreateRecipeInput } from "~/types";
 import { withRateLimit } from "~/lib/rateLimit";
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (!recipe) {
           throw new RecipeError("Failed to create recipe", 500);
         }
+
+        revalidatePath("/");
 
         return apiSuccess(
           {
