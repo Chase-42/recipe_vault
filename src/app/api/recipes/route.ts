@@ -90,10 +90,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           currentPage,
         });
 
-        response.headers.set(
-          "Cache-Control",
-          "private, max-age=300, stale-while-revalidate=600"
-        );
+        response.headers.set("Cache-Control", "private, no-cache");
 
         return response;
       } catch (error) {
