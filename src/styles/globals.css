@@ -42,6 +42,7 @@
 
 @layer base {
   :root {
+    --grid-offset: 0px;
     --background: oklch(0.994 0 0);
     --foreground: oklch(0.1448 0 0);
     --card: oklch(0.994 0 0);
