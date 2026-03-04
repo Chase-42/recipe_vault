@@ -57,7 +57,7 @@ interface FullPageImageViewProps {
   loadingFallback?: React.ReactNode;
 }
 
-export default function FullImageView({
+export default function FullImagePage({
   id,
   initialRecipe,
   loadingFallback,
@@ -66,7 +66,6 @@ export default function FullImageView({
   const { setRecipeData } = useHeaderContext();
   const isMobile = useIsMobile();
 
-  // Use localStorage hook for persistence (will be initialized from localStorage)
   const {
     checkedIngredients,
     checkedInstructions,
@@ -76,7 +75,6 @@ export default function FullImageView({
 
   const queryClient = useQueryClient();
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
-  const hasData = !!(cachedData ?? initialRecipe);
 
   // Resizable panel states
   const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
@@ -95,10 +93,10 @@ export default function FullImageView({
     initialData: cachedData ?? initialRecipe ?? undefined,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: !hasData,
+    refetchOnMount: !(cachedData ?? initialRecipe),
   });
 
-  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
+  const displayRecipe = recipe;
 
   const recipeId = displayRecipe?.id;
   const recipeName = displayRecipe?.name;
@@ -130,101 +128,56 @@ export default function FullImageView({
     [checkedInstructions, setCheckedInstructions]
   );
 
-  // Horizontal divider handlers (left/right split)
-  const handleHorizontalStart = useCallback(() => {
-    setIsDraggingHorizontal(true);
-  }, []);
-
   const handleHorizontalMove = useCallback(
     (clientX: number) => {
       if (!isDraggingHorizontal || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const newWidth = ((clientX - rect.left) / rect.width) * 100;
-      const constrainedWidth = Math.max(
-        MIN_PANEL_SIZE,
-        Math.min(MAX_PANEL_SIZE, newWidth)
-      );
-      setLeftPanelWidth(constrainedWidth);
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      setLeftPanelWidth(Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct)));
     },
     [isDraggingHorizontal]
   );
-
-  const handleHorizontalEnd = useCallback(() => {
-    setIsDraggingHorizontal(false);
-  }, []);
-
-  // Vertical divider handlers (image/ingredients split)
-  const handleVerticalStart = useCallback(() => {
-    setIsDraggingVertical(true);
-  }, []);
 
   const handleVerticalMove = useCallback(
     (clientY: number) => {
       if (!isDraggingVertical || !leftPanelRef.current) return;
       const rect = leftPanelRef.current.getBoundingClientRect();
-      const newHeight = ((clientY - rect.top) / rect.height) * 100;
-      const constrainedHeight = Math.max(
-        MIN_PANEL_SIZE,
-        Math.min(MAX_PANEL_SIZE, newHeight)
-      );
-      setImageHeight(constrainedHeight);
+      const pct = ((clientY - rect.top) / rect.height) * 100;
+      setImageHeight(Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct)));
     },
     [isDraggingVertical]
   );
 
-  const handleVerticalEnd = useCallback(() => {
-    setIsDraggingVertical(false);
-  }, []);
-
-  // Unified mouse handlers
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDraggingHorizontal) {
-        handleHorizontalMove(e.clientX);
-      } else if (isDraggingVertical) {
-        handleVerticalMove(e.clientY);
-      }
+      if (isDraggingHorizontal) handleHorizontalMove(e.clientX);
+      else if (isDraggingVertical) handleVerticalMove(e.clientY);
     },
-    [
-      isDraggingHorizontal,
-      isDraggingVertical,
-      handleHorizontalMove,
-      handleVerticalMove,
-    ]
+    [isDraggingHorizontal, isDraggingVertical, handleHorizontalMove, handleVerticalMove]
   );
 
   const handleMouseUp = useCallback(() => {
-    if (isDraggingHorizontal) {
-      handleHorizontalEnd();
-    } else if (isDraggingVertical) {
-      handleVerticalEnd();
-    }
-  }, [
-    isDraggingHorizontal,
-    isDraggingVertical,
-    handleHorizontalEnd,
-    handleVerticalEnd,
-  ]);
+    setIsDraggingHorizontal(false);
+    setIsDraggingVertical(false);
+  }, []);
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
       if (horizontalDividerRef.current?.contains(e.target as Node)) {
         e.preventDefault();
-        handleHorizontalStart();
+        setIsDraggingHorizontal(true);
       } else if (verticalDividerRef.current?.contains(e.target as Node)) {
         e.preventDefault();
-        handleVerticalStart();
+        setIsDraggingVertical(true);
       }
     },
-    [handleHorizontalStart, handleVerticalStart]
+    []
   );
 
-  // Unified touch handlers
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
-
       if (isDraggingHorizontal) {
         e.preventDefault();
         handleHorizontalMove(touch.clientX);
@@ -233,41 +186,27 @@ export default function FullImageView({
         handleVerticalMove(touch.clientY);
       }
     },
-    [
-      isDraggingHorizontal,
-      isDraggingVertical,
-      handleHorizontalMove,
-      handleVerticalMove,
-    ]
+    [isDraggingHorizontal, isDraggingVertical, handleHorizontalMove, handleVerticalMove]
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (isDraggingHorizontal) {
-      handleHorizontalEnd();
-    } else if (isDraggingVertical) {
-      handleVerticalEnd();
-    }
-  }, [
-    isDraggingHorizontal,
-    isDraggingVertical,
-    handleHorizontalEnd,
-    handleVerticalEnd,
-  ]);
+    setIsDraggingHorizontal(false);
+    setIsDraggingVertical(false);
+  }, []);
 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
-
       if (horizontalDividerRef.current?.contains(e.target as Node)) {
         e.preventDefault();
-        handleHorizontalStart();
+        setIsDraggingHorizontal(true);
       } else if (verticalDividerRef.current?.contains(e.target as Node)) {
         e.preventDefault();
-        handleVerticalStart();
+        setIsDraggingVertical(true);
       }
     },
-    [handleHorizontalStart, handleVerticalStart]
+    []
   );
 
   // Event listeners for dragging
@@ -400,10 +339,7 @@ export default function FullImageView({
 
   // Mobile layout - stacked vertically, no resize
   const mobileContent = (
-    <div
-      className="flex w-full flex-col"
-      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
-    >
+    <div className="flex h-full w-full flex-col">
       <div className="flex-1 overflow-y-auto">
         {/* Image - fixed aspect ratio */}
         <div className="relative aspect-[4/3] w-full">
@@ -484,10 +420,7 @@ export default function FullImageView({
 
   // Desktop layout - resizable panels
   const desktopContent = (
-    <div
-      className="w-full flex flex-col"
-      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
-    >
+    <div className="flex h-full w-full flex-col">
       <div ref={containerRef} className="relative flex flex-1 min-h-0">
         {/* Left Panel */}
         <div

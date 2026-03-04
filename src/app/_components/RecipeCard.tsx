@@ -33,6 +33,8 @@ interface RecipeCardProps {
   priority?: boolean;
 }
 
+const IMAGE_STYLE = { transform: "translateZ(0)", willChange: "transform" } as const;
+
 function RecipeCard({
   recipe,
   searchMatches,
@@ -162,18 +164,13 @@ function RecipeCard({
     [searchMatches]
   );
 
-  const imageLoadingState = useMemo(
-    () => ({
-      className: cn(
+  const imageClassName = useMemo(
+    () =>
+      cn(
         "h-full w-full object-cover transition-transform duration-[10ms]",
         !isImageLoaded && "blur-sm",
         isNavigating ? "scale-95 brightness-75" : "group-hover:scale-105 group-active:scale-105"
       ),
-      style: {
-        transform: "translateZ(0)",
-        willChange: "transform",
-      },
-    }),
     [isImageLoaded, isNavigating]
   );
 
@@ -269,8 +266,8 @@ function RecipeCard({
             <Image
               ref={imageRef}
               src={recipe.imageUrl}
-              className={imageLoadingState.className}
-              style={imageLoadingState.style}
+              className={imageClassName}
+              style={IMAGE_STYLE}
               width={400}
               height={400}
               alt={recipe.name}

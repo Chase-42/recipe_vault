@@ -284,7 +284,7 @@ dialog:modal {
   }
 
   .recipe-card:hover .recipe-card-actions,
-  .recipe-card:focus-within .recipe-card-actions {
+  .recipe-card:has(:focus-visible) .recipe-card-actions {
     opacity: 1;
   }
 
@@ -294,7 +294,7 @@ dialog:modal {
   }
 
   .recipe-card:hover .recipe-card-favorite,
-  .recipe-card:focus-within .recipe-card-favorite {
+  .recipe-card:has(:focus-visible) .recipe-card-favorite {
     opacity: 1;
   }
 }
