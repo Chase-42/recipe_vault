@@ -285,7 +285,7 @@ const LandingPage = () => (
           >
             Save recipes from anywhere, sort them by meal type, and generate
             grocery lists. No ads, no stories, no scrolling through someone's
-            life story to find the ingredients.
+            life story to find the instructions.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -365,12 +365,12 @@ const LandingPage = () => (
             <Code className="h-8 w-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white lg:text-3xl">
-            Zero AI. Forever.
+            Zero AI. I promise.
           </h2>
           <p className="max-w-xl text-lg leading-relaxed text-gray-400">
             No chatbots suggesting dinner. No algorithms rewriting your favorite
             recipes. Just good old fashioned code that does exactly what you
-            tell it to. Your recipes stay yours.
+            tell it to.
           </p>
         </div>
       </div>

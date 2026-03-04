@@ -43,7 +43,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${GeistSans.variable} dark`}>
-      <body className="min-h-screen bg-black bg-grid-pattern">
+      <body className="h-dvh flex flex-col bg-black bg-grid-pattern">
         <ClientProvider>
           <SessionProvider initialSession={session}>
             <SearchProvider>

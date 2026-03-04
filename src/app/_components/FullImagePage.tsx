@@ -1,26 +1,26 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import {
-  ExternalLink,
-  ShoppingCart,
-  GripVertical,
-  GripHorizontal,
-  Check,
-} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Check,
+  ExternalLink,
+  GripHorizontal,
+  GripVertical,
+  ShoppingCart,
+} from "lucide-react";
 import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { Badge } from "~/components/ui/badge";
-import { AddToListModal } from "~/components/shopping-lists/AddToListModal";
-import { useRecipeProgress } from "~/hooks/useRecipeProgress";
 import { useIsMobile } from "~/hooks/useMediaQuery";
+import { useRecipeProgress } from "~/hooks/useRecipeProgress";
+import { cn } from "~/lib/utils";
 import { useHeaderContext } from "~/providers/HeaderContext";
 import type { Recipe } from "~/types";
-import { cn } from "~/lib/utils";
-import { fetchRecipe } from "~/utils/recipeService";
 import { recipeKey } from "~/utils/query-keys";
+import { fetchRecipe } from "~/utils/recipeService";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Constants for resizable panels
@@ -41,10 +41,7 @@ const toggleSetItem = <T,>(set: Set<T>, item: T): Set<T> => {
 };
 
 // Helper for keyboard event handling
-const handleKeyboardToggle = (
-  e: React.KeyboardEvent,
-  callback: () => void
-) => {
+const handleKeyboardToggle = (e: React.KeyboardEvent, callback: () => void) => {
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     callback();
@@ -57,7 +54,7 @@ interface FullPageImageViewProps {
   loadingFallback?: React.ReactNode;
 }
 
-export default function FullImageView({
+export default function FullImagePage({
   id,
   initialRecipe,
   loadingFallback,
@@ -66,7 +63,6 @@ export default function FullImageView({
   const { setRecipeData } = useHeaderContext();
   const isMobile = useIsMobile();
 
-  // Use localStorage hook for persistence (will be initialized from localStorage)
   const {
     checkedIngredients,
     checkedInstructions,
@@ -76,10 +72,11 @@ export default function FullImageView({
 
   const queryClient = useQueryClient();
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
-  const hasData = !!(cachedData ?? initialRecipe);
 
   // Resizable panel states
-  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(
+    DEFAULT_LEFT_PANEL_WIDTH
+  );
   const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
   const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
   const [isDraggingVertical, setIsDraggingVertical] = useState(false);
@@ -89,16 +86,20 @@ export default function FullImageView({
   const containerRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
-  const { data: recipe, error, isLoading } = useQuery<Recipe>({
+  const {
+    data: recipe,
+    error,
+    isLoading,
+  } = useQuery<Recipe>({
     queryKey: recipeKey(id),
     queryFn: () => fetchRecipe(id),
     initialData: cachedData ?? initialRecipe ?? undefined,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: !hasData,
+    refetchOnMount: !(cachedData ?? initialRecipe),
   });
 
-  const displayRecipe = recipe ?? cachedData ?? initialRecipe;
+  const displayRecipe = recipe;
 
   const recipeId = displayRecipe?.id;
   const recipeName = displayRecipe?.name;
@@ -130,60 +131,32 @@ export default function FullImageView({
     [checkedInstructions, setCheckedInstructions]
   );
 
-  // Horizontal divider handlers (left/right split)
-  const handleHorizontalStart = useCallback(() => {
-    setIsDraggingHorizontal(true);
-  }, []);
-
   const handleHorizontalMove = useCallback(
     (clientX: number) => {
       if (!isDraggingHorizontal || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const newWidth = ((clientX - rect.left) / rect.width) * 100;
-      const constrainedWidth = Math.max(
-        MIN_PANEL_SIZE,
-        Math.min(MAX_PANEL_SIZE, newWidth)
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      setLeftPanelWidth(
+        Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct))
       );
-      setLeftPanelWidth(constrainedWidth);
     },
     [isDraggingHorizontal]
   );
-
-  const handleHorizontalEnd = useCallback(() => {
-    setIsDraggingHorizontal(false);
-  }, []);
-
-  // Vertical divider handlers (image/ingredients split)
-  const handleVerticalStart = useCallback(() => {
-    setIsDraggingVertical(true);
-  }, []);
 
   const handleVerticalMove = useCallback(
     (clientY: number) => {
       if (!isDraggingVertical || !leftPanelRef.current) return;
       const rect = leftPanelRef.current.getBoundingClientRect();
-      const newHeight = ((clientY - rect.top) / rect.height) * 100;
-      const constrainedHeight = Math.max(
-        MIN_PANEL_SIZE,
-        Math.min(MAX_PANEL_SIZE, newHeight)
-      );
-      setImageHeight(constrainedHeight);
+      const pct = ((clientY - rect.top) / rect.height) * 100;
+      setImageHeight(Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct)));
     },
     [isDraggingVertical]
   );
 
-  const handleVerticalEnd = useCallback(() => {
-    setIsDraggingVertical(false);
-  }, []);
-
-  // Unified mouse handlers
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDraggingHorizontal) {
-        handleHorizontalMove(e.clientX);
-      } else if (isDraggingVertical) {
-        handleVerticalMove(e.clientY);
-      }
+      if (isDraggingHorizontal) handleHorizontalMove(e.clientX);
+      else if (isDraggingVertical) handleVerticalMove(e.clientY);
     },
     [
       isDraggingHorizontal,
@@ -194,37 +167,24 @@ export default function FullImageView({
   );
 
   const handleMouseUp = useCallback(() => {
-    if (isDraggingHorizontal) {
-      handleHorizontalEnd();
-    } else if (isDraggingVertical) {
-      handleVerticalEnd();
+    setIsDraggingHorizontal(false);
+    setIsDraggingVertical(false);
+  }, []);
+
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    if (horizontalDividerRef.current?.contains(e.target as Node)) {
+      e.preventDefault();
+      setIsDraggingHorizontal(true);
+    } else if (verticalDividerRef.current?.contains(e.target as Node)) {
+      e.preventDefault();
+      setIsDraggingVertical(true);
     }
-  }, [
-    isDraggingHorizontal,
-    isDraggingVertical,
-    handleHorizontalEnd,
-    handleVerticalEnd,
-  ]);
+  }, []);
 
-  const handleMouseDown = useCallback(
-    (e: MouseEvent) => {
-      if (horizontalDividerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-        handleHorizontalStart();
-      } else if (verticalDividerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-        handleVerticalStart();
-      }
-    },
-    [handleHorizontalStart, handleVerticalStart]
-  );
-
-  // Unified touch handlers
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
-
       if (isDraggingHorizontal) {
         e.preventDefault();
         handleHorizontalMove(touch.clientX);
@@ -242,33 +202,21 @@ export default function FullImageView({
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (isDraggingHorizontal) {
-      handleHorizontalEnd();
-    } else if (isDraggingVertical) {
-      handleVerticalEnd();
+    setIsDraggingHorizontal(false);
+    setIsDraggingVertical(false);
+  }, []);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    if (horizontalDividerRef.current?.contains(e.target as Node)) {
+      e.preventDefault();
+      setIsDraggingHorizontal(true);
+    } else if (verticalDividerRef.current?.contains(e.target as Node)) {
+      e.preventDefault();
+      setIsDraggingVertical(true);
     }
-  }, [
-    isDraggingHorizontal,
-    isDraggingVertical,
-    handleHorizontalEnd,
-    handleVerticalEnd,
-  ]);
-
-  const handleTouchStart = useCallback(
-    (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-
-      if (horizontalDividerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-        handleHorizontalStart();
-      } else if (verticalDividerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-        handleVerticalStart();
-      }
-    },
-    [handleHorizontalStart, handleVerticalStart]
-  );
+  }, []);
 
   // Event listeners for dragging
   useEffect(() => {
@@ -349,9 +297,7 @@ export default function FullImageView({
           htmlFor={key}
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            isChecked
-              ? "line-through text-muted-foreground"
-              : "text-foreground"
+            isChecked ? "line-through text-muted-foreground" : "text-foreground"
           )}
         >
           {ingredient}
@@ -400,11 +346,8 @@ export default function FullImageView({
 
   // Mobile layout - stacked vertically, no resize
   const mobileContent = (
-    <div
-      className="flex w-full flex-col"
-      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
-    >
-      <div className="flex-1 overflow-y-auto">
+    <>
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Image - fixed aspect ratio */}
         <div className="relative aspect-[4/3] w-full">
           <Image
@@ -429,30 +372,30 @@ export default function FullImageView({
         )}
 
         {/* Ingredients */}
-        <div className="border-b border-border bg-black/40 p-4">
+        <div className="flex-1 border-b border-border bg-black/40 p-4">
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-foreground">Ingredients</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Ingredients
+            </h2>
             <Badge variant="outline">{ingredients.length}</Badge>
           </div>
-          <div className="space-y-1">
-            {ingredients.map(renderIngredient)}
-          </div>
+          <div className="space-y-1">{ingredients.map(renderIngredient)}</div>
         </div>
 
         {/* Instructions */}
-        <div className="bg-black/40 p-4">
+        <div className="flex-1 bg-black/40 p-4">
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-foreground">Instructions</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Instructions
+            </h2>
             <Badge variant="outline">{instructions.length} steps</Badge>
           </div>
-          <div className="space-y-4">
-            {instructions.map(renderInstruction)}
-          </div>
+          <div className="space-y-4">{instructions.map(renderInstruction)}</div>
         </div>
       </div>
 
       {/* Footer - mobile optimized */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-black px-3 py-2">
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-black px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {displayRecipe.link && (
             <Button
@@ -474,20 +417,21 @@ export default function FullImageView({
             Print
           </Button>
         </div>
-        <Button size="sm" onClick={() => setShowAddToList(true)} className="h-10">
+        <Button
+          size="sm"
+          onClick={() => setShowAddToList(true)}
+          className="h-10"
+        >
           <ShoppingCart className="mr-1.5 h-4 w-4" />
           Add to List
         </Button>
       </div>
-    </div>
+    </>
   );
 
   // Desktop layout - resizable panels
   const desktopContent = (
-    <div
-      className="w-full flex flex-col"
-      style={{ height: "calc(100dvh - var(--grid-offset, 0px))" }}
-    >
+    <>
       <div ref={containerRef} className="relative flex flex-1 min-h-0">
         {/* Left Panel */}
         <div
@@ -532,7 +476,7 @@ export default function FullImageView({
           {/* Ingredients Section */}
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col overflow-hidden bg-black/40 p-4",
+              "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-black/40 p-4",
               !isDraggingVertical && "transition-[height] duration-150 ease-out"
             )}
             style={{ height: `${100 - imageHeight}%` }}
@@ -548,7 +492,9 @@ export default function FullImageView({
             )}
 
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">Ingredients</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Ingredients
+              </h2>
               <Badge variant="outline">{ingredients.length}</Badge>
             </div>
             <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto">
@@ -580,7 +526,9 @@ export default function FullImageView({
         >
           <div className="h-full overflow-y-auto bg-black/40 p-4">
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">Instructions</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Instructions
+              </h2>
               <Badge variant="outline">{instructions.length} steps</Badge>
             </div>
             <div className="space-y-4">
@@ -591,7 +539,7 @@ export default function FullImageView({
       </div>
 
       {/* Footer */}
-      <div className="flex h-14 flex-shrink-0 items-center justify-between border-t border-border bg-black px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-border bg-black px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {displayRecipe.link && (
             <Button
@@ -612,17 +560,20 @@ export default function FullImageView({
           >
             Print
           </Button>
-          <Button onClick={() => setShowAddToList(true)} className="h-8 text-sm">
+          <Button
+            onClick={() => setShowAddToList(true)}
+            className="h-8 text-sm"
+          >
             <ShoppingCart className="mr-1.5 h-4 w-4" />
             Add to List
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 
   return (
-    <>
+    <div className="flex h-full w-full flex-col">
       {isMobile ? mobileContent : desktopContent}
       <AddToListModal
         isOpen={showAddToList}
@@ -631,6 +582,6 @@ export default function FullImageView({
         recipeId={displayRecipe.id}
         recipeName={displayRecipe.name}
       />
-    </>
+    </div>
   );
 }

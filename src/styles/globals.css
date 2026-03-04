@@ -42,6 +42,7 @@
 
 @layer base {
   :root {
+    --grid-offset: 0px;
     --background: oklch(0.994 0 0);
     --foreground: oklch(0.1448 0 0);
     --card: oklch(0.994 0 0);
@@ -284,7 +285,7 @@ dialog:modal {
   }
 
   .recipe-card:hover .recipe-card-actions,
-  .recipe-card:focus-within .recipe-card-actions {
+  .recipe-card:has(:focus-visible) .recipe-card-actions {
     opacity: 1;
   }
 
@@ -294,7 +295,7 @@ dialog:modal {
   }
 
   .recipe-card:hover .recipe-card-favorite,
-  .recipe-card:focus-within .recipe-card-favorite {
+  .recipe-card:has(:focus-visible) .recipe-card-favorite {
     opacity: 1;
   }
 }
