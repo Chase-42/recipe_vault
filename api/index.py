@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
-from recipe_scrapers import scrape_me
+from recipe_scrapers import scrape_html
 from flask_cors import CORS
 import requests
+import cloudscraper
 from io import BytesIO
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
@@ -33,6 +34,22 @@ retries = Retry(
 )
 session.mount('http://', HTTPAdapter(max_retries=retries))
 session.mount('https://', HTTPAdapter(max_retries=retries))
+
+# Browser-like headers to avoid 403 blocks from recipe sites
+BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'DNT': '1',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Cache-Control': 'max-age=0',
+}
 
 # Constants
 MIN_IMAGE_SIZE = 10000  # 10KB
@@ -136,6 +153,39 @@ def get_recipe_details(scraper, url: str) -> Dict:
 
     return recipe
 
+def fetch_html(url: str) -> str:
+    """
+    Fetch HTML from a URL, falling back to cloudscraper if the standard
+    session is blocked by Cloudflare or similar anti-bot protection.
+    
+    Timeout budget: 8s standard + 12s cloudscraper = 20s worst case.
+    The caller (Next.js) has a 25s timeout for the entire Flask API call.
+    """
+    response = session.get(url, headers=BROWSER_HEADERS, timeout=8)
+
+    if response.status_code in (403, 402):
+        logger.info(f"Standard request blocked ({response.status_code}), retrying with cloudscraper: {url}")
+        cf_scraper = cloudscraper.create_scraper()
+        response = cf_scraper.get(url, timeout=12)
+
+        if response.status_code in (403, 402):
+            logger.warning(f"Access blocked ({response.status_code}) even with cloudscraper for URL: {url}")
+            raise AccessBlockedError(url, response.status_code)
+
+    if not response.ok:
+        response.raise_for_status()
+
+    return response.text
+
+
+class AccessBlockedError(Exception):
+    """Raised when a site blocks all scraping attempts."""
+    def __init__(self, url: str, status_code: int):
+        self.url = url
+        self.status_code = status_code
+        super().__init__(f"Access blocked ({status_code}) for URL: {url}")
+
+
 @app.route('/api/scraper', methods=['GET'])
 def scraper():
     """
@@ -148,22 +198,28 @@ def scraper():
     logger.info(f"Processing URL: {url}")
 
     try:
-        scraper = scrape_me(url)
-        recipe = get_recipe_details(scraper, url)
-        return jsonify(recipe)
-    except Exception as e:
-        if "not supported" in str(e):
-            try:
-                logger.info(f"Retrying with wild_mode: {url}")
-                scraper = scrape_me(url, wild_mode=True)
+        html = fetch_html(url)
+
+        try:
+            scraper = scrape_html(html=html, org_url=url)
+            recipe = get_recipe_details(scraper, url)
+            return jsonify(recipe)
+        except Exception as e:
+            if "not supported" in str(e) or "isn't currently supported" in str(e):
+                logger.info(f"Retrying with supported_only=False: {url}")
+                scraper = scrape_html(html=html, org_url=url, supported_only=False)
                 recipe = get_recipe_details(scraper, url)
                 return jsonify(recipe)
-            except Exception as e:
-                logger.error(f"Failed with wild_mode: {e}")
-                return jsonify({"error": f"Failed with wild_mode: {str(e)}"}), 500
-        else:
-            logger.error(f"Scraping failed: {e}")
-            return jsonify({"error": str(e)}), 500
+            else:
+                raise
+    except AccessBlockedError:
+        return jsonify({
+            "error": "This website blocked automated access. Try adding the recipe manually instead.",
+            "blocked": True
+        }), 403
+    except Exception as e:
+        logger.error(f"Scraping failed: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(port=5328)

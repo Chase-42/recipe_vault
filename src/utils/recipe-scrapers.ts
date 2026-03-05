@@ -6,7 +6,7 @@ import type { FallbackApiResponse, FlaskApiResponse } from "~/types";
 import { processInstructions } from "./instruction-processor";
 import { fetchRecipeImages, tryHtmlScraper } from "./scraper";
 
-const FLASK_API_TIMEOUT_MS = 10_000; // 10 seconds
+const FLASK_API_TIMEOUT_MS = 25_000; // 25 seconds (Flask may retry with cloudscraper on 403)
 const SCRAPER_TIMEOUT_MS = 15_000; // 15 seconds
 
 // Fixes instruction strings that were incorrectly split by the scraper
@@ -25,7 +25,7 @@ function fixInstructionString(instructions: string): string {
     const line = lines[i];
     if (!line) continue;
 
-    const nextLine = i < lines.length - 1 ? (lines[i + 1] ?? null) : null;
+    const nextLine = i < lines.length - 1 ? lines[i + 1] ?? null : null;
 
     // If line starts with lowercase, it's a continuation of the previous step
     const startsWithLowercase = /^[a-z]/.test(line);
@@ -81,7 +81,7 @@ function createTimeout<T>(ms: number, message: string): Promise<T> {
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<Response> {
   return Promise.race([
     fetch(url, options),
@@ -91,7 +91,7 @@ async function fetchWithTimeout(
 
 // Main Scraper: JS Package (@rethora/url-recipe-scraper) - primary scraper
 export async function tryJsPackageScraper(
-  link: string,
+  link: string
 ): Promise<FallbackApiResponse | null> {
   const log = logger.forComponent("JsPackageScraper");
 
@@ -105,7 +105,7 @@ export async function tryJsPackageScraper(
       getRecipeData(link),
       createTimeout<Awaited<ReturnType<typeof getRecipeData>>>(
         SCRAPER_TIMEOUT_MS,
-        "Scraper timeout",
+        "Scraper timeout"
       ),
     ]);
 
@@ -220,14 +220,14 @@ export async function tryJsPackageScraper(
 // Fallback 1: Flask API
 export async function tryFlaskApiScraper(
   link: string,
-  baseUrl: string,
+  baseUrl: string
 ): Promise<FlaskApiResponse> {
   const log = logger.forComponent("FlaskApiScraper");
 
   try {
     const url = new URL(
       `/api/scraper?url=${encodeURIComponent(link)}`,
-      baseUrl,
+      baseUrl
     ).toString();
 
     const response = await fetchWithTimeout(
@@ -236,14 +236,23 @@ export async function tryFlaskApiScraper(
         headers: { Accept: "application/json" },
         next: { revalidate: 0 },
       },
-      FLASK_API_TIMEOUT_MS,
+      FLASK_API_TIMEOUT_MS
     );
 
     if (!response.ok) {
-      log.warn("Flask API returned error status", {
-        status: response.status,
-        link,
-      });
+      if (response.status === 403) {
+        log.warn(
+          "Flask API blocked by site (403), will try fallback scrapers",
+          {
+            link,
+          }
+        );
+      } else {
+        log.warn("Flask API returned error status", {
+          status: response.status,
+          link,
+        });
+      }
       return schemas.flaskApiResponse.parse({});
     }
 
@@ -313,7 +322,7 @@ export interface ScrapedRecipeData {
 // Orchestrates recipe scraping with Flask as primary scraper and two fallbacks
 export async function scrapeRecipe(
   link: string,
-  flaskBaseUrl: string,
+  flaskBaseUrl: string
 ): Promise<ScrapedRecipeData> {
   const log = logger.forComponent("RecipeScraper");
 
@@ -382,27 +391,8 @@ export async function scrapeRecipe(
     };
   }
 
-  // All scrapers failed - throw error with details
-  const missing = [];
-  if (!mainResult?.name && !flaskResult.name && !htmlResult?.name) {
-    missing.push("name");
-  }
-  if (
-    !mainResult?.recipeInstructions &&
-    !flaskResult.instructions &&
-    !htmlResult?.recipeInstructions
-  ) {
-    missing.push("instructions");
-  }
-  if (
-    (mainResult?.recipeIngredient?.length ?? 0) === 0 &&
-    (flaskResult.ingredients?.length ?? 0) === 0 &&
-    (htmlResult?.recipeIngredient?.length ?? 0) === 0
-  ) {
-    missing.push("ingredients");
-  }
-
+  // All scrapers failed
   throw new Error(
-    `Failed to extract recipe data from all scrapers. Missing: ${missing.join(", ")}`,
+    "Could not extract recipe data from this URL. Try adding the recipe manually instead."
   );
 }

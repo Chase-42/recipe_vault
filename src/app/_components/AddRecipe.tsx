@@ -11,10 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import type { Recipe } from "~/types";
-import { Input } from "~/components/ui/input";
 import { recipesKey } from "~/utils/query-keys";
 
 interface AddRecipeProps {
@@ -42,6 +42,15 @@ const saveRecipe = async (link: string): Promise<Recipe> => {
   });
 
   if (!response.ok) {
+    // Try to get the error message from the response body
+    try {
+      const errorData = (await response.json()) as { error?: string };
+      if (errorData.error) {
+        throw new RecipeError(errorData.error, response.status);
+      }
+    } catch (e) {
+      if (e instanceof RecipeError) throw e;
+    }
     throw new RecipeError("Failed to save recipe", response.status);
   }
 
@@ -68,6 +77,9 @@ const ButtonContainer = ({
 export default function AddRecipe({ onSuccess }: AddRecipeProps) {
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [link, setLink] = useState("");
+  const [importError, setImportError] = useState<"blocked" | "error" | null>(
+    null
+  );
   const queryClient = useQueryClient();
 
   const { mutate, isPending } = useMutation<Recipe, Error, string>({
@@ -83,8 +95,18 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
         action: "saveRecipe",
         url: link,
       });
-      toast.error(error.message || "Failed to save recipe.");
-      onSuccess();
+      const isBlocked =
+        error instanceof RecipeError &&
+        (error as RecipeError).statusCode === 403;
+      if (isBlocked) {
+        toast.error(
+          "This website blocks automated imports. Try adding the recipe manually.",
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(error.message || "Failed to save recipe.");
+      }
+      setImportError(isBlocked ? "blocked" : "error");
     },
   });
 
@@ -148,12 +170,35 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                 <Input
                   type="url"
                   value={link}
-                  onChange={(e) => setLink(e.target.value)}
+                  onChange={(e) => {
+                    setLink(e.target.value);
+                    if (importError) setImportError(null);
+                  }}
                   placeholder="Paste recipe URL here"
                   className="mb-4 w-full px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-base"
                   required
                   aria-label="Recipe link"
                 />
+                {importError && (
+                  <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
+                    <p className="font-medium text-destructive">
+                      {importError === "blocked"
+                        ? "This website blocks automated imports."
+                        : "Could not extract recipe data from this URL."}
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      You can{" "}
+                      <Link
+                        href="/add"
+                        onClick={onSuccess}
+                        className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                      >
+                        add it manually
+                      </Link>{" "}
+                      instead.
+                    </p>
+                  </div>
+                )}
                 <div className="flex w-full flex-col gap-3">
                   <motion.button
                     type="submit"
@@ -178,7 +223,10 @@ export default function AddRecipe({ onSuccess }: AddRecipeProps) {
                   </motion.button>
                   <motion.button
                     type="button"
-                    onClick={() => setShowLinkForm(false)}
+                    onClick={() => {
+                      setShowLinkForm(false);
+                      setImportError(null);
+                    }}
                     className="h-12 w-full rounded-md border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
                   >
                     Back to Options
