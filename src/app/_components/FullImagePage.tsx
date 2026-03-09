@@ -524,14 +524,14 @@ export default function FullImagePage({
           )}
           style={{ width: `${100 - leftPanelWidth}%` }}
         >
-          <div className="h-full overflow-y-auto bg-black/40 p-4">
+          <div className="flex h-full flex-col bg-black/40 p-4">
             <div className="mb-3 flex items-center gap-2">
               <h2 className="text-lg font-semibold text-foreground">
                 Instructions
               </h2>
               <Badge variant="outline">{instructions.length} steps</Badge>
             </div>
-            <div className="space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
               {instructions.map(renderInstruction)}
             </div>
           </div>
