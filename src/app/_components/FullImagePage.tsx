@@ -344,23 +344,23 @@ export default function FullImagePage({
     );
   };
 
-  // Mobile layout - single scrollable column with bottom padding for fixed footer
+  // Mobile layout - image scrolls away naturally, content follows
   const mobileContent = (
     <>
-      {/* Image - fixed aspect ratio, outside scroll to avoid layout issues */}
-      <div className="relative aspect-[4/3] w-full flex-shrink-0">
-        <Image
-          src={displayRecipe.imageUrl}
-          alt={`Image of ${displayRecipe.name}`}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-      </div>
-
-      {/* Scrollable content area */}
+      {/* Single scroll container - everything scrolls together */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        {/* Image - capped at 40vh so it doesn't dominate, scrolls away */}
+        <div className="relative w-full" style={{ height: "40vh" }}>
+          <Image
+            src={displayRecipe.imageUrl}
+            alt={`Image of ${displayRecipe.name}`}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+
         {/* Tags */}
         {displayRecipe.tags && displayRecipe.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-4 pt-4">
