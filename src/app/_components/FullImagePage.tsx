@@ -344,22 +344,23 @@ export default function FullImagePage({
     );
   };
 
-  // Mobile layout - stacked vertically, no resize
+  // Mobile layout - single scrollable column with bottom padding for fixed footer
   const mobileContent = (
     <>
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {/* Image - fixed aspect ratio */}
-        <div className="relative aspect-[4/3] w-full">
-          <Image
-            src={displayRecipe.imageUrl}
-            alt={`Image of ${displayRecipe.name}`}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
+      {/* Image - fixed aspect ratio, outside scroll to avoid layout issues */}
+      <div className="relative aspect-[4/3] w-full flex-shrink-0">
+        <Image
+          src={displayRecipe.imageUrl}
+          alt={`Image of ${displayRecipe.name}`}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
 
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {/* Tags */}
         {displayRecipe.tags && displayRecipe.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-4 pt-4">
@@ -372,7 +373,7 @@ export default function FullImagePage({
         )}
 
         {/* Ingredients */}
-        <div className="flex-1 border-b border-border bg-black/40 p-4">
+        <div className="border-b border-border bg-black/40 p-4">
           <div className="mb-3 flex items-center gap-2">
             <h2 className="text-lg font-semibold text-foreground">
               Ingredients
@@ -383,7 +384,7 @@ export default function FullImagePage({
         </div>
 
         {/* Instructions */}
-        <div className="flex-1 bg-black/40 p-4">
+        <div className="bg-black/40 p-4 pb-20">
           <div className="mb-3 flex items-center gap-2">
             <h2 className="text-lg font-semibold text-foreground">
               Instructions
@@ -429,15 +430,15 @@ export default function FullImagePage({
     </>
   );
 
-  // Desktop layout - resizable panels
+  // Desktop layout - resizable panels with independent scroll areas
   const desktopContent = (
     <>
-      <div ref={containerRef} className="relative flex flex-1 min-h-0">
+      <div ref={containerRef} className="relative flex flex-1 min-h-0 pb-14">
         {/* Left Panel */}
         <div
           ref={leftPanelRef}
           className={cn(
-            "relative flex flex-col border-r border-border",
+            "relative flex flex-col border-r border-border min-h-0",
             !isDraggingHorizontal && "transition-[width] duration-150 ease-out"
           )}
           style={{ width: `${leftPanelWidth}%` }}
@@ -445,7 +446,7 @@ export default function FullImagePage({
           {/* Image Section */}
           <div
             className={cn(
-              "relative overflow-hidden",
+              "relative flex-shrink-0 overflow-hidden",
               !isDraggingVertical && "transition-[height] duration-150 ease-out"
             )}
             style={{ height: `${imageHeight}%` }}
@@ -464,7 +465,7 @@ export default function FullImagePage({
           <div
             ref={verticalDividerRef}
             className={cn(
-              "relative z-10 flex h-1 cursor-row-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
+              "relative z-10 flex h-1 flex-shrink-0 cursor-row-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
               isDraggingVertical && "bg-primary"
             )}
             style={{ userSelect: "none" }}
@@ -474,15 +475,9 @@ export default function FullImagePage({
           </div>
 
           {/* Ingredients Section */}
-          <div
-            className={cn(
-              "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-black/40 p-4",
-              !isDraggingVertical && "transition-[height] duration-150 ease-out"
-            )}
-            style={{ height: `${100 - imageHeight}%` }}
-          >
+          <div className="flex min-h-0 flex-1 flex-col bg-black/40 p-4">
             {displayRecipe.tags && displayRecipe.tags.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
+              <div className="mb-4 flex flex-shrink-0 flex-wrap gap-1.5">
                 {displayRecipe.tags.map((tag) => (
                   <Badge key={tag} variant="secondary">
                     {tag}
@@ -491,14 +486,16 @@ export default function FullImagePage({
               </div>
             )}
 
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex flex-shrink-0 items-center gap-2">
               <h2 className="text-lg font-semibold text-foreground">
                 Ingredients
               </h2>
               <Badge variant="outline">{ingredients.length}</Badge>
             </div>
-            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto">
-              {ingredients.map(renderIngredient)}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="space-y-2.5">
+                {ingredients.map(renderIngredient)}
+              </div>
             </div>
           </div>
         </div>
@@ -507,7 +504,7 @@ export default function FullImagePage({
         <div
           ref={horizontalDividerRef}
           className={cn(
-            "relative z-10 flex w-1 cursor-col-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
+            "relative z-10 flex w-1 flex-shrink-0 cursor-col-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
             isDraggingHorizontal && "bg-primary"
           )}
           style={{ userSelect: "none" }}
@@ -519,20 +516,22 @@ export default function FullImagePage({
         {/* Right Panel (Instructions) */}
         <div
           className={cn(
-            "flex-1 overflow-hidden",
+            "flex min-h-0 flex-1 flex-col",
             !isDraggingHorizontal && "transition-[width] duration-150 ease-out"
           )}
           style={{ width: `${100 - leftPanelWidth}%` }}
         >
-          <div className="flex h-full flex-col bg-black/40 p-4">
-            <div className="mb-3 flex items-center gap-2">
+          <div className="flex min-h-0 flex-1 flex-col bg-black/40 p-4">
+            <div className="mb-3 flex flex-shrink-0 items-center gap-2">
               <h2 className="text-lg font-semibold text-foreground">
                 Instructions
               </h2>
               <Badge variant="outline">{instructions.length} steps</Badge>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-              {instructions.map(renderInstruction)}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="space-y-4">
+                {instructions.map(renderInstruction)}
+              </div>
             </div>
           </div>
         </div>
@@ -573,7 +572,7 @@ export default function FullImagePage({
   );
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col overflow-hidden">
       {isMobile ? mobileContent : desktopContent}
       <AddToListModal
         isOpen={showAddToList}
