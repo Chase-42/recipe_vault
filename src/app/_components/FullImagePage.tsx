@@ -403,10 +403,12 @@ export default function FullImagePage({
               variant="ghost"
               size="sm"
               className="h-10 text-white hover:bg-zinc-800"
-              onClick={() => window.open(displayRecipe.link, "_blank")}
+              asChild
             >
-              <ExternalLink className="mr-1.5 h-4 w-4" />
-              Original
+              <a href={displayRecipe.link} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-1.5 h-4 w-4" />
+                Original
+              </a>
             </Button>
           )}
           <Button
@@ -544,10 +546,12 @@ export default function FullImagePage({
             <Button
               variant="ghost"
               className="h-8 text-sm text-white hover:bg-zinc-800"
-              onClick={() => window.open(displayRecipe.link, "_blank")}
+              asChild
             >
-              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-              View Original
+              <a href={displayRecipe.link} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                View Original
+              </a>
             </Button>
           )}
         </div>

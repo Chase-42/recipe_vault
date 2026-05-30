@@ -31,7 +31,7 @@ import {
   Loader2,
   Menu,
 } from "lucide-react";
-import { useIsMobile } from "~/hooks/useMediaQuery";
+import { useIsNarrow } from "~/hooks/useMediaQuery";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
@@ -43,8 +43,6 @@ import { useDragAndDrop } from "~/hooks/useDragAndDrop";
 import { currentWeekMealsKey, recipesKey, savedMealPlansKey } from "~/utils/query-keys";
 
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
-import { AnimatedBackButton } from "~/components/ui/page-transition";
-import { ArrowLeft } from "lucide-react";
 import { GeneratedShoppingList } from "./components/GeneratedShoppingList";
 import { MealSlot } from "./components/MealSlot";
 
@@ -131,7 +129,7 @@ MemoizedRecipeCard.displayName = "MemoizedRecipeCard";
 
 export function MealPlannerClient() {
   const router = useRouter();
-  const isMobile = useIsMobile();
+  const isMobile = useIsNarrow();
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(new Date()));
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -444,12 +442,7 @@ export function MealPlannerClient() {
             style={{ width: sidebarWidth }}
           >
             <div className="border-b bg-black p-4">
-              <div className="mb-3 flex items-center gap-3">
-                <AnimatedBackButton className="flex h-8 w-8 items-center justify-center rounded-md bg-transparent hover:bg-accent">
-                  <ArrowLeft className="h-4 w-4" />
-                </AnimatedBackButton>
-                <h2 className="text-lg font-semibold">Recipes</h2>
-              </div>
+              <h2 className="text-lg font-semibold">Recipes</h2>
             </div>
             <div className="flex flex-1 flex-col overflow-hidden p-4">
               {recipeListContent}
@@ -467,11 +460,6 @@ export function MealPlannerClient() {
           <div className="border-b bg-black/80 p-3 backdrop-blur md:p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                {isMobile && (
-                  <AnimatedBackButton className="flex h-10 w-10 items-center justify-center rounded-md bg-transparent hover:bg-accent">
-                    <ArrowLeft className="h-4 w-4" />
-                  </AnimatedBackButton>
-                )}
                 <h1 className="text-xl font-bold md:text-2xl">Meal Planner</h1>
                 {isMobile && (
                   <Button
