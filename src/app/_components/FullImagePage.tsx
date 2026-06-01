@@ -3,6 +3,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   GripHorizontal,
   GripVertical,
@@ -60,6 +62,7 @@ export default function FullImagePage({
   loadingFallback,
 }: FullPageImageViewProps) {
   const [showAddToList, setShowAddToList] = useState(false);
+  const [imageVisible, setImageVisible] = useState(true);
   const { setRecipeData } = useHeaderContext();
   const isMobile = useIsMobile();
 
@@ -349,8 +352,11 @@ export default function FullImagePage({
     <>
       {/* Single scroll container - everything scrolls together */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        {/* Image - capped at 40vh so it doesn't dominate, scrolls away */}
-        <div className="relative w-full" style={{ height: "40vh" }}>
+        {/* Image */}
+        <div
+          className="relative w-full overflow-hidden transition-[height] duration-300 ease-in-out"
+          style={{ height: imageVisible ? "40vh" : 0 }}
+        >
           <Image
             src={displayRecipe.imageUrl}
             alt={`Image of ${displayRecipe.name}`}
@@ -359,7 +365,25 @@ export default function FullImagePage({
             sizes="100vw"
             className="object-cover"
           />
+          <button
+            type="button"
+            onClick={() => setImageVisible(false)}
+            className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+            Hide
+          </button>
         </div>
+        {!imageVisible && (
+          <button
+            type="button"
+            onClick={() => setImageVisible(true)}
+            className="flex w-full items-center justify-center gap-1.5 border-b border-border bg-black/40 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            Show image
+          </button>
+        )}
 
         {/* Tags */}
         {displayRecipe.tags && displayRecipe.tags.length > 0 && (
@@ -378,7 +402,9 @@ export default function FullImagePage({
             <h2 className="text-lg font-semibold text-foreground">
               Ingredients
             </h2>
-            <Badge variant="outline">{ingredients.length}</Badge>
+            <Badge variant="outline">
+              {checkedIngredients.size} of {ingredients.length}
+            </Badge>
           </div>
           <div className="space-y-1">{ingredients.map(renderIngredient)}</div>
         </div>
@@ -389,7 +415,9 @@ export default function FullImagePage({
             <h2 className="text-lg font-semibold text-foreground">
               Instructions
             </h2>
-            <Badge variant="outline">{instructions.length} steps</Badge>
+            <Badge variant="outline">
+              {checkedInstructions.size} of {instructions.length} steps
+            </Badge>
           </div>
           <div className="space-y-4">{instructions.map(renderInstruction)}</div>
         </div>
@@ -449,9 +477,9 @@ export default function FullImagePage({
           <div
             className={cn(
               "relative flex-shrink-0 overflow-hidden",
-              !isDraggingVertical && "transition-[height] duration-150 ease-out"
+              !isDraggingVertical && "transition-[height] duration-300 ease-in-out"
             )}
-            style={{ height: `${imageHeight}%` }}
+            style={{ height: imageVisible ? `${imageHeight}%` : 0 }}
           >
             <Image
               src={displayRecipe.imageUrl}
@@ -461,23 +489,43 @@ export default function FullImagePage({
               sizes={`${leftPanelWidth}vw`}
               className="object-cover"
             />
+            <button
+              type="button"
+              onClick={() => setImageVisible(false)}
+              className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+              Hide
+            </button>
           </div>
 
           {/* Vertical Divider */}
-          <div
-            ref={verticalDividerRef}
-            className={cn(
-              "relative z-10 flex h-1 flex-shrink-0 cursor-row-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
-              isDraggingVertical && "bg-primary"
-            )}
-            style={{ userSelect: "none" }}
-          >
-            <div className="absolute inset-x-0 -bottom-2 -top-2" />
-            <GripHorizontal className="h-3 w-3 text-muted-foreground" />
-          </div>
+          {imageVisible && (
+            <div
+              ref={verticalDividerRef}
+              className={cn(
+                "relative z-10 flex h-1 flex-shrink-0 cursor-row-resize items-center justify-center bg-border transition-colors hover:bg-primary/50",
+                isDraggingVertical && "bg-primary"
+              )}
+              style={{ userSelect: "none" }}
+            >
+              <div className="absolute inset-x-0 -bottom-2 -top-2" />
+              <GripHorizontal className="h-3 w-3 text-muted-foreground" />
+            </div>
+          )}
 
           {/* Ingredients Section */}
           <div className="flex min-h-0 flex-1 flex-col bg-black/40 p-4">
+            {!imageVisible && (
+              <button
+                type="button"
+                onClick={() => setImageVisible(true)}
+                className="mb-3 flex flex-shrink-0 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+                Show image
+              </button>
+            )}
             {displayRecipe.tags && displayRecipe.tags.length > 0 && (
               <div className="mb-4 flex flex-shrink-0 flex-wrap gap-1.5">
                 {displayRecipe.tags.map((tag) => (
@@ -492,7 +540,9 @@ export default function FullImagePage({
               <h2 className="text-lg font-semibold text-foreground">
                 Ingredients
               </h2>
-              <Badge variant="outline">{ingredients.length}</Badge>
+              <Badge variant="outline">
+                {checkedIngredients.size} of {ingredients.length}
+              </Badge>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="space-y-2.5">
@@ -528,7 +578,9 @@ export default function FullImagePage({
               <h2 className="text-lg font-semibold text-foreground">
                 Instructions
               </h2>
-              <Badge variant="outline">{instructions.length} steps</Badge>
+              <Badge variant="outline">
+                {checkedInstructions.size} of {instructions.length} steps
+              </Badge>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="space-y-4">
