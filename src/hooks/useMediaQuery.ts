@@ -29,3 +29,11 @@ export function useMediaQuery(query: string): boolean {
 export function useIsMobile(): boolean {
   return useMediaQuery("(max-width: 767px)");
 }
+
+/**
+ * Hook for layouts that need more horizontal space (e.g. meal planner sidebar + calendar).
+ * Switches to mobile/stacked layout below 1024px.
+ */
+export function useIsNarrow(): boolean {
+  return useMediaQuery("(max-width: 1023px)");
+}

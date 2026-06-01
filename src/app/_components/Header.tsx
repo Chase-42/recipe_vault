@@ -120,11 +120,10 @@ function getHeaderConfig(pathname: string | null): HeaderConfig {
     };
   }
 
-  // Meal Planner - no back button (it's in sidebar)
   if (pathname === "/meal-planner") {
     return {
       hidden: false,
-      showBackButton: false,
+      showBackButton: true,
       backDestination: "/",
       title: "Meal Planner",
       showLogo: false,

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +15,6 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
-import { RecipeDetailModal } from "./RecipeDetailModal";
 import { logger } from "~/lib/logger";
 import type { MealSlotProps, Recipe, MealType } from "~/types";
 
@@ -44,7 +44,6 @@ export function MealSlot({
 }: ExtendedMealSlotProps) {
   const [dragState, setDragState] = useState<DragState>("idle");
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-  const [showRecipeDetail, setShowRecipeDetail] = useState(false);
 
   const isEmpty = !plannedMeal;
   const borderColor = mealTypeColors[mealType];
@@ -129,9 +128,6 @@ export function MealSlot({
         if ((e.key === "Enter" || e.key === " ") && hasPendingRecipe) {
           e.preventDefault();
           handleSlotClick();
-        } else if ((e.key === "Enter" || e.key === " ") && !isEmpty) {
-          e.preventDefault();
-          setShowRecipeDetail(true);
         } else if ((e.key === "Delete" || e.key === "Backspace") && !isEmpty) {
           e.preventDefault();
           setShowRemoveDialog(true);
@@ -176,13 +172,12 @@ export function MealSlot({
             </div>
 
             <div className="flex justify-between items-center pt-1">
-              <button
-                type="button"
-                onClick={() => setShowRecipeDetail(true)}
+              <Link
+                href={`/img/${plannedMeal.recipe?.id}`}
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs font-medium"
               >
                 View
-              </button>
+              </Link>
 
               <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                 <AlertDialogTrigger asChild>
@@ -218,15 +213,6 @@ export function MealSlot({
         )}
       </div>
 
-      {plannedMeal?.recipe && (
-        <RecipeDetailModal
-          isOpen={showRecipeDetail}
-          onClose={() => setShowRecipeDetail(false)}
-          recipe={plannedMeal.recipe}
-          plannedMeal={plannedMeal}
-          onRemove={onRemove}
-        />
-      )}
     </div>
   );
 }
