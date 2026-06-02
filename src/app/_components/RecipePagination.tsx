@@ -98,7 +98,7 @@ export default function RecipePagination({
 
   return (
     <>
-      <div className="mt-8 flex justify-center">
+      <div className="border-t border-zinc-800 bg-black px-3 py-3 sm:px-4 sm:py-4">
         <Pagination>
           <PaginationContent className="flex-wrap gap-1">
             <PaginationItem>
@@ -108,18 +108,19 @@ export default function RecipePagination({
                   e.preventDefault();
                   if (currentPage > 1) onPageChange(currentPage - 1);
                 }}
-                className={
+                className={cn(
+                  "text-white hover:bg-zinc-800 hover:text-white",
                   currentPage <= 1
                     ? "pointer-events-none opacity-50"
                     : "cursor-pointer"
-                }
+                )}
               />
             </PaginationItem>
 
             {pageNumbers.map((page, index) =>
               page === "ellipsis" ? (
                 <PaginationItem key={`ellipsis-${index}`}>
-                  <PaginationEllipsis />
+                  <PaginationEllipsis className="text-zinc-400" />
                 </PaginationItem>
               ) : (
                 <PaginationItem key={page}>
@@ -130,6 +131,11 @@ export default function RecipePagination({
                       onPageChange(page);
                     }}
                     isActive={currentPage === page}
+                    className={
+                      currentPage === page
+                        ? "border-white bg-white text-black hover:bg-zinc-100"
+                        : "text-white hover:bg-zinc-800 hover:text-white"
+                    }
                   >
                     {page}
                   </PaginationLink>
@@ -144,11 +150,12 @@ export default function RecipePagination({
                   e.preventDefault();
                   if (currentPage < totalPages) onPageChange(currentPage + 1);
                 }}
-                className={
+                className={cn(
+                  "text-white hover:bg-zinc-800 hover:text-white",
                   currentPage >= totalPages
                     ? "pointer-events-none opacity-50"
                     : "cursor-pointer"
-                }
+                )}
               />
             </PaginationItem>
           </PaginationContent>
