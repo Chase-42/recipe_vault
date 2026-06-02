@@ -12,6 +12,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { RecipeTimer } from "~/components/recipe-timer/RecipeTimer";
 import { IconHeart } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -378,6 +379,7 @@ export function Header() {
                   strokeWidth={2}
                 />
               </Button>
+              <RecipeTimer />
             </div>
           )}
         </div>

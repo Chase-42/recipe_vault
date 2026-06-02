@@ -140,18 +140,17 @@ export default function RecipeListContainer(_props: RecipeListContainerProps) {
   );
 
   return (
-    <div className="p-4">
-      <RecipeFilters
-        total={total}
-        offset={(currentPage - 1) * ITEMS_PER_PAGE}
-        itemsPerPage={ITEMS_PER_PAGE}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={handleCategoryChange}
-        sortOption={sortOption}
-        onSortChange={handleSortChange}
-      />
-
-      <div>
+    <div className="flex flex-col">
+      <div className="p-4">
+        <RecipeFilters
+          total={total}
+          offset={(currentPage - 1) * ITEMS_PER_PAGE}
+          itemsPerPage={ITEMS_PER_PAGE}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={handleCategoryChange}
+          sortOption={sortOption}
+          onSortChange={handleSortChange}
+        />
         <RecipeGrid
           recipes={recipes}
           isLoading={isLoading}
