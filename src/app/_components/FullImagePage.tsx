@@ -402,8 +402,15 @@ export default function FullImagePage({
             <h2 className="text-lg font-semibold text-foreground">
               Ingredients
             </h2>
-            <Badge variant="outline">
-              {checkedIngredients.size} of {ingredients.length}
+            <Badge
+              variant="outline"
+              className={cn(
+                checkedIngredients.size === ingredients.length && ingredients.length > 0
+                  ? "border-green-800 bg-green-900/30 text-green-400"
+                  : ""
+              )}
+            >
+              {checkedIngredients.size} of {ingredients.length} used
             </Badge>
           </div>
           <div className="space-y-1">{ingredients.map(renderIngredient)}</div>
@@ -415,8 +422,15 @@ export default function FullImagePage({
             <h2 className="text-lg font-semibold text-foreground">
               Instructions
             </h2>
-            <Badge variant="outline">
-              {checkedInstructions.size} of {instructions.length} steps
+            <Badge
+              variant="outline"
+              className={cn(
+                checkedInstructions.size === instructions.length && instructions.length > 0
+                  ? "border-green-800 bg-green-900/30 text-green-400"
+                  : ""
+              )}
+            >
+              {checkedInstructions.size} of {instructions.length} steps done
             </Badge>
           </div>
           <div className="space-y-4">{instructions.map(renderInstruction)}</div>
@@ -540,8 +554,15 @@ export default function FullImagePage({
               <h2 className="text-lg font-semibold text-foreground">
                 Ingredients
               </h2>
-              <Badge variant="outline">
-                {checkedIngredients.size} of {ingredients.length}
+              <Badge
+                variant="outline"
+                className={cn(
+                  checkedIngredients.size === ingredients.length && ingredients.length > 0
+                    ? "border-green-800 bg-green-900/30 text-green-400"
+                    : ""
+                )}
+              >
+                {checkedIngredients.size} of {ingredients.length} used
               </Badge>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -578,8 +599,15 @@ export default function FullImagePage({
               <h2 className="text-lg font-semibold text-foreground">
                 Instructions
               </h2>
-              <Badge variant="outline">
-                {checkedInstructions.size} of {instructions.length} steps
+              <Badge
+                variant="outline"
+                className={cn(
+                  checkedInstructions.size === instructions.length && instructions.length > 0
+                    ? "border-green-800 bg-green-900/30 text-green-400"
+                    : ""
+                )}
+              >
+                {checkedInstructions.size} of {instructions.length} steps done
               </Badge>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
