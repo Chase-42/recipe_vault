@@ -3,13 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { useRecipeTimer } from "~/hooks/useRecipeTimer";
-import { Button } from "~/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 
 const PRESETS = [
@@ -23,6 +16,9 @@ const PRESETS = [
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
+
+const RING_R = 70;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
 export function RecipeTimer() {
   const [open, setOpen] = useState(false);
@@ -44,7 +40,6 @@ export function RecipeTimer() {
     reset,
   } = useRecipeTimer();
 
-  // Close panel on outside click
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(e: PointerEvent) {
@@ -65,6 +60,12 @@ export function RecipeTimer() {
       ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
       : `${pad(minutes)}:${pad(seconds)}`;
 
+  const remainingSeconds = hours * 3600 + minutes * 60 + seconds;
+  const progress = selectedSeconds > 0 ? remainingSeconds / selectedSeconds : 0;
+  const ringOffset = RING_CIRCUMFERENCE * (1 - progress);
+
+  const isActive = isRunning || isPaused;
+
   function handlePreset(s: number) {
     setCustomMinutes("");
     start(s);
@@ -78,132 +79,178 @@ export function RecipeTimer() {
   }
 
   return (
-    <TooltipProvider>
-      <div className="relative">
-        {/* Panel — drops down from header */}
-        {open && (
-          <div
-            ref={panelRef}
-            className="absolute left-0 top-full mt-2 w-64 rounded-md border border-border bg-zinc-900 p-3 shadow-xl"
-          >
-            {/* Countdown display */}
-            <div
-              className={cn(
-                "mb-2 text-center font-mono text-3xl font-semibold tabular-nums tracking-tight",
-                isDone && "animate-pulse text-red-400",
-                isRunning && "text-white",
-                !isRunning && !isDone && "text-muted-foreground"
-              )}
-            >
-              {displayTime}
-            </div>
-
-            {/* Preset buttons */}
-            {!isRunning && !isPaused && (
-              <div className="mb-2 flex gap-1">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => handlePreset(p.seconds)}
+    <div className="relative">
+      {/* Panel */}
+      {open && (
+        <div
+          ref={panelRef}
+          className="absolute left-0 top-full mt-2 w-72 rounded-xl bg-zinc-950 p-4 shadow-2xl shadow-black/60 ring-1 ring-white/10"
+        >
+          {/* Progress ring + countdown */}
+          <div className="mb-4 flex justify-center">
+            <div className="relative h-40 w-40">
+              <svg viewBox="0 0 160 160" className="h-40 w-40 -rotate-90">
+                {/* Track */}
+                <circle
+                  cx={80}
+                  cy={80}
+                  r={RING_R}
+                  fill="none"
+                  strokeWidth={4}
+                  stroke="currentColor"
+                  className={cn(
+                    isDone ? "text-red-950" : "text-zinc-800"
+                  )}
+                />
+                {/* Progress arc */}
+                {hasSelection && (
+                  <circle
+                    cx={80}
+                    cy={80}
+                    r={RING_R}
+                    fill="none"
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    strokeDashoffset={ringOffset}
+                    stroke="currentColor"
                     className={cn(
-                      "flex-1 rounded border border-border bg-zinc-800 py-1 text-xs text-white transition-colors hover:bg-zinc-700",
-                      selectedSeconds === p.seconds && !isRunning && !isPaused && "border-primary bg-primary/20"
+                      "transition-[stroke-dashoffset] duration-1000 ease-linear",
+                      isDone ? "text-red-500" : isRunning ? "text-white" : "text-zinc-400"
                     )}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+                  />
+                )}
+              </svg>
+              {/* Digits */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span
+                  className={cn(
+                    "font-mono font-semibold tabular-nums leading-none tracking-tight",
+                    hours > 0 ? "text-2xl" : "text-3xl",
+                    isDone && "animate-pulse text-red-400",
+                    isRunning && "text-white",
+                    isPaused && "text-zinc-300",
+                    !isRunning && !isPaused && !isDone && hasSelection && "text-zinc-300",
+                    !hasSelection && "text-zinc-600"
+                  )}
+                >
+                  {displayTime}
+                </span>
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* Custom input */}
-            {!isRunning && !isPaused && (
-              <div className="mb-2 flex gap-1.5">
+          {/* Preset buttons */}
+          {!isActive && !isDone && (
+            <div className="mb-3 flex gap-1.5">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => handlePreset(p.seconds)}
+                  className={cn(
+                    "flex-1 h-10 rounded-full text-sm font-medium transition-colors",
+                    selectedSeconds === p.seconds
+                      ? "bg-white text-black"
+                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Custom input */}
+          {!isActive && !isDone && (
+            <div className="mb-3 flex gap-2">
+              <div className="relative flex-1">
                 <input
                   type="number"
                   min={1}
                   max={999}
-                  placeholder="custom min"
+                  placeholder="0"
                   value={customMinutes}
                   onChange={(e) => setCustomMinutes(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCustomStart()}
-                  className="w-full rounded border border-border bg-zinc-800 px-2 py-1 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="h-10 w-full rounded-lg bg-zinc-800 pl-3 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-white/20"
                 />
-                <Button
-                  size="sm"
-                  onClick={handleCustomStart}
-                  disabled={customMinutes.length === 0 || parseInt(customMinutes, 10) <= 0}
-                  className="h-7 px-3 text-xs"
-                >
-                  Go
-                </Button>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+                  min
+                </span>
               </div>
-            )}
-
-            {/* Controls */}
-            <div className="flex gap-1.5">
-              {isRunning && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={pause}
-                  className="flex-1 h-7 text-xs bg-zinc-700 hover:bg-zinc-600"
-                >
-                  Pause
-                </Button>
-              )}
-              {isPaused && (
-                <Button size="sm" onClick={resume} className="flex-1 h-7 text-xs">
-                  Resume
-                </Button>
-              )}
-              {(isRunning || isPaused || isDone) && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={reset}
-                  className="flex-1 h-7 text-xs bg-zinc-700 hover:bg-zinc-600"
-                >
-                  Reset
-                </Button>
-              )}
-              {hasSelection && !isRunning && !isPaused && (
-                <Button
-                  size="sm"
-                  onClick={() => start(selectedSeconds)}
-                  className="flex-1 h-7 text-xs"
-                >
-                  {isDone ? "Restart" : "Start"}
-                </Button>
-              )}
+              <button
+                type="button"
+                onClick={handleCustomStart}
+                disabled={customMinutes.length === 0 || parseInt(customMinutes, 10) <= 0}
+                className="h-10 rounded-lg bg-zinc-800 px-4 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Go
+              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Trigger button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              ref={triggerRef}
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen((v) => !v)}
-              className={cn(
-                "h-11 w-11 text-white hover:bg-zinc-800",
-                isRunning && "text-green-400",
-                isDone && "animate-pulse text-red-400"
-              )}
-              aria-label="Timer"
-            >
-              <Clock className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {isRunning || isPaused ? displayTime : "Timer"}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-    </TooltipProvider>
+          {/* Controls */}
+          <div className="flex gap-2">
+            {isRunning && (
+              <button
+                type="button"
+                onClick={pause}
+                className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+              >
+                Pause
+              </button>
+            )}
+            {isPaused && (
+              <button
+                type="button"
+                onClick={resume}
+                className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
+              >
+                Resume
+              </button>
+            )}
+            {(isRunning || isPaused || isDone) && (
+              <button
+                type="button"
+                onClick={reset}
+                className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+              >
+                Reset
+              </button>
+            )}
+            {hasSelection && !isRunning && !isPaused && (
+              <button
+                type="button"
+                onClick={() => start(selectedSeconds)}
+                className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
+              >
+                {isDone ? "Restart" : "Start"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Trigger — shows live countdown when active */}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Timer"
+        className={cn(
+          "flex h-11 items-center justify-center gap-1.5 rounded-md px-2 text-white transition-colors hover:bg-zinc-800",
+          isRunning && "text-green-400",
+          isDone && "animate-pulse text-red-400"
+        )}
+      >
+        <Clock className="h-5 w-5 flex-shrink-0" />
+        {isActive && (
+          <span className="font-mono text-xs tabular-nums leading-none">
+            {displayTime}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
