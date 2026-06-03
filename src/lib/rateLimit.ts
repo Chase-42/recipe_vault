@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { logger } from "~/lib/logger";
 
-interface RateLimitConfig {
+export interface RateLimitConfig {
   maxRequests: number;
   windowMs: number;
   path?: string;
@@ -58,6 +58,17 @@ async function checkRateLimit(
   }
 }
 
+function setRateLimitHeaders(
+  response: NextResponse,
+  config: RateLimitConfig,
+  remaining: number,
+  resetTime: number
+): void {
+  response.headers.set("X-RateLimit-Limit", config.maxRequests.toString());
+  response.headers.set("X-RateLimit-Remaining", remaining.toString());
+  response.headers.set("X-RateLimit-Reset", resetTime.toString());
+}
+
 const defaultConfig: RateLimitConfig = {
   maxRequests: 100,
   windowMs: 60 * 1000,
@@ -77,12 +88,7 @@ export async function withRateLimit(
       { status: 429 }
     );
 
-    response.headers.set(
-      "X-RateLimit-Limit",
-      finalConfig.maxRequests.toString()
-    );
-    response.headers.set("X-RateLimit-Remaining", remaining.toString());
-    response.headers.set("X-RateLimit-Reset", resetTime.toString());
+    setRateLimitHeaders(response, finalConfig, remaining, resetTime);
     response.headers.set(
       "Retry-After",
       Math.ceil((resetTime - Date.now()) / 1000).toString()
@@ -92,13 +98,6 @@ export async function withRateLimit(
   }
 
   const response = await handler(req);
-
-  response.headers.set(
-    "X-RateLimit-Limit",
-    finalConfig.maxRequests.toString()
-  );
-  response.headers.set("X-RateLimit-Remaining", remaining.toString());
-  response.headers.set("X-RateLimit-Reset", resetTime.toString());
-
+  setRateLimitHeaders(response, finalConfig, remaining, resetTime);
   return response;
 }

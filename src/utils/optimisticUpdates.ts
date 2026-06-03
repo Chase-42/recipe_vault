@@ -32,7 +32,7 @@ export interface OptimisticMutationConfig<TData, TVariables, TContext = unknown>
 }
 
 // Context returned from onMutate for rollback
-export interface OptimisticContext<TData, TContext = unknown> {
+interface OptimisticContext<TData, TContext = unknown> {
   previousData?: TData;
   context?: TContext;
 }
@@ -161,7 +161,7 @@ export function createOptimisticMutation<
 /**
  * Helper to create an updater function for list operations (add, remove, update item)
  */
-export function createListUpdater<TItem, TVariables>(
+function createListUpdater<TItem, TVariables>(
   predicate: (item: TItem, variables: TVariables) => boolean,
   updater: (item: TItem, variables: TVariables) => TItem | null
 ) {
@@ -176,7 +176,7 @@ export function createListUpdater<TItem, TVariables>(
 /**
  * Helper to create an updater function for single item updates
  */
-export function createItemUpdater<TItem, TVariables>(
+function createItemUpdater<TItem, TVariables>(
   predicate: (item: TItem, variables: TVariables) => boolean,
   updater: (item: TItem, variables: TVariables) => TItem
 ) {

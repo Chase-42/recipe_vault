@@ -1,71 +1,49 @@
-import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
-import { AuthorizationError, handleApiError, RecipeError } from "~/lib/errors";
+import type { NextRequest } from "next/server";
+import { RecipeError } from "~/lib/errors";
 import { revalidatePath } from "next/cache";
 import { validateCreateRecipe } from "~/lib/validation";
-import type { CreateRecipeInput } from "~/types";
-import { withRateLimit } from "~/lib/rateLimit";
-import { getOrSetCorrelationId } from "~/lib/request-context";
+import type { CreateRecipeInput, Recipe } from "~/types";
+import { withApiHandler } from "~/lib/api-handler";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
-import type { Recipe } from "~/types";
 import { dynamicBlurDataUrl } from "~/utils/dynamicBlurDataUrl";
-import { apiSuccess, apiError } from "~/lib/api-response";
+import { apiSuccess } from "~/lib/api-response";
 
-// Rate limiter for recipe creation
 const createRecipeRateLimiter = {
   maxRequests: 10,
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   path: "/api/recipes/create",
 };
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      try {
-        const userId = await getServerUserIdFromRequest(req);
+export const POST = withApiHandler(createRecipeRateLimiter, async (req, userId) => {
+  const body: unknown = await req.json();
+  const validatedData = validateCreateRecipe(body as CreateRecipeInput);
+  const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
 
-        const body: unknown = await req.json();
-        const validatedData = validateCreateRecipe(body as CreateRecipeInput);
+  const [recipe] = await db
+    .insert(recipes)
+    .values({
+      link: validatedData.link,
+      name: validatedData.name,
+      imageUrl: validatedData.imageUrl,
+      blurDataUrl,
+      instructions: validatedData.instructions,
+      ingredients: validatedData.ingredients,
+      favorite: validatedData.favorite,
+      categories: validatedData.categories,
+      tags: validatedData.tags,
+      userId,
+    })
+    .returning();
 
-        const blurDataUrl = await dynamicBlurDataUrl(validatedData.imageUrl);
+  if (!recipe) {
+    throw new RecipeError("Failed to create recipe", 500);
+  }
 
-        const [recipe] = await db
-          .insert(recipes)
-          .values({
-            link: validatedData.link,
-            name: validatedData.name,
-            imageUrl: validatedData.imageUrl,
-            blurDataUrl,
-            instructions: validatedData.instructions,
-            ingredients: validatedData.ingredients,
-            favorite: validatedData.favorite,
-            categories: validatedData.categories,
-            tags: validatedData.tags,
-            userId,
-          })
-          .returning();
+  revalidatePath("/");
 
-        if (!recipe) {
-          throw new RecipeError("Failed to create recipe", 500);
-        }
-
-        revalidatePath("/");
-
-        return apiSuccess(
-          {
-            ...recipe,
-            createdAt: recipe.createdAt.toISOString(),
-          } as Recipe,
-          201
-        );
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    createRecipeRateLimiter
+  return apiSuccess(
+    { ...recipe, createdAt: recipe.createdAt.toISOString() } as Recipe,
+    201
   );
-}
+});

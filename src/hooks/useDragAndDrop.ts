@@ -9,7 +9,7 @@ import { mealPlannerApi } from "~/utils/api/meal-planner-client";
 import { currentWeekMealsKey } from "~/utils/query-keys";
 
 // Drag and drop state types
-export interface DragState {
+interface DragState {
   draggedRecipe: Recipe | null;
   dragOverSlot: { date: string; mealType: MealType } | null;
   isDragging: boolean;
@@ -410,7 +410,7 @@ export function useDragAndDrop(weekStart: Date) {
 }
 
 // Hook for managing drag and drop visual feedback
-export function useDragVisualFeedback() {
+function useDragVisualFeedback() {
   const [dragFeedback, setDragFeedback] = useState<{
     isDragActive: boolean;
     dragOverElement: string | null;

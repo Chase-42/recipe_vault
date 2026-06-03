@@ -89,8 +89,54 @@ async function fetchWithTimeout(
   ]);
 }
 
+function extractStepsFromInstruction(instruction: unknown): Array<{ text: string }> {
+  if (!instruction || typeof instruction !== "object") return [];
+  const steps: Array<{ text: string }> = [];
+
+  if ("text" in instruction) {
+    const text = (instruction as { text: unknown }).text;
+    if (typeof text === "string" && text.trim()) {
+      steps.push({ text: text.trim() });
+    }
+  }
+
+  if ("itemListElement" in instruction) {
+    const items = (instruction as { itemListElement: unknown }).itemListElement;
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        if (item && typeof item === "object" && "text" in item) {
+          const text = (item as { text: unknown }).text;
+          if (typeof text === "string" && text.trim()) {
+            steps.push({ text: text.trim() });
+          }
+        }
+      }
+    }
+  }
+
+  return steps;
+}
+
+function transformRecipeInstructions(recipeInstructions: unknown): Array<{ text: string }> {
+  if (!recipeInstructions) return [];
+
+  if (Array.isArray(recipeInstructions)) {
+    return recipeInstructions.flatMap(extractStepsFromInstruction);
+  }
+
+  if (typeof recipeInstructions === "string") {
+    return recipeInstructions
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((text) => ({ text }));
+  }
+
+  return [];
+}
+
 // Main Scraper: JS Package (@rethora/url-recipe-scraper) - primary scraper
-export async function tryJsPackageScraper(
+async function tryJsPackageScraper(
   link: string
 ): Promise<FallbackApiResponse | null> {
   const log = logger.forComponent("JsPackageScraper");
@@ -117,66 +163,7 @@ export async function tryJsPackageScraper(
       return null;
     }
 
-    // Transform instructions to the expected format
-    const transformedInstructions: Array<{
-      "@type": "HowToStep";
-      text: string;
-    }> = [];
-
-    const recipeInstructions = data.recipeInstructions;
-    if (recipeInstructions) {
-      if (Array.isArray(recipeInstructions)) {
-        for (const instruction of recipeInstructions) {
-          // Handle HowToStep
-          if (
-            instruction &&
-            typeof instruction === "object" &&
-            "text" in instruction
-          ) {
-            const text = instruction.text;
-            if (typeof text === "string" && text.trim()) {
-              transformedInstructions.push({
-                "@type": "HowToStep",
-                text: text.trim(),
-              });
-            }
-          }
-          // Handle HowToSection
-          if (
-            instruction &&
-            typeof instruction === "object" &&
-            "itemListElement" in instruction
-          ) {
-            const items = instruction.itemListElement;
-            if (Array.isArray(items)) {
-              for (const item of items) {
-                if (item && typeof item === "object" && "text" in item) {
-                  const text = item.text;
-                  if (typeof text === "string" && text.trim()) {
-                    transformedInstructions.push({
-                      "@type": "HowToStep",
-                      text: text.trim(),
-                    });
-                  }
-                }
-              }
-            }
-          }
-        }
-      } else if (typeof recipeInstructions === "string") {
-        const steps = (recipeInstructions as string).split("\n");
-        for (const step of steps) {
-          const trimmed = step.trim();
-          if (trimmed) {
-            transformedInstructions.push({
-              "@type": "HowToStep",
-              text: trimmed,
-            });
-          }
-        }
-      }
-    }
-
+    const transformedInstructions = transformRecipeInstructions(data.recipeInstructions);
     const ingredients =
       data.recipeIngredient
         ?.map((ing) => (typeof ing === "string" ? ing : String(ing)))
@@ -208,17 +195,14 @@ export async function tryJsPackageScraper(
         link,
       });
     } else {
-      log.warn("Scraper failed", {
-        error: errorMessage,
-        link,
-      });
+      log.warn("Scraper failed", { error: errorMessage, link });
     }
     return null;
   }
 }
 
 // Fallback 1: Flask API
-export async function tryFlaskApiScraper(
+async function tryFlaskApiScraper(
   link: string,
   baseUrl: string
 ): Promise<FlaskApiResponse> {

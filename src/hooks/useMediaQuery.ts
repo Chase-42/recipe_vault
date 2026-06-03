@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
  * Hook to detect if a media query matches.
  * Returns false during SSR and initial hydration to avoid mismatches.
  */
-export function useMediaQuery(query: string): boolean {
+function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
