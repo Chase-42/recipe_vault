@@ -56,6 +56,48 @@ interface FullPageImageViewProps {
   loadingFallback?: React.ReactNode;
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function HideImageButton({ onHide }: { onHide: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onHide}
+      className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+    >
+      <ChevronUp className="h-3.5 w-3.5" />
+      Hide
+    </button>
+  );
+}
+
+interface SectionHeaderProps {
+  title: string;
+  checkedCount: number;
+  totalCount: number;
+  label: string;
+}
+
+function SectionHeader({ title, checkedCount, totalCount, label }: SectionHeaderProps) {
+  return (
+    <div className="mb-3 flex flex-shrink-0 items-center gap-2">
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <Badge
+        variant="outline"
+        className={cn(
+          checkedCount === totalCount && totalCount > 0
+            ? "border-green-800 bg-green-900/30 text-green-400"
+            : ""
+        )}
+      >
+        {checkedCount} of {totalCount} {label}
+      </Badge>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function FullImagePage({
   id,
   initialRecipe,
@@ -77,9 +119,7 @@ export default function FullImagePage({
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
 
   // Resizable panel states
-  const [leftPanelWidth, setLeftPanelWidth] = useState(
-    DEFAULT_LEFT_PANEL_WIDTH
-  );
+  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_PANEL_WIDTH);
   const [imageHeight, setImageHeight] = useState(DEFAULT_IMAGE_HEIGHT);
   const [isDraggingHorizontal, setIsDraggingHorizontal] = useState(false);
   const [isDraggingVertical, setIsDraggingVertical] = useState(false);
@@ -108,7 +148,6 @@ export default function FullImagePage({
   const recipeName = displayRecipe?.name;
   const recipeFavorite = displayRecipe?.favorite;
 
-  // Set recipe data in header context
   useEffect(() => {
     if (recipeId !== undefined && recipeName !== undefined) {
       setRecipeData({
@@ -139,9 +178,7 @@ export default function FullImagePage({
       if (!isDraggingHorizontal || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const pct = ((clientX - rect.left) / rect.width) * 100;
-      setLeftPanelWidth(
-        Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct))
-      );
+      setLeftPanelWidth(Math.max(MIN_PANEL_SIZE, Math.min(MAX_PANEL_SIZE, pct)));
     },
     [isDraggingHorizontal]
   );
@@ -161,12 +198,7 @@ export default function FullImagePage({
       if (isDraggingHorizontal) handleHorizontalMove(e.clientX);
       else if (isDraggingVertical) handleVerticalMove(e.clientY);
     },
-    [
-      isDraggingHorizontal,
-      isDraggingVertical,
-      handleHorizontalMove,
-      handleVerticalMove,
-    ]
+    [isDraggingHorizontal, isDraggingVertical, handleHorizontalMove, handleVerticalMove]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -174,15 +206,22 @@ export default function FullImagePage({
     setIsDraggingVertical(false);
   }, []);
 
+  const startDragFromTarget = useCallback(
+    (target: EventTarget | null, preventDefault: () => void) => {
+      if (horizontalDividerRef.current?.contains(target as Node)) {
+        preventDefault();
+        setIsDraggingHorizontal(true);
+      } else if (verticalDividerRef.current?.contains(target as Node)) {
+        preventDefault();
+        setIsDraggingVertical(true);
+      }
+    },
+    []
+  );
+
   const handleMouseDown = useCallback((e: MouseEvent) => {
-    if (horizontalDividerRef.current?.contains(e.target as Node)) {
-      e.preventDefault();
-      setIsDraggingHorizontal(true);
-    } else if (verticalDividerRef.current?.contains(e.target as Node)) {
-      e.preventDefault();
-      setIsDraggingVertical(true);
-    }
-  }, []);
+    startDragFromTarget(e.target, () => e.preventDefault());
+  }, [startDragFromTarget]);
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
@@ -196,12 +235,7 @@ export default function FullImagePage({
         handleVerticalMove(touch.clientY);
       }
     },
-    [
-      isDraggingHorizontal,
-      isDraggingVertical,
-      handleHorizontalMove,
-      handleVerticalMove,
-    ]
+    [isDraggingHorizontal, isDraggingVertical, handleHorizontalMove, handleVerticalMove]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -212,23 +246,14 @@ export default function FullImagePage({
   const handleTouchStart = useCallback((e: TouchEvent) => {
     const touch = e.touches[0];
     if (!touch) return;
-    if (horizontalDividerRef.current?.contains(e.target as Node)) {
-      e.preventDefault();
-      setIsDraggingHorizontal(true);
-    } else if (verticalDividerRef.current?.contains(e.target as Node)) {
-      e.preventDefault();
-      setIsDraggingVertical(true);
-    }
-  }, []);
+    startDragFromTarget(e.target, () => e.preventDefault());
+  }, [startDragFromTarget]);
 
-  // Event listeners for dragging
   useEffect(() => {
     if (isDraggingHorizontal || isDraggingVertical) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleTouchMove, {
-        passive: false,
-      });
+      document.addEventListener("touchmove", handleTouchMove, { passive: false });
       document.addEventListener("touchend", handleTouchEnd);
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
@@ -246,12 +271,9 @@ export default function FullImagePage({
     handleTouchEnd,
   ]);
 
-  // Event listeners for drag start
   useEffect(() => {
     document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("touchstart", handleTouchStart, {
-      passive: false,
-    });
+    document.addEventListener("touchstart", handleTouchStart, { passive: false });
     return () => {
       document.removeEventListener("mousedown", handleMouseDown);
       document.removeEventListener("touchstart", handleTouchStart);
@@ -284,7 +306,6 @@ export default function FullImagePage({
     .split("\n")
     .filter((line) => line.trim() !== "");
 
-  // Render ingredient item
   const renderIngredient = (ingredient: string, index: number) => {
     const key = `ingredient-${index}-${ingredient.trim().toLowerCase().replace(/\s+/g, "-")}`;
     const isChecked = checkedIngredients.has(index);
@@ -309,7 +330,6 @@ export default function FullImagePage({
     );
   };
 
-  // Render instruction item
   const renderInstruction = (instruction: string, index: number) => {
     const key = `instruction-${index}-${instruction.trim().toLowerCase().slice(0, 32).replace(/\s+/g, "-")}`;
     const isChecked = checkedInstructions.has(index);
@@ -322,9 +342,7 @@ export default function FullImagePage({
           onKeyDown={(e) => handleKeyboardToggle(e, handleToggle)}
           className={cn(
             "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 cursor-pointer active:scale-95",
-            isChecked
-              ? "bg-green-600 text-white"
-              : "bg-primary text-primary-foreground"
+            isChecked ? "bg-green-600 text-white" : "bg-primary text-primary-foreground"
           )}
           aria-label={`Mark step ${index + 1} as ${isChecked ? "incomplete" : "complete"}`}
         >
@@ -336,9 +354,7 @@ export default function FullImagePage({
           onKeyDown={(e) => handleKeyboardToggle(e, handleToggle)}
           className={cn(
             "text-sm leading-relaxed flex-1 cursor-pointer text-left",
-            isChecked
-              ? "line-through text-muted-foreground"
-              : "text-foreground/90"
+            isChecked ? "line-through text-muted-foreground" : "text-foreground/90"
           )}
         >
           {instruction}
@@ -347,12 +363,10 @@ export default function FullImagePage({
     );
   };
 
-  // Mobile layout - image scrolls away naturally, content follows
+  // Mobile layout
   const mobileContent = (
     <>
-      {/* Single scroll container - everything scrolls together */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        {/* Image */}
         <div
           className="relative w-full overflow-hidden transition-[height] duration-300 ease-in-out"
           style={{ height: imageVisible ? "40vh" : 0 }}
@@ -365,14 +379,7 @@ export default function FullImagePage({
             sizes="100vw"
             className="object-cover"
           />
-          <button
-            type="button"
-            onClick={() => setImageVisible(false)}
-            className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm transition-colors hover:bg-black/80"
-          >
-            <ChevronUp className="h-3.5 w-3.5" />
-            Hide
-          </button>
+          <HideImageButton onHide={() => setImageVisible(false)} />
         </div>
         {!imageVisible && (
           <button
@@ -385,7 +392,6 @@ export default function FullImagePage({
           </button>
         )}
 
-        {/* Tags */}
         {displayRecipe.tags && displayRecipe.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-4 pt-4">
             {displayRecipe.tags.map((tag) => (
@@ -396,48 +402,27 @@ export default function FullImagePage({
           </div>
         )}
 
-        {/* Ingredients */}
         <div className="border-b border-border bg-black/40 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              Ingredients
-            </h2>
-            <Badge
-              variant="outline"
-              className={cn(
-                checkedIngredients.size === ingredients.length && ingredients.length > 0
-                  ? "border-green-800 bg-green-900/30 text-green-400"
-                  : ""
-              )}
-            >
-              {checkedIngredients.size} of {ingredients.length} used
-            </Badge>
-          </div>
+          <SectionHeader
+            title="Ingredients"
+            checkedCount={checkedIngredients.size}
+            totalCount={ingredients.length}
+            label="used"
+          />
           <div className="space-y-1">{ingredients.map(renderIngredient)}</div>
         </div>
 
-        {/* Instructions */}
         <div className="bg-black/40 p-4 pb-20">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              Instructions
-            </h2>
-            <Badge
-              variant="outline"
-              className={cn(
-                checkedInstructions.size === instructions.length && instructions.length > 0
-                  ? "border-green-800 bg-green-900/30 text-green-400"
-                  : ""
-              )}
-            >
-              {checkedInstructions.size} of {instructions.length} steps done
-            </Badge>
-          </div>
+          <SectionHeader
+            title="Instructions"
+            checkedCount={checkedInstructions.size}
+            totalCount={instructions.length}
+            label="steps done"
+          />
           <div className="space-y-4">{instructions.map(renderInstruction)}</div>
         </div>
       </div>
 
-      {/* Footer - mobile optimized */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-black px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {displayRecipe.link && (
@@ -462,11 +447,7 @@ export default function FullImagePage({
             Print
           </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={() => setShowAddToList(true)}
-          className="h-10"
-        >
+        <Button size="sm" onClick={() => setShowAddToList(true)} className="h-10">
           <ShoppingCart className="mr-1.5 h-4 w-4" />
           Add to List
         </Button>
@@ -474,7 +455,7 @@ export default function FullImagePage({
     </>
   );
 
-  // Desktop layout - resizable panels with independent scroll areas
+  // Desktop layout
   const desktopContent = (
     <>
       <div ref={containerRef} className="relative flex flex-1 min-h-0 pb-14">
@@ -487,7 +468,6 @@ export default function FullImagePage({
           )}
           style={{ width: `${leftPanelWidth}%` }}
         >
-          {/* Image Section */}
           <div
             className={cn(
               "relative flex-shrink-0 overflow-hidden",
@@ -503,17 +483,9 @@ export default function FullImagePage({
               sizes={`${leftPanelWidth}vw`}
               className="object-cover"
             />
-            <button
-              type="button"
-              onClick={() => setImageVisible(false)}
-              className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-white backdrop-blur-sm transition-colors hover:bg-black/80"
-            >
-              <ChevronUp className="h-3.5 w-3.5" />
-              Hide
-            </button>
+            <HideImageButton onHide={() => setImageVisible(false)} />
           </div>
 
-          {/* Vertical Divider */}
           {imageVisible && (
             <div
               ref={verticalDividerRef}
@@ -528,7 +500,6 @@ export default function FullImagePage({
             </div>
           )}
 
-          {/* Ingredients Section */}
           <div className="flex min-h-0 flex-1 flex-col bg-black/40 p-4">
             {!imageVisible && (
               <button
@@ -549,26 +520,14 @@ export default function FullImagePage({
                 ))}
               </div>
             )}
-
-            <div className="mb-3 flex flex-shrink-0 items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">
-                Ingredients
-              </h2>
-              <Badge
-                variant="outline"
-                className={cn(
-                  checkedIngredients.size === ingredients.length && ingredients.length > 0
-                    ? "border-green-800 bg-green-900/30 text-green-400"
-                    : ""
-                )}
-              >
-                {checkedIngredients.size} of {ingredients.length} used
-              </Badge>
-            </div>
+            <SectionHeader
+              title="Ingredients"
+              checkedCount={checkedIngredients.size}
+              totalCount={ingredients.length}
+              label="used"
+            />
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div className="space-y-2.5">
-                {ingredients.map(renderIngredient)}
-              </div>
+              <div className="space-y-2.5">{ingredients.map(renderIngredient)}</div>
             </div>
           </div>
         </div>
@@ -586,7 +545,7 @@ export default function FullImagePage({
           <GripVertical className="h-3 w-3 text-muted-foreground" />
         </div>
 
-        {/* Right Panel (Instructions) */}
+        {/* Right Panel */}
         <div
           className={cn(
             "flex min-h-0 flex-1 flex-col",
@@ -595,25 +554,14 @@ export default function FullImagePage({
           style={{ width: `${100 - leftPanelWidth}%` }}
         >
           <div className="flex min-h-0 flex-1 flex-col bg-black/40 p-4">
-            <div className="mb-3 flex flex-shrink-0 items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">
-                Instructions
-              </h2>
-              <Badge
-                variant="outline"
-                className={cn(
-                  checkedInstructions.size === instructions.length && instructions.length > 0
-                    ? "border-green-800 bg-green-900/30 text-green-400"
-                    : ""
-                )}
-              >
-                {checkedInstructions.size} of {instructions.length} steps done
-              </Badge>
-            </div>
+            <SectionHeader
+              title="Instructions"
+              checkedCount={checkedInstructions.size}
+              totalCount={instructions.length}
+              label="steps done"
+            />
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div className="space-y-4">
-                {instructions.map(renderInstruction)}
-              </div>
+              <div className="space-y-4">{instructions.map(renderInstruction)}</div>
             </div>
           </div>
         </div>
@@ -643,10 +591,7 @@ export default function FullImagePage({
           >
             Print
           </Button>
-          <Button
-            onClick={() => setShowAddToList(true)}
-            className="h-8 text-sm"
-          >
+          <Button onClick={() => setShowAddToList(true)} className="h-8 text-sm">
             <ShoppingCart className="mr-1.5 h-4 w-4" />
             Add to List
           </Button>

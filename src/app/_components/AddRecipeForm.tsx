@@ -7,17 +7,10 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import type { Category, CreateRecipeInput } from "~/types";
-import { MAIN_MEAL_CATEGORIES } from "~/types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import LoadingSpinner from "./LoadingSpinner";
 import ImageUpload from "./ImageUpload";
 import { useRecipeMutation } from "~/hooks/useRecipeMutation";
+import { CategorySelect } from "./CategorySelect";
 
 const CreateRecipeClient = () => {
   const router = useRouter();
@@ -154,24 +147,11 @@ Bake for 25-30 minutes`}
               rows={4}
             />
           </div>
-          <div>
-            <label className="text-md mb-1 block font-medium">Category</label>
-            <Select
-              value={categories[0] ?? ""}
-              onValueChange={(v) => setCategories(v ? [v as Category] : [])}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                {MAIN_MEAL_CATEGORIES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CategorySelect
+            value={categories[0] ?? ""}
+            onValueChange={(v) => setCategories(v ? [v as Category] : [])}
+            labelClassName="text-md mb-1 block font-medium"
+          />
           <div>
             <label className="text-md m-1 block font-medium">Tag(s)</label>
             <Input

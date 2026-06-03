@@ -1,46 +1,18 @@
-import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
-import {
-  AuthorizationError,
-  handleApiError,
-  ValidationError,
-} from "~/lib/errors";
-import { withRateLimit } from "~/lib/rateLimit";
-import { getOrSetCorrelationId } from "~/lib/request-context";
+import type { NextRequest } from "next/server";
+import { withApiHandler } from "~/lib/api-handler";
 import { validateRequestParams } from "~/lib/middleware/validate-request";
 import { generateEnhancedShoppingListFromWeek } from "~/server/queries/shopping-list";
-import { apiSuccess, apiError } from "~/lib/api-response";
+import { apiSuccess } from "~/lib/api-response";
 import { weekStartQuerySchema } from "~/lib/schemas/meal-planner";
 
-// Rate limiter for enhanced shopping list generation
 const generateEnhancedRateLimiter = {
   maxRequests: 15,
   windowMs: 60 * 1000,
   path: "/api/shopping-lists/generate-enhanced",
 };
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      try {
-        const userId = await getServerUserIdFromRequest(req);
-        const { weekStart } = await validateRequestParams(req, weekStartQuerySchema);
-        const weekStartDate = new Date(weekStart);
-
-        // Generate enhanced shopping list with existing items and duplicate analysis
-        const result = await generateEnhancedShoppingListFromWeek(
-          userId,
-          weekStartDate
-        );
-
-        return apiSuccess(result);
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    generateEnhancedRateLimiter
-  );
-}
+export const GET = withApiHandler(generateEnhancedRateLimiter, async (req, userId) => {
+  const { weekStart } = await validateRequestParams(req, weekStartQuerySchema);
+  const result = await generateEnhancedShoppingListFromWeek(userId, new Date(weekStart));
+  return apiSuccess(result);
+});

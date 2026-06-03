@@ -3,6 +3,16 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { ValidationError } from "../errors";
 
+function throwValidationError(error: unknown, prefix: string): never {
+  if (error instanceof z.ZodError) {
+    const message = error.errors
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join(", ");
+    throw new ValidationError(`${prefix}: ${message}`);
+  }
+  throw error as Error;
+}
+
 export async function validateRequestBody<T extends z.ZodType>(
   req: NextRequest,
   schema: T
@@ -11,13 +21,7 @@ export async function validateRequestBody<T extends z.ZodType>(
     const body: unknown = await req.json();
     return schema.parse(body);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      const message = error.errors
-        .map((e) => `${e.path.join(".")}: ${e.message}`)
-        .join(", ");
-      throw new ValidationError(`Invalid request data: ${message}`);
-    }
-    throw error;
+    throwValidationError(error, "Invalid request data");
   }
 }
 
@@ -33,12 +37,6 @@ export async function validateRequestParams<T extends z.ZodType>(
     }
     return schema.parse(params);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      const message = error.errors
-        .map((e) => `${e.path.join(".")}: ${e.message}`)
-        .join(", ");
-      throw new ValidationError(`Invalid query parameters: ${message}`);
-    }
-    throw error;
+    throwValidationError(error, "Invalid query parameters");
   }
 }

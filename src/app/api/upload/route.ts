@@ -1,18 +1,10 @@
-import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
-import {
-  AuthorizationError,
-  handleApiError,
-  ValidationError,
-} from "~/lib/errors";
-import { withRateLimit } from "~/lib/rateLimit";
-import { getOrSetCorrelationId } from "~/lib/request-context";
+import type { NextRequest } from "next/server";
+import { ValidationError } from "~/lib/errors";
+import { withApiHandler } from "~/lib/api-handler";
 import { uploadImage } from "~/utils/uploadImage";
-import { apiSuccess, apiError } from "~/lib/api-response";
+import { apiSuccess } from "~/lib/api-response";
 
-// Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-// Allowed MIME types
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -20,54 +12,29 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/gif",
 ]);
 
-// Create a shared rate limiter instance for the upload endpoint
 const uploadRateLimiter = {
   maxRequests: 20,
   windowMs: 60 * 1000,
   path: "/api/upload",
 };
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      try {
-        const userId = await getServerUserIdFromRequest(req);
+export const POST = withApiHandler(uploadRateLimiter, async (req, _userId) => {
+  const formData = await req.formData();
+  const file = formData.get("file") as File;
 
-        const formData = await req.formData();
-        const file = formData.get("file") as File;
+  if (!file) {
+    throw new ValidationError("No file provided");
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new ValidationError("File size exceeds 5MB limit");
+  }
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    throw new ValidationError(
+      "Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed"
+    );
+  }
 
-        if (!file) {
-          throw new ValidationError("No file provided");
-        }
-
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          throw new ValidationError("File size exceeds 5MB limit");
-        }
-
-        // Validate file type
-        if (!ALLOWED_MIME_TYPES.has(file.type)) {
-          throw new ValidationError(
-            "Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed"
-          );
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const base64 = buffer.toString("base64");
-        const dataUrl = `data:${file.type};base64,${base64}`;
-
-        const cdnUrl = await uploadImage(dataUrl);
-
-        return apiSuccess({ url: cdnUrl }, 201);
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    uploadRateLimiter
-  );
-}
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const cdnUrl = await uploadImage(`data:${file.type};base64,${buffer.toString("base64")}`);
+  return apiSuccess({ url: cdnUrl }, 201);
+});

@@ -21,7 +21,7 @@ interface AnimatedBackButtonProps {
   className?: string;
 }
 
-export function AnimatedBackButton({
+function AnimatedBackButton({
   onBack,
   children,
   className = "",

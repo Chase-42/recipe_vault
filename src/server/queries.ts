@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, asc, eq, sql, or, count, ilike } from "drizzle-orm";
 import type { NextRequest } from "next/server";
-import { AuthorizationError, NotFoundError, RecipeError } from "~/lib/errors";
+import { AuthorizationError, NotFoundError } from "~/lib/errors";
 import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import type { Category } from "~/types";
 import { db } from "./db";
@@ -24,6 +24,15 @@ interface PaginationOptions {
 
 async function getUserIdFromRequest(req: NextRequest): Promise<string> {
   return await getServerUserIdFromRequest(req);
+}
+
+async function fetchRecipeForUser(id: number, userId: string) {
+  return db
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .limit(1)
+    .then((rows) => rows[0]);
 }
 
 function serializeRecipe(recipe: Recipe) {
@@ -127,12 +136,7 @@ export async function getMyRecipes(
 export async function getRecipe(id: number, userId: string) {
   if (!userId) throw new AuthorizationError();
 
-  const recipe = await db
-    .select()
-    .from(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .limit(1)
-    .then((rows) => rows[0]);
+  const recipe = await fetchRecipeForUser(id, userId);
 
   if (!recipe) {
     throw new NotFoundError("Recipe not found");
@@ -145,12 +149,7 @@ export async function deleteRecipe(id: number, req: NextRequest) {
   const userId = await getUserIdFromRequest(req);
 
   // First verify the recipe exists and user owns it
-  const recipe = await db
-    .select()
-    .from(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .limit(1)
-    .then((rows) => rows[0]);
+  const recipe = await fetchRecipeForUser(id, userId);
 
   if (!recipe) {
     throw new NotFoundError("Recipe not found or unauthorized");
@@ -199,67 +198,4 @@ export async function updateRecipe(
   }
 
   return serializeRecipe(updatedRecipe);
-}
-
-export async function createRecipe(
-  data: Omit<typeof recipes.$inferInsert, "userId">,
-  req: NextRequest,
-) {
-  const userId = await getUserIdFromRequest(req);
-
-  const result = await db
-    .insert(recipes)
-    .values({ ...data, userId })
-    .returning();
-
-  const newRecipe = result[0];
-  if (!newRecipe) {
-    throw new RecipeError("Failed to create recipe - no data returned");
-  }
-
-  return serializeRecipe(newRecipe);
-}
-
-export async function toggleFavorite(id: number, req: NextRequest) {
-  const userId = await getUserIdFromRequest(req);
-
-  const recipe = await db
-    .select({ favorite: recipes.favorite })
-    .from(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .limit(1)
-    .then((rows) => rows[0]);
-
-  if (!recipe) {
-    throw new NotFoundError("Recipe not found");
-  }
-
-  const result = await db
-    .update(recipes)
-    .set({ favorite: !recipe.favorite })
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .returning();
-
-  const updatedRecipe = result[0];
-  if (!updatedRecipe) {
-    throw new RecipeError("Failed to update recipe - no data returned");
-  }
-
-  return serializeRecipe(updatedRecipe);
-}
-
-export async function getUserRecipeStats(userId: string) {
-  const stats = await db
-    .select({
-      total: count(),
-      favorites: count(sql`CASE WHEN ${recipes.favorite} THEN 1 END`),
-    })
-    .from(recipes)
-    .where(eq(recipes.userId, userId))
-    .then((rows) => rows[0]);
-
-  return {
-    total: Number(stats?.total ?? 0),
-    favorites: Number(stats?.favorites ?? 0),
-  };
 }
