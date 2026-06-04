@@ -20,6 +20,149 @@ function pad(n: number): string {
 const RING_R = 70;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+interface TimerRingProps {
+  hours: number;
+  isDone: boolean;
+  isRunning: boolean;
+  isPaused: boolean;
+  hasSelection: boolean;
+  displayTime: string;
+  ringOffset: number;
+}
+
+function TimerRing({
+  hours,
+  isDone,
+  isRunning,
+  isPaused,
+  hasSelection,
+  displayTime,
+  ringOffset,
+}: TimerRingProps) {
+  return (
+    <div className="mb-4 flex justify-center">
+      <div className="relative h-40 w-40">
+        <svg viewBox="0 0 160 160" className="h-40 w-40 -rotate-90">
+          <circle
+            cx={80}
+            cy={80}
+            r={RING_R}
+            fill="none"
+            strokeWidth={4}
+            stroke="currentColor"
+            className={cn(isDone ? "text-red-950" : "text-zinc-800")}
+          />
+          {hasSelection && (
+            <circle
+              cx={80}
+              cy={80}
+              r={RING_R}
+              fill="none"
+              strokeWidth={4}
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringOffset}
+              stroke="currentColor"
+              className={cn(
+                "transition-[stroke-dashoffset] duration-1000 ease-linear",
+                isDone
+                  ? "text-red-500"
+                  : isRunning
+                    ? "text-white"
+                    : "text-zinc-400"
+              )}
+            />
+          )}
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span
+            className={cn(
+              "font-mono font-semibold tabular-nums leading-none tracking-tight",
+              hours > 0 ? "text-2xl" : "text-3xl",
+              isDone && "animate-pulse text-red-400",
+              isRunning && "text-white",
+              isPaused && "text-zinc-300",
+              !isRunning && !isPaused && !isDone && hasSelection && "text-zinc-300",
+              !hasSelection && "text-zinc-600"
+            )}
+          >
+            {displayTime}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface TimerControlsProps {
+  isRunning: boolean;
+  isPaused: boolean;
+  isDone: boolean;
+  hasSelection: boolean;
+  selectedSeconds: number;
+  pause: () => void;
+  resume: () => void;
+  reset: () => void;
+  start: (seconds: number) => void;
+}
+
+function TimerControls({
+  isRunning,
+  isPaused,
+  isDone,
+  hasSelection,
+  selectedSeconds,
+  pause,
+  resume,
+  reset,
+  start,
+}: TimerControlsProps) {
+  return (
+    <div className="flex gap-2">
+      {isRunning && (
+        <button
+          type="button"
+          onClick={pause}
+          className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+        >
+          Pause
+        </button>
+      )}
+      {isPaused && (
+        <button
+          type="button"
+          onClick={resume}
+          className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
+        >
+          Resume
+        </button>
+      )}
+      {(isRunning || isPaused || isDone) && (
+        <button
+          type="button"
+          onClick={reset}
+          className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+        >
+          Reset
+        </button>
+      )}
+      {hasSelection && !isRunning && !isPaused && (
+        <button
+          type="button"
+          onClick={() => start(selectedSeconds)}
+          className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
+        >
+          {isDone ? "Restart" : "Start"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function RecipeTimer() {
   const [open, setOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
@@ -63,7 +206,6 @@ export function RecipeTimer() {
   const remainingSeconds = hours * 3600 + minutes * 60 + seconds;
   const progress = selectedSeconds > 0 ? remainingSeconds / selectedSeconds : 0;
   const ringOffset = RING_CIRCUMFERENCE * (1 - progress);
-
   const isActive = isRunning || isPaused;
 
   function handlePreset(s: number) {
@@ -80,67 +222,21 @@ export function RecipeTimer() {
 
   return (
     <div className="relative">
-      {/* Panel */}
       {open && (
         <div
           ref={panelRef}
           className="absolute left-0 top-full mt-2 w-72 rounded-xl bg-zinc-950 p-4 shadow-2xl shadow-black/60 ring-1 ring-white/10"
         >
-          {/* Progress ring + countdown */}
-          <div className="mb-4 flex justify-center">
-            <div className="relative h-40 w-40">
-              <svg viewBox="0 0 160 160" className="h-40 w-40 -rotate-90">
-                {/* Track */}
-                <circle
-                  cx={80}
-                  cy={80}
-                  r={RING_R}
-                  fill="none"
-                  strokeWidth={4}
-                  stroke="currentColor"
-                  className={cn(
-                    isDone ? "text-red-950" : "text-zinc-800"
-                  )}
-                />
-                {/* Progress arc */}
-                {hasSelection && (
-                  <circle
-                    cx={80}
-                    cy={80}
-                    r={RING_R}
-                    fill="none"
-                    strokeWidth={4}
-                    strokeLinecap="round"
-                    strokeDasharray={RING_CIRCUMFERENCE}
-                    strokeDashoffset={ringOffset}
-                    stroke="currentColor"
-                    className={cn(
-                      "transition-[stroke-dashoffset] duration-1000 ease-linear",
-                      isDone ? "text-red-500" : isRunning ? "text-white" : "text-zinc-400"
-                    )}
-                  />
-                )}
-              </svg>
-              {/* Digits */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span
-                  className={cn(
-                    "font-mono font-semibold tabular-nums leading-none tracking-tight",
-                    hours > 0 ? "text-2xl" : "text-3xl",
-                    isDone && "animate-pulse text-red-400",
-                    isRunning && "text-white",
-                    isPaused && "text-zinc-300",
-                    !isRunning && !isPaused && !isDone && hasSelection && "text-zinc-300",
-                    !hasSelection && "text-zinc-600"
-                  )}
-                >
-                  {displayTime}
-                </span>
-              </div>
-            </div>
-          </div>
+          <TimerRing
+            hours={hours}
+            isDone={isDone}
+            isRunning={isRunning}
+            isPaused={isPaused}
+            hasSelection={hasSelection}
+            displayTime={displayTime}
+            ringOffset={ringOffset}
+          />
 
-          {/* Preset buttons */}
           {!isActive && !isDone && (
             <div className="mb-3 flex gap-1.5">
               {PRESETS.map((p) => (
@@ -161,7 +257,6 @@ export function RecipeTimer() {
             </div>
           )}
 
-          {/* Custom input */}
           {!isActive && !isDone && (
             <div className="mb-3 flex gap-2">
               <div className="relative flex-1">
@@ -190,49 +285,20 @@ export function RecipeTimer() {
             </div>
           )}
 
-          {/* Controls */}
-          <div className="flex gap-2">
-            {isRunning && (
-              <button
-                type="button"
-                onClick={pause}
-                className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
-              >
-                Pause
-              </button>
-            )}
-            {isPaused && (
-              <button
-                type="button"
-                onClick={resume}
-                className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
-              >
-                Resume
-              </button>
-            )}
-            {(isRunning || isPaused || isDone) && (
-              <button
-                type="button"
-                onClick={reset}
-                className="h-10 flex-1 rounded-lg bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
-              >
-                Reset
-              </button>
-            )}
-            {hasSelection && !isRunning && !isPaused && (
-              <button
-                type="button"
-                onClick={() => start(selectedSeconds)}
-                className="h-10 flex-1 rounded-lg bg-white text-sm font-medium text-black transition-colors hover:bg-zinc-100"
-              >
-                {isDone ? "Restart" : "Start"}
-              </button>
-            )}
-          </div>
+          <TimerControls
+            isRunning={isRunning}
+            isPaused={isPaused}
+            isDone={isDone}
+            hasSelection={hasSelection}
+            selectedSeconds={selectedSeconds}
+            pause={pause}
+            resume={resume}
+            reset={reset}
+            start={start}
+          />
         </div>
       )}
 
-      {/* Trigger — shows live countdown when active */}
       <button
         ref={triggerRef}
         type="button"

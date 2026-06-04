@@ -11,7 +11,7 @@ export async function getServerSession() {
   return session;
 }
 
-export async function getServerUser() {
+async function getServerUser() {
   const session = await getServerSession();
   if (!session?.user) {
     throw new AuthorizationError();
@@ -25,7 +25,7 @@ export async function getServerUserId() {
 }
 
 // For API routes that receive NextRequest
-export async function getServerSessionFromRequest(req: NextRequest) {
+async function getServerSessionFromRequest(req: NextRequest) {
   const session = await auth.api.getSession({
     headers: req.headers,
   });

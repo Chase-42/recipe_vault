@@ -57,12 +57,6 @@ export function handleError(
   }
 }
 
-// Error boundary fallback component props
-export interface ErrorFallbackProps {
-  error: Error;
-  resetError: () => void;
-}
-
 // Standard error messages
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: "Network error. Please check your connection and try again.",

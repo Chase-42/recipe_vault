@@ -8,6 +8,28 @@ import {
 } from "~/server/db/schema";
 import type { WeeklyMealPlan, PlannedMeal, MealType } from "~/types";
 
+const mealWithRecipeColumns = {
+  id: currentWeekMeals.id,
+  userId: currentWeekMeals.userId,
+  recipeId: currentWeekMeals.recipeId,
+  date: currentWeekMeals.date,
+  mealType: currentWeekMeals.mealType,
+  createdAt: currentWeekMeals.createdAt,
+  recipe: {
+    id: recipes.id,
+    name: recipes.name,
+    imageUrl: recipes.imageUrl,
+    blurDataUrl: recipes.blurDataUrl,
+    instructions: recipes.instructions,
+    ingredients: recipes.ingredients,
+    favorite: recipes.favorite,
+    categories: recipes.categories,
+    tags: recipes.tags,
+    link: recipes.link,
+    createdAt: recipes.createdAt,
+  },
+};
+
 // Helper function to get week date range
 function getWeekDateRange(weekStart: Date): {
   startDate: string;
@@ -41,27 +63,7 @@ export async function getCurrentWeekMeals(
   const { startDate, endDate } = getWeekDateRange(weekStart);
 
   const meals = await db
-    .select({
-      id: currentWeekMeals.id,
-      userId: currentWeekMeals.userId,
-      recipeId: currentWeekMeals.recipeId,
-      date: currentWeekMeals.date,
-      mealType: currentWeekMeals.mealType,
-      createdAt: currentWeekMeals.createdAt,
-      recipe: {
-        id: recipes.id,
-        name: recipes.name,
-        imageUrl: recipes.imageUrl,
-        blurDataUrl: recipes.blurDataUrl,
-        instructions: recipes.instructions,
-        ingredients: recipes.ingredients,
-        favorite: recipes.favorite,
-        categories: recipes.categories,
-        tags: recipes.tags,
-        link: recipes.link,
-        createdAt: recipes.createdAt,
-      },
-    })
+    .select(mealWithRecipeColumns)
     .from(currentWeekMeals)
     .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
     .where(
@@ -143,27 +145,7 @@ export async function addMealToWeek(
 
   // Fetch recipe data for the planned meal
   const [mealWithRecipe] = await db
-    .select({
-      id: currentWeekMeals.id,
-      userId: currentWeekMeals.userId,
-      recipeId: currentWeekMeals.recipeId,
-      date: currentWeekMeals.date,
-      mealType: currentWeekMeals.mealType,
-      createdAt: currentWeekMeals.createdAt,
-      recipe: {
-        id: recipes.id,
-        name: recipes.name,
-        imageUrl: recipes.imageUrl,
-        blurDataUrl: recipes.blurDataUrl,
-        instructions: recipes.instructions,
-        ingredients: recipes.ingredients,
-        favorite: recipes.favorite,
-        categories: recipes.categories,
-        tags: recipes.tags,
-        link: recipes.link,
-        createdAt: recipes.createdAt,
-      },
-    })
+    .select(mealWithRecipeColumns)
     .from(currentWeekMeals)
     .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
     .where(eq(currentWeekMeals.id, meal.id))

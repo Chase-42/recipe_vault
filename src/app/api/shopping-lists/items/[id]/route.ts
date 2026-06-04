@@ -1,27 +1,18 @@
-import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  AuthorizationError,
-  handleApiError,
-  ValidationError,
-} from "~/lib/errors";
-import { withRateLimit } from "~/lib/rateLimit";
-import { getOrSetCorrelationId } from "~/lib/request-context";
+import { ValidationError } from "~/lib/errors";
+import { withApiHandler } from "~/lib/api-handler";
 import { validateRequestBody } from "~/lib/middleware/validate-request";
 import {
   updateShoppingItem,
   deleteShoppingItem,
 } from "~/server/queries/shopping-list";
-import { apiSuccess, apiError } from "~/lib/api-response";
+import { apiSuccess } from "~/lib/api-response";
 
 const updateItemSchema = z.object({
   checked: z.boolean(),
 });
 
-type UpdateItemRequest = z.infer<typeof updateItemSchema>;
-
-// Rate limiter for individual item operations
 const itemRateLimiter = {
   maxRequests: 100,
   windowMs: 60 * 1000,
@@ -32,57 +23,24 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      const params = await context.params;
-      try {
-        const userId = await getServerUserIdFromRequest(req);
-
-        const itemId = Number.parseInt(params.id);
-        if (isNaN(itemId)) {
-          throw new ValidationError("Invalid item ID");
-        }
-
-        const { checked } = await validateRequestBody(req, updateItemSchema);
-
-        const updatedItem = await updateShoppingItem(userId, itemId, checked);
-
-        return apiSuccess(updatedItem);
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    itemRateLimiter
-  );
+  const { id } = await context.params;
+  return withApiHandler(itemRateLimiter, async (req, userId) => {
+    const itemId = Number.parseInt(id);
+    if (isNaN(itemId)) throw new ValidationError("Invalid item ID");
+    const { checked } = await validateRequestBody(req, updateItemSchema);
+    return apiSuccess(await updateShoppingItem(userId, itemId, checked));
+  })(req);
 }
 
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      const params = await context.params;
-      try {
-        const userId = await getServerUserIdFromRequest(req);
-
-        const itemId = Number.parseInt(params.id);
-        if (isNaN(itemId)) {
-          throw new ValidationError("Invalid item ID");
-        }
-
-        await deleteShoppingItem(userId, itemId);
-        return apiSuccess({ id: itemId }, 200);
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    itemRateLimiter
-  );
+  const { id } = await context.params;
+  return withApiHandler(itemRateLimiter, async (_req, userId) => {
+    const itemId = Number.parseInt(id);
+    if (isNaN(itemId)) throw new ValidationError("Invalid item ID");
+    await deleteShoppingItem(userId, itemId);
+    return apiSuccess({ id: itemId }, 200);
+  })(req);
 }

@@ -11,15 +11,8 @@ import type { Recipe, Category } from "~/types";
 import { fetchRecipe } from "~/utils/recipeService";
 import { useRecipeMutation } from "~/hooks/useRecipeMutation";
 import { recipeKey } from "~/utils/query-keys";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { MAIN_MEAL_CATEGORIES } from "~/types";
 import LoadingSpinner from "./LoadingSpinner";
+import { CategorySelect } from "./CategorySelect";
 
 const ImageUpload = dynamic(() => import("./ImageUpload"), {
   loading: () => (
@@ -180,24 +173,10 @@ const EditRecipeClient: React.FC<EditRecipeClientProps> = ({
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={formData.categories[0] ?? ""}
-                onValueChange={handleCategoryChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MAIN_MEAL_CATEGORIES.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CategorySelect
+              value={formData.categories[0] ?? ""}
+              onValueChange={handleCategoryChange}
+            />
 
             <div>
               <label className="text-sm font-medium">Tag(s)</label>

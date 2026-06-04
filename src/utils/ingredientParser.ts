@@ -89,7 +89,7 @@ const INGREDIENT_PATTERNS = [
 ];
 
 // Parse a single ingredient string into structured data
-export function parseIngredient(ingredientText: string): ParsedIngredient {
+function parseIngredient(ingredientText: string): ParsedIngredient {
   const trimmed = ingredientText.trim();
 
   if (!trimmed) {
@@ -140,7 +140,7 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
 }
 
 // Parse multiple ingredient strings
-export function parseIngredients(
+function parseIngredients(
   ingredientTexts: string[]
 ): ParsedIngredient[] {
   return ingredientTexts
@@ -149,7 +149,7 @@ export function parseIngredients(
 }
 
 // Consolidate similar ingredients by combining quantities
-export function consolidateIngredients(
+function consolidateIngredients(
   ingredients: ParsedIngredient[]
 ): ParsedIngredient[] {
   const consolidated = new Map<string, ParsedIngredient>();

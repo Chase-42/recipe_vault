@@ -72,6 +72,43 @@ interface ProcessedIngredientWithActions extends ProcessedIngredient {
   duplicateAction?: DuplicateMatch;
 }
 
+function buildProcessedBatch(
+  ingredients: ProcessedIngredient[]
+): ProcessedIngredientWithActions[] {
+  return ingredients.map((ingredient) => {
+    const finalQuantity = ingredient.editedQuantity ?? ingredient.quantity;
+    const displayName = finalQuantity
+      ? `${finalQuantity} ${ingredient.name}`
+      : ingredient.name;
+    return { ...ingredient, displayName, duplicateAction: ingredient.duplicateMatches[0] };
+  });
+}
+
+function categorizeBatch(batch: ProcessedIngredientWithActions[]): {
+  toSkip: ProcessedIngredientWithActions[];
+  toCombine: ProcessedIngredientWithActions[];
+  toAdd: ProcessedIngredientWithActions[];
+} {
+  const toSkip: ProcessedIngredientWithActions[] = [];
+  const toCombine: ProcessedIngredientWithActions[] = [];
+  const toAdd: ProcessedIngredientWithActions[] = [];
+
+  for (const ingredient of batch) {
+    if (ingredient.duplicateAction?.suggestedAction === "skip") {
+      toSkip.push(ingredient);
+    } else if (
+      ingredient.duplicateAction?.suggestedAction === "combine" &&
+      ingredient.duplicateAction.existingItemId
+    ) {
+      toCombine.push(ingredient);
+    } else {
+      toAdd.push(ingredient);
+    }
+  }
+
+  return { toSkip, toCombine, toAdd };
+}
+
 // ============================================================================
 // CRUD Operations
 // ============================================================================
@@ -285,29 +322,29 @@ export async function addShoppingItems(
 // Meal Plan Operations
 // ============================================================================
 
+async function getPlannedMealsWithIngredients(userId: string) {
+  return db
+    .select({
+      recipeId: currentWeekMeals.recipeId,
+      recipeName: recipes.name,
+      ingredients: recipes.ingredients,
+    })
+    .from(currentWeekMeals)
+    .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
+    .where(
+      and(
+        eq(currentWeekMeals.userId, userId),
+        eq(recipes.userId, userId)
+      )
+    );
+}
+
 export async function generateShoppingListFromWeek(
   userId: string,
   weekStart: Date
 ): Promise<ParsedIngredient[]> {
   try {
-    // Calculate week end (6 days after start)
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    // Get all planned meals for the week with their recipes
-    const plannedMeals = await db
-      .select({
-        recipeId: currentWeekMeals.recipeId,
-        ingredients: recipes.ingredients,
-      })
-      .from(currentWeekMeals)
-      .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
-      .where(
-        and(
-          eq(currentWeekMeals.userId, userId),
-          eq(recipes.userId, userId) // Ensure user can only access their own recipes
-        )
-      );
+    const plannedMeals = await getPlannedMealsWithIngredients(userId);
 
     if (plannedMeals.length === 0) {
       return [];
@@ -416,25 +453,7 @@ export async function generateEnhancedShoppingListFromWeek(
   weekStart: Date
 ): Promise<GenerateEnhancedShoppingListResponse> {
   try {
-    // Calculate week end (6 days after start)
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    // Get all planned meals for the week with their recipes
-    const plannedMeals = await db
-      .select({
-        recipeId: currentWeekMeals.recipeId,
-        recipeName: recipes.name,
-        ingredients: recipes.ingredients,
-      })
-      .from(currentWeekMeals)
-      .innerJoin(recipes, eq(currentWeekMeals.recipeId, recipes.id))
-      .where(
-        and(
-          eq(currentWeekMeals.userId, userId),
-          eq(recipes.userId, userId) // Ensure user can only access their own recipes
-        )
-      );
+    const plannedMeals = await getPlannedMealsWithIngredients(userId);
 
     // Early exit if no planned meals - avoid expensive shopping list query
     if (plannedMeals.length === 0) {
@@ -550,44 +569,7 @@ export async function addProcessedIngredientsToShoppingList(
       const addedItems: ShoppingItem[] = [];
       const updatedItems: ShoppingItem[] = [];
 
-      // Separate ingredients by action type for batch processing
-      const toSkip: ProcessedIngredientWithActions[] = [];
-      const toCombine: ProcessedIngredientWithActions[] = [];
-      const toAdd: ProcessedIngredientWithActions[] = [];
-
-      // Process ingredients and format display names
-      const processedForBatch: ProcessedIngredientWithActions[] = ingredients.map(
-        (ingredient) => {
-          const finalQuantity = ingredient.editedQuantity ?? ingredient.quantity;
-
-          let displayName = ingredient.name;
-          if (finalQuantity) {
-            displayName = `${finalQuantity} ${ingredient.name}`;
-          }
-
-          const duplicateAction = ingredient.duplicateMatches[0];
-
-          return {
-            ...ingredient,
-            displayName,
-            duplicateAction,
-          };
-        }
-      );
-
-      // Categorize by action
-      for (const ingredient of processedForBatch) {
-        if (ingredient.duplicateAction?.suggestedAction === "skip") {
-          toSkip.push(ingredient);
-        } else if (
-          ingredient.duplicateAction?.suggestedAction === "combine" &&
-          ingredient.duplicateAction.existingItemId
-        ) {
-          toCombine.push(ingredient);
-        } else {
-          toAdd.push(ingredient);
-        }
-      }
+      const { toCombine, toAdd } = categorizeBatch(buildProcessedBatch(ingredients));
 
       // Batch update existing items for combine actions
       if (toCombine.length > 0) {

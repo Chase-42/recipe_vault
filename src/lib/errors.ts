@@ -65,12 +65,12 @@ export function handleApiError(error: unknown): {
 }
 
 // Type guard for checking if an error is a known error type
-export function isRecipeError(error: unknown): error is RecipeError {
+function isRecipeError(error: unknown): error is RecipeError {
   return error instanceof RecipeError;
 }
 
 // Helper function to ensure error has a message
-export function getErrorMessage(error: unknown): string {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "An unexpected error occurred";

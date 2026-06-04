@@ -1,18 +1,10 @@
-import { getServerUserIdFromRequest } from "~/lib/auth-helpers";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { z } from "zod";
-import {
-  AuthorizationError,
-  handleApiError,
-  ValidationError,
-} from "~/lib/errors";
-import { withRateLimit } from "~/lib/rateLimit";
-import { getOrSetCorrelationId } from "~/lib/request-context";
+import { withApiHandler } from "~/lib/api-handler";
 import { validateRequestBody } from "~/lib/middleware/validate-request";
 import { addProcessedIngredientsToShoppingList } from "~/server/queries/shopping-list";
-import { apiSuccess, apiError } from "~/lib/api-response";
+import { apiSuccess } from "~/lib/api-response";
 
-// Validation schemas
 const duplicateActionSchema = z.enum(["skip", "combine", "add_separate"]);
 
 const processedIngredientSchema = z.object({
@@ -42,47 +34,20 @@ const addFromMealPlanSchema = z.object({
   ingredients: z.array(processedIngredientSchema),
 });
 
-type AddFromMealPlanRequest = z.infer<typeof addFromMealPlanSchema>;
-
-// Create a shared rate limiter instance for the add-from-meal-plan endpoint
 const addFromMealPlanRateLimiter = {
   maxRequests: 20,
   windowMs: 60 * 1000,
   path: "/api/shopping-lists/add-from-meal-plan",
 };
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  return withRateLimit(
-    req,
-    async (req: NextRequest): Promise<NextResponse> => {
-      getOrSetCorrelationId(req);
-      try {
-        const userId = await getServerUserIdFromRequest(req);
-        const { ingredients } = await validateRequestBody(req, addFromMealPlanSchema);
+export const POST = withApiHandler(addFromMealPlanRateLimiter, async (req, userId) => {
+  const { ingredients } = await validateRequestBody(req, addFromMealPlanSchema);
+  const selectedIngredients = ingredients.filter((i) => i.isSelected);
 
-        // Filter only selected ingredients
-        const selectedIngredients = ingredients.filter(
-          (ingredient) => ingredient.isSelected
-        );
+  if (selectedIngredients.length === 0) {
+    return apiSuccess({ addedItems: [], updatedItems: [] });
+  }
 
-        if (selectedIngredients.length === 0) {
-          return apiSuccess({ addedItems: [], updatedItems: [] });
-        }
-
-        const result = await addProcessedIngredientsToShoppingList(
-          userId,
-          selectedIngredients
-        );
-
-        return apiSuccess({
-          addedItems: result.addedItems,
-          updatedItems: result.updatedItems,
-        });
-      } catch (error) {
-        const { error: errorMessage, statusCode } = handleApiError(error);
-        return apiError(errorMessage, undefined, statusCode);
-      }
-    },
-    addFromMealPlanRateLimiter
-  );
-}
+  const result = await addProcessedIngredientsToShoppingList(userId, selectedIngredients);
+  return apiSuccess({ addedItems: result.addedItems, updatedItems: result.updatedItems });
+});

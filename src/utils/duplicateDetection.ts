@@ -5,7 +5,7 @@ const MAX_CACHE_SIZE = 500;
 const normalizationCache = new Map<string, string>();
 
 // Normalize ingredient name for better matching
-export function normalizeIngredientName(name: string): string {
+function normalizeIngredientName(name: string): string {
   const cached = normalizationCache.get(name);
   if (cached !== undefined) {
     // Move to end (most recently used)
@@ -41,7 +41,7 @@ export function normalizeIngredientName(name: string): string {
 }
 
 // Calculate similarity score between two ingredient names
-export function calculateSimilarityScore(name1: string, name2: string): number {
+function calculateSimilarityScore(name1: string, name2: string): number {
   const normalized1 = normalizeIngredientName(name1);
   const normalized2 = normalizeIngredientName(name2);
 
@@ -94,14 +94,14 @@ export function calculateSimilarityScore(name1: string, name2: string): number {
 }
 
 // Determine match confidence based on similarity score
-export function getMatchConfidence(score: number): "high" | "medium" | "low" {
+function getMatchConfidence(score: number): "high" | "medium" | "low" {
   if (score >= 0.9) return "high";
   if (score >= 0.7) return "medium";
   return "low";
 }
 
 // Suggest action for duplicate handling
-export function suggestDuplicateAction(
+function suggestDuplicateAction(
   ingredient: ParsedIngredient,
   existingItem: ShoppingItem,
   confidence: "high" | "medium" | "low"
@@ -129,7 +129,7 @@ export function suggestDuplicateAction(
 }
 
 // Check if two units can be combined
-export function canCombineUnits(unit1?: string, unit2?: string): boolean {
+function canCombineUnits(unit1?: string, unit2?: string): boolean {
   if (!unit1 && !unit2) return true; // Both have no units
   if (!unit1 || !unit2) return false; // Only one has a unit
 

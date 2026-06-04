@@ -35,7 +35,7 @@ const processMultilineText = (str: string): string =>
     .join("\n");
 
 // Recipe validation schemas
-export const createRecipeSchema = z.object({
+const createRecipeSchema = z.object({
   name: createSanitizedString(200, "Name"),
   link: urlSchema,
   imageUrl: urlSchema,
@@ -51,7 +51,7 @@ export const createRecipeSchema = z.object({
 });
 
 // For updates, we want to make all fields optional
-export const updateRecipeSchema = createRecipeSchema.partial();
+const updateRecipeSchema = createRecipeSchema.partial();
 
 // Validation functions
 export const validateCreateRecipe = (data: unknown): CreateRecipeInput => {
@@ -81,32 +81,3 @@ export function validateUrl(url: string): boolean {
   }
 }
 
-export function validateImageUrl(url: string): boolean {
-  if (!validateUrl(url)) return false;
-  const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
-  return (
-    imageExtensions.test(url) ||
-    url.includes("ucarecdn.com") ||
-    url.includes("utfs.io")
-  );
-}
-
-export function validatePaginationParams(
-  offset: unknown,
-  limit: unknown
-): { offset: number; limit: number } {
-  const offsetNum = Number(offset);
-  const limitNum = Number(limit);
-
-  if (Number.isNaN(offsetNum) || offsetNum < 0) {
-    throw new ValidationError("Invalid offset parameter");
-  }
-
-  if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-    throw new ValidationError(
-      "Invalid limit parameter (must be between 1 and 100)"
-    );
-  }
-
-  return { offset: offsetNum, limit: limitNum };
-}
