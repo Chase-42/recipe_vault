@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type UseMutationResult, type MutationFunctionContext } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RecipeError, ValidationError } from "~/lib/errors";
@@ -171,7 +171,8 @@ export function useRecipeMutation(
       );
 
       // Use the helper's onMutate for recipes list, then handle single recipe query
-      const helperContext = await updateOptimisticHelpers.onMutate?.(variables);
+      const mutationContext: MutationFunctionContext = { client: queryClient, meta: undefined };
+      const helperContext = await updateOptimisticHelpers.onMutate?.(variables, mutationContext);
 
       // Cancel and update single recipe query
       await queryClient.cancelQueries({

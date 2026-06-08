@@ -1,5 +1,6 @@
 import type {
   QueryClient,
+  MutationFunctionContext,
   UseMutationOptions,
 } from "@tanstack/react-query";
 
@@ -54,7 +55,7 @@ export function createOptimisticMutation<
   "onMutate" | "onError" | "onSettled"
 > {
   return {
-    onMutate: async (variables: TVariables) => {
+    onMutate: async (variables: TVariables, _context: MutationFunctionContext) => {
       // Cancel all specified queries
       const queriesToCancel = [
         ...(config.singleQuery ? [config.singleQuery.queryKey] : []),
