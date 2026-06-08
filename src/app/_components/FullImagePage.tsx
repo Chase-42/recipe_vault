@@ -23,6 +23,7 @@ import { useHeaderContext } from "~/providers/HeaderContext";
 import type { Recipe } from "~/types";
 import { recipeKey } from "~/utils/query-keys";
 import { fetchRecipe } from "~/utils/recipeService";
+import { scaleIngredientLine } from "~/utils/scaleIngredient";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Constants for resizable panels
@@ -76,9 +77,10 @@ interface SectionHeaderProps {
   checkedCount: number;
   totalCount: number;
   label: string;
+  children?: React.ReactNode;
 }
 
-function SectionHeader({ title, checkedCount, totalCount, label }: SectionHeaderProps) {
+function SectionHeader({ title, checkedCount, totalCount, label, children }: SectionHeaderProps) {
   return (
     <div className="mb-3 flex flex-shrink-0 items-center gap-2">
       <h2 className="text-lg font-semibold text-foreground">{title}</h2>
@@ -92,6 +94,44 @@ function SectionHeader({ title, checkedCount, totalCount, label }: SectionHeader
       >
         {checkedCount} of {totalCount} {label}
       </Badge>
+      {children}
+    </div>
+  );
+}
+
+interface PortionControlProps {
+  scale: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}
+
+function PortionControl({ scale, onDecrement, onIncrement }: PortionControlProps) {
+  return (
+    <div className="ml-auto flex items-center gap-2">
+      <span className="text-xs text-zinc-400">Servings</span>
+      <div className="flex items-center gap-0 rounded-md border border-white/20 overflow-hidden">
+        <button
+          type="button"
+          onClick={onDecrement}
+          disabled={scale === 1}
+          className="flex h-7 w-7 items-center justify-center text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label="Decrease portions"
+        >
+          −
+        </button>
+        <span className="w-8 text-center text-sm font-semibold tabular-nums text-white border-x border-white/20">
+          {scale}
+        </span>
+        <button
+          type="button"
+          onClick={onIncrement}
+          disabled={scale === 8}
+          className="flex h-7 w-7 items-center justify-center text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label="Increase portions"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
@@ -105,6 +145,9 @@ export default function FullImagePage({
 }: FullPageImageViewProps) {
   const [showAddToList, setShowAddToList] = useState(false);
   const [imageVisible, setImageVisible] = useState(true);
+  const [scale, setScale] = useState(1);
+  const decrementScale = useCallback(() => setScale((s) => Math.max(1, s - 1)), []);
+  const incrementScale = useCallback(() => setScale((s) => Math.min(8, s + 1)), []);
   const { setRecipeData } = useHeaderContext();
   const isMobile = useIsMobile();
 
@@ -307,6 +350,7 @@ export default function FullImagePage({
     .filter((line) => line.trim() !== "");
 
   const renderIngredient = (ingredient: string, index: number) => {
+    const scaled = scaleIngredientLine(ingredient, scale);
     const key = `ingredient-${index}-${ingredient.trim().toLowerCase().replace(/\s+/g, "-")}`;
     const isChecked = checkedIngredients.has(index);
     return (
@@ -324,7 +368,7 @@ export default function FullImagePage({
             isChecked ? "line-through text-muted-foreground" : "text-foreground"
           )}
         >
-          {ingredient}
+          {scaled}
         </label>
       </div>
     );
@@ -408,7 +452,9 @@ export default function FullImagePage({
             checkedCount={checkedIngredients.size}
             totalCount={ingredients.length}
             label="used"
-          />
+          >
+            <PortionControl scale={scale} onDecrement={decrementScale} onIncrement={incrementScale} />
+          </SectionHeader>
           <div className="space-y-1">{ingredients.map(renderIngredient)}</div>
         </div>
 
@@ -525,7 +571,9 @@ export default function FullImagePage({
               checkedCount={checkedIngredients.size}
               totalCount={ingredients.length}
               label="used"
-            />
+            >
+              <PortionControl scale={scale} onDecrement={decrementScale} onIncrement={incrementScale} />
+            </SectionHeader>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="space-y-2.5">{ingredients.map(renderIngredient)}</div>
             </div>
