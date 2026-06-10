@@ -59,7 +59,6 @@ import { mealTypeColors } from "~/constants/meal-planner";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
 
-// Memoized recipe card component for better performance
 const MemoizedRecipeCard = memo(
   ({
     recipe,
@@ -136,7 +135,6 @@ export function MealPlannerClient() {
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [showRecipeDrawer, setShowRecipeDrawer] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
-    // Default to today's index within the week (0-6)
     const today = new Date();
     const start = getWeekStart(new Date());
     const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -144,13 +142,10 @@ export function MealPlannerClient() {
   });
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
 
-  // Dialog states
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showEnhancedShoppingList, setShowEnhancedShoppingList] =
     useState(false);
-
-  // Enhanced shopping list state
   const [enhancedShoppingListData, setEnhancedShoppingListData] =
     useState<GenerateEnhancedShoppingListResponse | null>(null);
   const [isAddingToShoppingList, setIsAddingToShoppingList] = useState(false);
@@ -161,17 +156,14 @@ export function MealPlannerClient() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
 
-  // Fetch current week meals with error handling
   const {
     data: currentWeekMeals,
     isLoading: isLoadingMeals,
-
   } = useQuery<WeeklyMealPlan>({
     queryKey: currentWeekMealsKey(weekStart),
     queryFn: () => mealPlannerApi.getCurrentWeekMeals(weekStart),
   });
 
-  // Fetch available recipes with error handling
   const {
     data: recipesData,
     isLoading: isLoadingRecipes,
@@ -189,13 +181,11 @@ export function MealPlannerClient() {
     handleMealRemove,
   } = useDragAndDrop(weekStart);
 
-  // Fetch saved meal plans with error handling
   const { data: savedPlans, error: savedPlansError } = useQuery<MealPlan[]>({
     queryKey: savedMealPlansKey,
     queryFn: () => mealPlannerApi.getSavedMealPlans(),
   });
 
-  // Save meal plan mutation
   const saveMealPlanMutation = useMutation({
     mutationFn: (params: { name: string; description?: string }) =>
       mealPlannerApi.saveMealPlan(params),
@@ -210,7 +200,6 @@ export function MealPlannerClient() {
     },
   });
 
-  // Load meal plan mutation
   const loadMealPlanMutation = useMutation({
     mutationFn: (planId: number) =>
       mealPlannerApi.loadMealPlan({ mealPlanId: planId }),
@@ -265,29 +254,25 @@ export function MealPlannerClient() {
     setShowLoadDialog(true);
   };
 
-  // Handle generate enhanced shopping list - open modal immediately, then fetch data
   const handleGenerateEnhancedShoppingList = useCallback(() => {
     if (!currentWeekMeals) return;
 
-    // Open modal immediately
     setShowEnhancedShoppingList(true);
-    setEnhancedShoppingListData(null); // Clear previous data to show loading
+    setEnhancedShoppingListData(null);
 
-    // Fetch data in background
     const fetchData = async () => {
       try {
         const enhancedData = await mealPlannerApi.generateEnhancedShoppingList(weekStart);
         setEnhancedShoppingListData(enhancedData);
       } catch (error) {
         handleError(error, "Generate shopping list");
-        setShowEnhancedShoppingList(false); // Close modal on error
+        setShowEnhancedShoppingList(false);
       }
     };
 
     void fetchData();
   }, [currentWeekMeals, weekStart]);
 
-  // Sidebar resize handlers with cleanup
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
 
@@ -310,7 +295,6 @@ export function MealPlannerClient() {
     e.preventDefault();
   }, [handleMouseMove, handleMouseUp]);
 
-  // Cleanup event listeners on unmount
   useEffect(() => {
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
@@ -320,7 +304,6 @@ export function MealPlannerClient() {
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
-  // Mobile tap-to-place handler
   const handleMobileRecipeTap = useCallback((recipe: Recipe) => {
     setPendingRecipe(recipe);
     setShowRecipeDrawer(false);
@@ -335,7 +318,7 @@ export function MealPlannerClient() {
 
   if (isLoadingMeals) {
     return (
-      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -344,7 +327,6 @@ export function MealPlannerClient() {
   // Recipe list content - shared between sidebar and drawer
   const recipeListContent = (
     <>
-      {/* Search */}
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
@@ -356,8 +338,7 @@ export function MealPlannerClient() {
         />
       </div>
 
-      {/* Category Filter Buttons */}
-      <div className="flex flex-wrap gap-1 mb-4">
+      <div className="grid grid-cols-2 gap-1 mb-4">
         {(["All", "Breakfast", "Lunch", "Dinner"] as Category[]).map(
           (category) => (
             <Button
@@ -387,7 +368,6 @@ export function MealPlannerClient() {
         )}
       </div>
 
-      {/* Recipe List */}
       <div className="flex-1 overflow-y-auto">
         {recipesError ? (
           <div className="text-center py-8 space-y-4">
@@ -433,7 +413,7 @@ export function MealPlannerClient() {
 
   return (
     <ErrorBoundary>
-      <div className="flex min-h-screen flex-col md:flex-row">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row">
         {/* Desktop Sidebar */}
         {!isMobile && (
           <div
@@ -455,27 +435,20 @@ export function MealPlannerClient() {
         )}
 
         {/* Main Content */}
-        <div className="flex flex-1 flex-col bg-transparent">
-          {/* Header */}
+        <div className="flex flex-1 flex-col">
           <div className="border-b bg-black/80 p-3 backdrop-blur md:p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold md:text-2xl">Meal Planner</h1>
-                {isMobile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowRecipeDrawer(true)}
-                    className="ml-auto"
-                  >
-                    <Menu className="mr-2 h-4 w-4" />
-                    Recipes
-                  </Button>
-                )}
-              </div>
-
-              {/* Week Navigation */}
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRecipeDrawer(true)}
+                >
+                  <Menu className="mr-2 h-4 w-4" />
+                  Recipes
+                </Button>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
                 <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -502,9 +475,7 @@ export function MealPlannerClient() {
           {/* Weekly Grid */}
           <div className="flex-1 overflow-y-auto p-2 md:overflow-x-auto md:p-4">
             {isMobile ? (
-              /* Mobile: Single day with tabs */
               <div className="flex h-full flex-col">
-                {/* Day tabs */}
                 <div className="mb-3 flex gap-1 overflow-x-auto pb-2">
                   {weekDates.map((date, index) => {
                     const { dayName, dayNumber, isToday } = formatDateDisplay(date);
@@ -538,7 +509,6 @@ export function MealPlannerClient() {
                   })}
                 </div>
 
-                {/* Pending recipe indicator */}
                 {pendingRecipe && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary/10 p-3 border border-primary/30">
                     <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
@@ -565,7 +535,6 @@ export function MealPlannerClient() {
                   </div>
                 )}
 
-                {/* Selected day's meals */}
                 <div className="flex-1 space-y-3">
                   {MEAL_TYPES.map((mealType) => {
                     const selectedDate = weekDates[selectedDayIndex];
@@ -593,9 +562,7 @@ export function MealPlannerClient() {
                 </div>
               </div>
             ) : (
-              /* Desktop: 7-column grid */
               <div className="rounded-lg border bg-card">
-                {/* Grid Header */}
                 <div className="grid grid-cols-7 border-b">
                   {weekDates.map((date) => {
                     const { dayName, dayNumber, isToday } = formatDateDisplay(date);
@@ -627,7 +594,6 @@ export function MealPlannerClient() {
                   })}
                 </div>
 
-                {/* Grid Body */}
                 {MEAL_TYPES.map((mealType) => (
                   <div key={mealType} className="grid grid-cols-7 border-b last:border-b-0">
                     {weekDates.map((date) => {
@@ -637,7 +603,7 @@ export function MealPlannerClient() {
                         dragState.dragOverSlot?.mealType === mealType;
 
                       return (
-                        <div key={`${date}-${mealType}`} className="border-r border-border last:border-r-0">
+                        <div key={`${date}-${mealType}`} className="border-r last:border-r-0">
                           <MealSlot
                             date={date}
                             mealType={mealType}
@@ -657,9 +623,8 @@ export function MealPlannerClient() {
           </div>
 
           {/* Action Bar */}
-          <div className="border-t border-border bg-black/80 p-3 backdrop-blur md:p-4">
+          <div className="border-t bg-black/80 p-3 backdrop-blur md:p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              {/* Color Legend - hidden on mobile */}
               <div className="hidden items-center gap-4 md:flex">
                 <span className="text-sm font-medium text-muted-foreground">Meal Types:</span>
                 {MEAL_TYPES.map((mealType) => (
@@ -673,7 +638,6 @@ export function MealPlannerClient() {
                 ))}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
                 <Button
                   variant="outline"
@@ -691,10 +655,7 @@ export function MealPlannerClient() {
                   ) : (
                     <Save className="mr-2 h-4 w-4" />
                   )}
-                  <span className="hidden sm:inline">
-                    {saveMealPlanMutation.isPending ? "Saving..." : "Save"}
-                  </span>
-                  <span className="sm:hidden">Save</span>
+                  {saveMealPlanMutation.isPending ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   variant="outline"
@@ -708,10 +669,7 @@ export function MealPlannerClient() {
                   ) : (
                     <FolderOpen className="mr-2 h-4 w-4" />
                   )}
-                  <span className="hidden sm:inline">
-                    {loadMealPlanMutation.isPending ? "Loading..." : "Load"}
-                  </span>
-                  <span className="sm:hidden">Load</span>
+                  {loadMealPlanMutation.isPending ? "Loading..." : "Load"}
                 </Button>
                 <Button
                   variant="default"
@@ -721,8 +679,7 @@ export function MealPlannerClient() {
                   className="w-full md:w-auto"
                 >
                   <ShoppingCart className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Generate Shopping List</span>
-                  <span className="sm:hidden">Shopping List</span>
+                  Generate Shopping List
                 </Button>
               </div>
             </div>
