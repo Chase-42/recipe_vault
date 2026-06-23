@@ -32,6 +32,8 @@ const MAX_PANEL_SIZE = 55;
 const DEFAULT_LEFT_PANEL_WIDTH = 38;
 const DEFAULT_IMAGE_HEIGHT = 40;
 
+const CLEAR_PROGRESS_CLASSES = "border-green-600 text-green-500 hover:bg-green-600/20 hover:text-green-400";
+
 // Helper to toggle an item in a Set
 const toggleSetItem = <T,>(set: Set<T>, item: T): Set<T> => {
   const newSet = new Set(set);
@@ -156,7 +158,10 @@ export default function FullImagePage({
     checkedInstructions,
     setCheckedIngredients,
     setCheckedInstructions,
+    clearProgress,
   } = useRecipeProgress(id);
+
+  const hasProgress = checkedIngredients.size > 0 || checkedInstructions.size > 0;
 
   const queryClient = useQueryClient();
   const cachedData = queryClient.getQueryData<Recipe>(recipeKey(id));
@@ -359,13 +364,13 @@ export default function FullImagePage({
           id={key}
           checked={isChecked}
           onCheckedChange={() => toggleIngredient(index)}
-          className="mt-0.5"
+          className="mt-0.5 data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600"
         />
         <label
           htmlFor={key}
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            isChecked ? "line-through text-muted-foreground" : "text-foreground"
+            isChecked ? "line-through text-green-600" : "text-foreground"
           )}
         >
           {scaled}
@@ -398,7 +403,7 @@ export default function FullImagePage({
           onKeyDown={(e) => handleKeyboardToggle(e, handleToggle)}
           className={cn(
             "text-sm leading-relaxed flex-1 cursor-pointer text-left",
-            isChecked ? "line-through text-muted-foreground" : "text-foreground/90"
+            isChecked ? "line-through text-green-600" : "text-foreground/90"
           )}
         >
           {instruction}
@@ -484,14 +489,16 @@ export default function FullImagePage({
               </a>
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.print()}
-            className="h-10 text-white hover:bg-zinc-800"
-          >
-            Print
-          </Button>
+          {hasProgress && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearProgress}
+              className={cn("h-10", CLEAR_PROGRESS_CLASSES)}
+            >
+              Clear Progress
+            </Button>
+          )}
         </div>
         <Button size="sm" onClick={() => setShowAddToList(true)} className="h-10">
           <ShoppingCart className="mr-1.5 h-4 w-4" />
@@ -632,13 +639,15 @@ export default function FullImagePage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => window.print()}
-            className="h-8 text-sm text-white hover:bg-zinc-800"
-          >
-            Print
-          </Button>
+          {hasProgress && (
+            <Button
+              variant="outline"
+              onClick={clearProgress}
+              className={cn("h-8 text-sm", CLEAR_PROGRESS_CLASSES)}
+            >
+              Clear Progress
+            </Button>
+          )}
           <Button onClick={() => setShowAddToList(true)} className="h-8 text-sm">
             <ShoppingCart className="mr-1.5 h-4 w-4" />
             Add to List

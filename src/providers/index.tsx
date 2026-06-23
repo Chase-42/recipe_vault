@@ -5,6 +5,7 @@ import {
   QueryClientProvider,
   type QueryKey,
 } from "@tanstack/react-query";
+import { TooltipProvider } from "~/components/ui/tooltip";
 import type React from "react";
 import {
   type ReactNode,
@@ -92,7 +93,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Edit,
   Menu,
+  Printer,
   X,
 } from "lucide-react";
 import { RecipeTimer } from "~/components/recipe-timer/RecipeTimer";
@@ -32,6 +33,11 @@ import {
 import { useSearch, useHeaderContext, useSession } from "~/providers";
 import { useFavoriteToggle } from "~/hooks/useFavoriteToggle";
 import { cn } from "~/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { Drawer } from "~/components/ui/drawer";
 
 const Modal = dynamic(() => import("./Modal").then((mod) => mod.Modal), {
@@ -303,6 +309,8 @@ export function Header() {
     ? recipeData.name
     : config.title;
 
+  const favoriteLabel = recipeData?.favorite ? "Remove from favorites" : "Add to favorites";
+
   return (
     <>
       <header
@@ -352,33 +360,57 @@ export function Header() {
           {/* Recipe Actions (edit, favorite) for image viewer */}
           {config.showRecipeActions && recipeData && (
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push(`/edit/${recipeData.id}`)}
-                className="h-11 w-11 text-white hover:bg-zinc-800"
-                aria-label="Edit recipe"
-              >
-                <Edit className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggleFavorite}
-                className="h-11 w-11 text-white hover:bg-zinc-800"
-                aria-label={recipeData.favorite ? "Remove from favorites" : "Add to favorites"}
-              >
-                <IconHeart
-                  size={20}
-                  className={cn(
-                    "transition-colors duration-300",
-                    recipeData.favorite
-                      ? "text-destructive fill-current"
-                      : "text-white"
-                  )}
-                  strokeWidth={2}
-                />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/edit/${recipeData.id}`)}
+                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    aria-label="Edit recipe"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit recipe</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleFavorite}
+                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    aria-label={favoriteLabel}
+                  >
+                    <IconHeart
+                      size={20}
+                      className={cn(
+                        "transition-colors duration-300",
+                        recipeData.favorite
+                          ? "text-destructive fill-current"
+                          : "text-white"
+                      )}
+                      strokeWidth={2}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{favoriteLabel}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.print()}
+                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    aria-label="Print recipe"
+                  >
+                    <Printer className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Print recipe</TooltipContent>
+              </Tooltip>
               <RecipeTimer />
             </div>
           )}

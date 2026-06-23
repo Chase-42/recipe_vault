@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { useRecipeTimer } from "~/hooks/useRecipeTimer";
 import { cn } from "~/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 const PRESETS = [
   { label: "5m", seconds: 5 * 60 },
@@ -165,6 +170,7 @@ function TimerControls({
 
 export function RecipeTimer() {
   const [open, setOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -299,24 +305,29 @@ export function RecipeTimer() {
         </div>
       )}
 
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Timer"
-        className={cn(
-          "flex h-11 items-center justify-center gap-1.5 rounded-md px-2 text-white transition-colors hover:bg-zinc-800",
-          isRunning && "text-green-400",
-          isDone && "animate-pulse text-red-400"
-        )}
-      >
-        <Clock className="h-5 w-5 flex-shrink-0" />
-        {isActive && (
-          <span className="font-mono text-xs tabular-nums leading-none">
-            {displayTime}
-          </span>
-        )}
-      </button>
+      <Tooltip open={open ? false : tooltipOpen} onOpenChange={setTooltipOpen}>
+        <TooltipTrigger asChild>
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Recipe timer"
+            className={cn(
+              "flex h-11 items-center justify-center gap-1.5 rounded-md px-2 text-white transition-colors hover:bg-zinc-800",
+              isRunning && "text-green-400",
+              isDone && "animate-pulse text-red-400"
+            )}
+          >
+            <Clock className="h-5 w-5 flex-shrink-0" />
+            {isActive && (
+              <span className="font-mono text-xs tabular-nums leading-none">
+                {displayTime}
+              </span>
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Recipe timer</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
