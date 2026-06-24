@@ -1,23 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
+  Code,
+  Globe,
+  ListChecks,
+  Printer,
   Search,
   ShoppingCart,
   Tags,
-  Globe,
-  Printer,
-  CheckCircle,
-  Code,
+  Timer,
 } from "lucide-react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { motion, useMotionValue, useAnimation } from "framer-motion";
 import RecipeList from "~/app/_components/RecipeList";
 import type { PaginatedRecipes } from "~/types";
 
@@ -96,54 +92,6 @@ const MagneticButton = ({
   );
 };
 
-const TiltCard = ({ children }: { children: React.ReactNode }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-100, 100], [8, -8]);
-  const rotateY = useTransform(x, [-100, 100], [-8, 8]);
-
-  return (
-    <motion.div
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      onMouseMove={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        x.set(e.clientX - rect.left - rect.width / 2);
-        y.set(e.clientY - rect.top - rect.height / 2);
-      }}
-      onMouseLeave={() => {
-        x.set(0);
-        y.set(0);
-      }}
-      className="h-full"
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-const FloatingShapes = () => (
-  <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-    {[...Array(3)].map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute h-96 w-96 rounded-full bg-red-600/5 blur-3xl"
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -50, 0],
-        }}
-        transition={{
-          duration: 20 + i * 5,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        }}
-        style={{
-          left: `${20 + i * 30}%`,
-          top: `${10 + i * 20}%`,
-        }}
-      />
-    ))}
-  </div>
-);
 
 // Fixed particle offsets for deterministic animation
 const PARTICLE_OFFSETS = [
@@ -232,7 +180,7 @@ const features = [
     icon: Search,
     title: "Search",
     description:
-      "Filter by ingredient, cook time, or cuisine. Find that chicken thing you made last month.",
+      "Filter by ingredient, cook time, or cuisine. Find that recipe you bookmarked three weeks ago.",
     delay: 0.3,
   },
   {
@@ -243,24 +191,45 @@ const features = [
     delay: 0.4,
   },
   {
-    icon: CheckCircle,
+    icon: ListChecks,
     title: "Cooking Mode",
     description:
       "Step-by-step view with checkboxes. Keep your place without scrolling back up.",
     delay: 0.5,
   },
   {
+    icon: Timer,
+    title: "Timer",
+    description:
+      "Built-in cooking timer. Set it while you cook without switching apps.",
+    delay: 0.6,
+  },
+  {
     icon: Printer,
     title: "Print",
     description:
       "Clean printable format. No ads, no popups, just the recipe on paper.",
-    delay: 0.6,
+    delay: 0.7,
   },
 ];
 
-const LandingPage = () => (
+const LandingPage = () => {
+  const [landed, setLanded] = useState(false);
+  const hasLanded = useRef(false);
+  const shakeControls = useAnimation();
+
+  const handleLanded = () => {
+    if (hasLanded.current) return;
+    hasLanded.current = true;
+    setLanded(true);
+    void shakeControls.start({
+      x: [0, -6, 6, -3, 3, 0],
+      transition: { duration: 0.25, ease: "easeOut" },
+    });
+  };
+
+  return (
   <div className="min-h-screen bg-black text-white">
-    <FloatingShapes />
 
     <nav className="flex items-center justify-between p-6">
       <div className="flex items-center gap-2">
@@ -275,31 +244,54 @@ const LandingPage = () => (
 
     <section className="py-16 lg:py-20">
       <div className="container mx-auto px-6">
-        <div className="mx-auto max-w-4xl text-center">
-          <ChopSizzleTitle />
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="mx-auto mb-12 max-w-2xl text-xl leading-relaxed text-gray-400"
-          >
-            Save recipes from anywhere, sort them by meal type, and generate
-            grocery lists. No ads, no stories, no scrolling through someone's
-            life story to find the instructions.
-          </motion.p>
+        <motion.div
+          animate={shakeControls}
+          className="mx-auto flex min-h-[480px] max-w-4xl flex-col items-center pt-8 text-center"
+        >
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+            initial={{ y: -500, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28, mass: 1.5 }}
+            onAnimationComplete={handleLanded}
+            className="mb-8"
           >
-            <Link href="/sign-in">
-              <MagneticButton className="rounded-lg bg-red-600 px-8 py-4 text-lg font-medium text-white hover:bg-red-700">
-                Get Started
-              </MagneticButton>
-            </Link>
+            <Image
+              src="/recipe_vault_image.svg"
+              alt="Recipe Vault"
+              width={80}
+              height={80}
+              priority
+            />
           </motion.div>
-        </div>
+
+          {landed && (
+            <>
+              <ChopSizzleTitle />
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.9 }}
+                className="mx-auto mb-12 max-w-2xl text-xl leading-relaxed text-gray-400"
+              >
+                Save recipes from anywhere, sort them by meal type, and generate
+                grocery lists. No ads, no stories, no scrolling through someone's
+                life story to find the instructions.
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.1 }}
+                className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+              >
+                <Link href="/sign-in">
+                  <MagneticButton className="rounded-lg bg-red-600 px-8 py-4 text-lg font-medium text-white hover:bg-red-700">
+                    Get Started
+                  </MagneticButton>
+                </Link>
+              </motion.div>
+            </>
+          )}
+        </motion.div>
       </div>
     </section>
 
@@ -308,46 +300,39 @@ const LandingPage = () => (
       whileInView={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       viewport={{ once: true, margin: "-100px" }}
-      className="bg-gray-950/50 py-16"
+      className="py-16"
     >
       <div className="container mx-auto px-6">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-white lg:text-4xl">
-            Features
-          </h2>
-        </div>
-        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => {
+        <div className="mx-auto max-w-3xl">
+          {features.map((feature, i) => {
             const Icon = feature.icon;
             return (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.6,
-                  delay: feature.delay,
-                  type: "spring",
-                  stiffness: 100,
-                }}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -60 : 60 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: feature.delay }}
                 viewport={{ once: true }}
+                className="flex items-start gap-4 border-t border-gray-800 py-6"
               >
-                <TiltCard>
-                  <Card className="h-full rounded-xl border-gray-800/50 bg-gray-900/50 transition-colors duration-300 hover:border-red-600/30">
-                    <CardHeader>
-                      <Icon className="mb-4 h-12 w-12 text-red-600" />
-                      <CardTitle className="text-white">
-                        {feature.title}
-                      </CardTitle>
-                      <CardDescription className="text-base leading-relaxed text-gray-400">
-                        {feature.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                </TiltCard>
+                <span className="mt-1 w-6 shrink-0 font-mono text-sm text-gray-600">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-gray-800 bg-gray-900">
+                  <Icon className="h-5 w-5 text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-base font-medium text-white">
+                    {feature.title}
+                  </span>
+                  <p className="mt-1 text-base leading-relaxed text-gray-400">
+                    {feature.description}
+                  </p>
+                </div>
               </motion.div>
             );
           })}
+          <div className="border-t border-gray-800" />
         </div>
       </div>
     </motion.section>
@@ -394,7 +379,8 @@ const LandingPage = () => (
       </div>
     </section>
   </div>
-);
+  );
+};
 
 export default function HomeContent({
   isAuthenticated,
