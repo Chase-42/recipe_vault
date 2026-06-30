@@ -1,9 +1,12 @@
 import * as cheerio from "cheerio";
 import type { FallbackApiResponse } from "~/types";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 
 const FETCH_TIMEOUT_MS = 10_000; // 10 seconds
 
-// Browser-like headers to avoid 403 blocks from recipe sites
+// Browser-like headers to avoid 403 blocks from recipe sites.
+// Keep in sync with api/index.py:BROWSER_HEADERS — Python adds
+// Accept-Encoding/Connection which fetch handles automatically here.
 const BROWSER_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -19,32 +22,13 @@ const BROWSER_HEADERS: Record<string, string> = {
   "Cache-Control": "max-age=0",
 };
 
-async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: BROWSER_HEADERS,
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Request timeout after ${timeoutMs}ms`);
-    }
-    throw error;
-  }
-}
-
 export const fetchRecipeImages = async (link: string): Promise<string[]> => {
   try {
-    const response = await fetchWithTimeout(link, FETCH_TIMEOUT_MS);
+    const response = await fetchWithTimeout(
+      link,
+      { headers: BROWSER_HEADERS },
+      FETCH_TIMEOUT_MS
+    );
     if (!response.ok) {
       return [];
     }
@@ -93,35 +77,7 @@ function extractCleanText($elem: cheerio.Cheerio): string {
     )
     .remove();
 
-  let html = $elem.html() ?? "";
-  html = html.replace(/<[^>]+>/g, " ");
-  html = html.replace(/&nbsp;/g, " ");
-  html = html.replace(/&amp;/g, "&");
-  html = html.replace(/&lt;/g, "<");
-  html = html.replace(/&gt;/g, ">");
-  html = html.replace(/&quot;/g, '"');
-  html = html.replace(/&#39;/g, "'");
-  html = html.replace(/&[#\w]+;/g, " ");
-
-  let text = html.trim();
-  text = text
-    .replace(
-      /\b(img|decoding|async|width\d+|height\d+|src|srcset|sizes|itemprop|itemscope|itemtype|typeof|property|content|name|id|href|rel|target|title|aria-|data-|class|alt|attachment|feast|content|wide|size)[\w-]*(?=\s|$)/gi,
-      ""
-    )
-    .trim();
-  text = text.replace(/https?:\/\/[^\s]+/g, "").trim();
-  text = text.replace(/\b[a-z]+:\/\/[^\s]+/gi, "").trim();
-  text = text
-    .replace(/\b[\w-]+\.(jpg|jpeg|png|gif|webp|svg)(\?[^\s]*)?/gi, "")
-    .trim();
-  text = text.replace(/\b\d+w\s*,?\s*/gi, "").trim();
-  text = text
-    .replace(/\b(max-width|min-width|100vw|100vh|\d+px)\s*,?\s*/gi, "")
-    .trim();
-  text = text.replace(/\s+/g, " ").trim();
-
-  return text;
+  return $elem.text().replace(/\s+/g, " ").trim();
 }
 
 function extractRecipeName($: ReturnType<typeof cheerio.load>): string | undefined {
@@ -270,7 +226,11 @@ export const tryHtmlScraper = async (
   link: string
 ): Promise<FallbackApiResponse | null> => {
   try {
-    const response = await fetchWithTimeout(link, FETCH_TIMEOUT_MS);
+    const response = await fetchWithTimeout(
+      link,
+      { headers: BROWSER_HEADERS },
+      FETCH_TIMEOUT_MS
+    );
     if (!response.ok) return null;
 
     const $ = cheerio.load(await response.text());

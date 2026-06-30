@@ -54,12 +54,8 @@ export interface FlaskApiResponse {
   ingredients?: string[];
 }
 
-export interface FallbackApiResponse {
-  name?: string;
-  image?: { url: string };
-  recipeInstructions?: { text?: string }[];
-  recipeIngredient: string[];
-}
+// Re-exported from the Zod schema (single source of truth).
+export type { FallbackApiResponse } from "~/lib/schemas";
 
 export interface ProcessedData {
   name: string;
@@ -69,6 +65,14 @@ export interface ProcessedData {
   instructions: string;
   ingredients: string[];
   blurDataURL: string;
+}
+
+// Normalized recipe data produced by scrapeRecipe (any backend source).
+export interface ScrapedRecipeData {
+  name: string;
+  instructions: string;
+  ingredients: string[];
+  imageUrl?: string;
 }
 
 export interface UpdatedRecipe {
@@ -187,6 +191,9 @@ export type WeeklyMealPlan = Record<
 export interface ParsedIngredient {
   name: string;
   quantity?: number;
+  // Normalized unit (e.g. "cup", "tbsp", "g"). Undefined when no recognized
+  // unit was found — e.g. "salt to taste" or "2 large eggs".
+  unit?: string;
   originalText: string;
 }
 

@@ -13,7 +13,6 @@ import { validateUrl } from "~/lib/validation";
 import { db } from "~/server/db";
 import { recipes } from "~/server/db/schema";
 import { deleteRecipe, getMyRecipes } from "~/server/queries";
-import type { FlaskApiResponse } from "~/types";
 import { scrapeRecipe } from "~/utils/recipe-scrapers";
 import { processRecipeData } from "~/utils/recipeProcessing";
 
@@ -132,14 +131,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const scrapedData = await scrapeRecipe(link, FLASK_BASE_URL);
 
         // Process the scraped data (upload image, generate blur, etc.)
-        const recipeData: FlaskApiResponse = {
-          name: scrapedData.name,
-          imageUrl: scrapedData.imageUrl ?? null,
-          instructions: scrapedData.instructions,
-          ingredients: scrapedData.ingredients,
-        };
-
-        const processedData = await processRecipeData(recipeData, link);
+        const processedData = await processRecipeData(scrapedData, link);
 
         // Insert recipe into database
         const [recipe] = await db

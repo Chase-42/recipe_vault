@@ -4,6 +4,7 @@ import { logger } from "~/lib/logger";
 import { db } from "../db";
 import { shoppingItems, recipes, currentWeekMeals } from "../db/schema";
 import {
+  formatIngredientDisplay,
   generateShoppingListFromIngredients,
   generateEnhancedShoppingListFromIngredients,
 } from "~/utils/ingredientParser";
@@ -76,10 +77,11 @@ function buildProcessedBatch(
   ingredients: ProcessedIngredient[]
 ): ProcessedIngredientWithActions[] {
   return ingredients.map((ingredient) => {
-    const finalQuantity = ingredient.editedQuantity ?? ingredient.quantity;
-    const displayName = finalQuantity
-      ? `${finalQuantity} ${ingredient.name}`
-      : ingredient.name;
+    const displayName = formatIngredientDisplay({
+      name: ingredient.name,
+      quantity: ingredient.editedQuantity ?? ingredient.quantity,
+      unit: ingredient.unit,
+    });
     return { ...ingredient, displayName, duplicateAction: ingredient.duplicateMatches[0] };
   });
 }
@@ -388,9 +390,7 @@ export async function addMealPlanItemsToShoppingList(
         .recipeId;
 
       return {
-        name: ingredient.quantity
-          ? `${ingredient.quantity} ${ingredient.name}`
-          : ingredient.name,
+        name: formatIngredientDisplay(ingredient),
         recipeId,
         fromMealPlan: true,
       };

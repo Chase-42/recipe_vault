@@ -1,28 +1,26 @@
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
 import { schemas } from "~/lib/schemas";
-import type { FlaskApiResponse, ProcessedData } from "~/types";
-import { dynamicBlurDataUrl } from "./dynamicBlurDataUrl";
+import type { ProcessedData, ScrapedRecipeData } from "~/types";
+import { dynamicBlurDataUrl, FALLBACK_BLUR_DATA_URL } from "./dynamicBlurDataUrl";
 import sanitizeString from "./sanitizeString";
 import { uploadImage } from "./uploadImage";
 
-const PLACEHOLDER_IMAGE_URL =
-  "https://via.placeholder.com/800x600/cccccc/666666?text=No+Image+Available";
+// Local fallback served from /public when scraping returns no image.
+// Matches the dimensions of the file actually on disk.
+const PLACEHOLDER_IMAGE_URL = "/recipe-placeholder.png";
+const PLACEHOLDER_IMAGE_WIDTH = 800;
+const PLACEHOLDER_IMAGE_HEIGHT = 600;
 
 export async function processRecipeData(
-  data: FlaskApiResponse,
+  data: ScrapedRecipeData,
   link: string
 ): Promise<ProcessedData> {
   const log = logger.forComponent("RecipeProcessing");
-  const {
-    imageUrl,
-    instructions: rawInstructions,
-    ingredients = [],
-    name: rawName,
-  } = data;
+  const { imageUrl, instructions: rawInstructions, ingredients, name: rawName } = data;
 
   const name = sanitizeString(rawName);
-  const instructions = sanitizeString(rawInstructions ?? "");
+  const instructions = sanitizeString(rawInstructions);
   const sanitizedIngredients = ingredients.map(sanitizeString).filter(Boolean);
 
   const missingFields: string[] = [];
@@ -38,12 +36,22 @@ export async function processRecipeData(
     );
   }
 
-  const finalImageUrl = imageUrl ?? PLACEHOLDER_IMAGE_URL;
+  if (!imageUrl) {
+    return schemas.processedData.parse({
+      name,
+      imageUrl: PLACEHOLDER_IMAGE_URL,
+      imageWidth: PLACEHOLDER_IMAGE_WIDTH,
+      imageHeight: PLACEHOLDER_IMAGE_HEIGHT,
+      blurDataURL: FALLBACK_BLUR_DATA_URL,
+      instructions,
+      ingredients: sanitizedIngredients,
+    });
+  }
 
   try {
     const [uploadResult, blurDataURL] = await Promise.all([
-      uploadImage(finalImageUrl),
-      dynamicBlurDataUrl(finalImageUrl),
+      uploadImage(imageUrl),
+      dynamicBlurDataUrl(imageUrl),
     ]);
 
     return schemas.processedData.parse({
@@ -58,7 +66,7 @@ export async function processRecipeData(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error("Failed to process image", error as Error, {
-      imageUrl: finalImageUrl,
+      imageUrl,
       link,
     });
     throw new RecipeError(`Failed to process image: ${errorMessage}`, 500);

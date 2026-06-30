@@ -110,7 +110,7 @@ function suggestDuplicateAction(
   if (confidence === "high") {
     if (
       canCombineUnits(
-        extractUnitFromIngredientName(ingredient.name),
+        ingredient.unit,
         extractUnitFromShoppingItem(existingItem.name)
       )
     ) {
@@ -284,49 +284,8 @@ export function detectDuplicates(
   return duplicateMap;
 }
 
-// Extract unit from ingredient name
-function extractUnitFromIngredientName(
-  ingredientName: string
-): string | undefined {
-  const words = ingredientName.toLowerCase().split(/\s+/);
-  const commonUnits = [
-    "cup",
-    "cups",
-    "tbsp",
-    "tsp",
-    "oz",
-    "lb",
-    "g",
-    "kg",
-    "ml",
-    "liter",
-    "piece",
-    "pieces",
-    "whole",
-    "each",
-    "clove",
-    "cloves",
-    "slice",
-    "slices",
-    "can",
-    "cans",
-    "jar",
-    "jars",
-    "package",
-    "packages",
-    "bunch",
-    "bunches",
-  ];
-
-  for (const word of words) {
-    if (commonUnits.includes(word)) {
-      return word;
-    }
-  }
-  return undefined;
-}
-
-// Extract unit from shopping item name
+// Extract unit from shopping item name (legacy items where the unit is
+// embedded in the display string like "2 cup flour").
 function extractUnitFromShoppingItem(itemName: string): string | undefined {
   const unitPattern = /^\d+(?:\.\d+)?\s+([a-zA-Z]+)/;
   const match = itemName.match(unitPattern);

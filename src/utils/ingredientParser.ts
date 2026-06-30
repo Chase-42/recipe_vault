@@ -1,6 +1,15 @@
 import { logger } from "~/lib/logger";
 import type { ParsedIngredient, EnhancedParsedIngredient } from "~/types";
 
+// Formats a parsed ingredient for display: "2 cup flour", "3 eggs", "flour".
+export function formatIngredientDisplay(
+  ingredient: Pick<ParsedIngredient, "name" | "quantity" | "unit">
+): string {
+  return [ingredient.quantity, ingredient.unit, ingredient.name]
+    .filter(Boolean)
+    .join(" ");
+}
+
 // Common units and their variations for normalization
 const UNIT_MAPPINGS: Record<string, string> = {
   // Volume
@@ -112,12 +121,12 @@ function parseIngredient(ingredientText: string): ParsedIngredient {
           unitOrDescriptor?.toLowerCase().trim() ?? ""
         );
 
-        // If the unit is recognized, include it in the name
+        // If the unit is recognized, store it separately from the name
         if (normalizedUnit && UNIT_MAPPINGS[normalizedUnit]) {
-          const unitName = UNIT_MAPPINGS[normalizedUnit];
           return {
-            name: cleanIngredientName(`${unitName} ${nameOrUnit ?? ""}`),
+            name: cleanIngredientName(nameOrUnit ?? ""),
             quantity,
+            unit: UNIT_MAPPINGS[normalizedUnit],
             originalText: ingredientText,
           };
         }
@@ -342,7 +351,9 @@ function cleanIngredientName(name: string): string {
 }
 
 function generateConsolidationKey(ingredient: ParsedIngredient): string {
-  // Create a key for grouping similar ingredients
+  // Create a key for grouping similar ingredients. Includes the unit so
+  // "2 cup flour" and "3 tbsp flour" land in separate buckets — adding their
+  // quantities together would be wrong.
   const baseName = ingredient.name
     .toLowerCase()
     .replace(
@@ -352,20 +363,23 @@ function generateConsolidationKey(ingredient: ParsedIngredient): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  return baseName;
+  return ingredient.unit ? `${baseName}|${ingredient.unit}` : baseName;
 }
 
 function canCombineIngredients(
   a: ParsedIngredient,
   b: ParsedIngredient
 ): boolean {
-  // If both have no quantities, they can be combined (e.g., "salt to taste")
+  // Different units (or one with, one without) → keep separate.
+  if (a.unit !== b.unit) return false;
+
+  // Both have no quantities → can be merged (e.g. "salt to taste" + "salt to taste").
   if (!a.quantity && !b.quantity) return true;
 
-  // If only one has a quantity, they cannot be combined
+  // Only one has a quantity → cannot meaningfully combine.
   if (!a.quantity || !b.quantity) return false;
 
-  // Both have quantities - they can be combined since units are now part of the name
+  // Same unit and both have quantities → safe to add.
   return true;
 }
 
@@ -373,18 +387,6 @@ function combineQuantities(
   a: ParsedIngredient,
   b: ParsedIngredient
 ): { quantity?: number } {
-  // If both have no quantities, return no quantity
-  if (!a.quantity && !b.quantity) {
-    return {};
-  }
-
-  // If only one has a quantity, return the sum
-  if (!a.quantity || !b.quantity) {
-    return {
-      quantity: (a.quantity ?? 0) + (b.quantity ?? 0),
-    };
-  }
-
-  // Both have quantities - just add them since units are now part of the name
-  return { quantity: a.quantity + b.quantity };
+  if (!a.quantity && !b.quantity) return {};
+  return { quantity: (a.quantity ?? 0) + (b.quantity ?? 0) };
 }
