@@ -471,6 +471,7 @@ function IngredientCard({
           {/* Quantity */}
           <div className="text-sm text-muted-foreground">
             Quantity: {ingredient.quantity ?? 1}
+            {ingredient.unit ? ` ${ingredient.unit}` : ""}
           </div>
         </div>
       </div>

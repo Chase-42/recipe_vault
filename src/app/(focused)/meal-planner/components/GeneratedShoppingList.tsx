@@ -9,6 +9,7 @@ import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { handleError } from "~/lib/errorHandler";
 import LoadingSpinner from "~/app/_components/LoadingSpinner";
 import { EnhancedGeneratedShoppingList } from "~/components/shopping-lists/EnhancedGeneratedShoppingList";
+import { formatIngredientDisplay } from "~/utils/ingredientParser";
 import type {
   ParsedIngredient,
   GeneratedShoppingListProps,
@@ -44,16 +45,6 @@ const IngredientItem = memo(
     onToggle: (index: number) => void;
     isDisabled: boolean;
   }) => {
-    const formatIngredientDisplay = useCallback(
-      (ingredient: ParsedIngredient): string => {
-        if (ingredient.quantity) {
-          return `${ingredient.quantity} ${ingredient.name}`;
-        }
-        return ingredient.name;
-      },
-      []
-    );
-
     const handleToggle = useCallback(() => {
       onToggle(index);
     }, [index, onToggle]);

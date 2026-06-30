@@ -19,6 +19,9 @@ retries = Retry(
 session.mount('http://', HTTPAdapter(max_retries=retries))
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
+# Browser-like headers to avoid 403 blocks from recipe sites.
+# Keep in sync with src/utils/scraper.ts:BROWSER_HEADERS — the TS side omits
+# Accept-Encoding and Connection because fetch handles them automatically.
 BROWSER_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -114,6 +117,20 @@ def extract_recipe_field(scraper, field_name: str) -> Optional[Union[str, List[s
         return None
 
 
+def extract_og_image(scraper) -> Optional[str]:
+    """
+    Fall back to <meta property="og:image"> using the soup the scraper already
+    parsed. Lets the Next.js caller skip a redundant page fetch when the
+    recipe-scrapers library couldn't find a structured image.
+    """
+    try:
+        og_image = scraper.opengraph.image()
+        return og_image if og_image else None
+    except Exception as e:
+        logger.warning(f"og:image fallback failed: {e}")
+        return None
+
+
 def _is_action_label(step: str) -> bool:
     """Single-word all-lowercase tokens are HowToStep action labels, not real steps."""
     return bool(step) and step == step.lower() and ' ' not in step
@@ -153,7 +170,7 @@ def _parse_instructions(raw_steps: List[str]) -> List[str]:
 
 def get_recipe_details(scraper) -> Dict:
     with ThreadPoolExecutor(max_workers=1) as executor:
-        image_url = extract_recipe_field(scraper, 'image')
+        image_url = extract_recipe_field(scraper, 'image') or extract_og_image(scraper)
         image_future = executor.submit(validate_image, image_url) if image_url else None
 
         raw_steps: List[str] = extract_recipe_field(scraper, 'instructions_list') or []

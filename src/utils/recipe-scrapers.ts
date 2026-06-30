@@ -2,7 +2,12 @@ import getRecipeData from "@rethora/url-recipe-scraper";
 import { logger } from "~/lib/logger";
 import { schemas } from "~/lib/schemas";
 import { validateUrl } from "~/lib/validation";
-import type { FallbackApiResponse, FlaskApiResponse } from "~/types";
+import type {
+  FallbackApiResponse,
+  FlaskApiResponse,
+  ScrapedRecipeData,
+} from "~/types";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 import { processInstructions } from "./instruction-processor";
 import { fetchRecipeImages, tryHtmlScraper } from "./scraper";
 
@@ -70,33 +75,27 @@ function fixInstructionString(instructions: string): string {
   return fixedSteps.join("\n");
 }
 
-// Creates a timeout promise that rejects after the specified duration
-function createTimeout<T>(ms: number, message: string): Promise<T> {
+// Used to time out the JS package scraper (which is not a fetch, so AbortController doesn't apply).
+function createTimeout(ms: number, message: string): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new Error(message)), ms);
   });
 }
 
-// Fetches data with a timeout
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
-  return Promise.race([
-    fetch(url, options),
-    createTimeout<Response>(timeoutMs, `Request timeout after ${timeoutMs}ms`),
-  ]);
+type HowToStep = { "@type": "HowToStep"; text: string };
+
+function makeStep(text: string): HowToStep {
+  return { "@type": "HowToStep", text };
 }
 
-function extractStepsFromInstruction(instruction: unknown): Array<{ text: string }> {
+function extractStepsFromInstruction(instruction: unknown): HowToStep[] {
   if (!instruction || typeof instruction !== "object") return [];
-  const steps: Array<{ text: string }> = [];
+  const steps: HowToStep[] = [];
 
   if ("text" in instruction) {
     const text = (instruction as { text: unknown }).text;
     if (typeof text === "string" && text.trim()) {
-      steps.push({ text: text.trim() });
+      steps.push(makeStep(text.trim()));
     }
   }
 
@@ -107,7 +106,7 @@ function extractStepsFromInstruction(instruction: unknown): Array<{ text: string
         if (item && typeof item === "object" && "text" in item) {
           const text = (item as { text: unknown }).text;
           if (typeof text === "string" && text.trim()) {
-            steps.push({ text: text.trim() });
+            steps.push(makeStep(text.trim()));
           }
         }
       }
@@ -117,7 +116,7 @@ function extractStepsFromInstruction(instruction: unknown): Array<{ text: string
   return steps;
 }
 
-function transformRecipeInstructions(recipeInstructions: unknown): Array<{ text: string }> {
+function transformRecipeInstructions(recipeInstructions: unknown): HowToStep[] {
   if (!recipeInstructions) return [];
 
   if (Array.isArray(recipeInstructions)) {
@@ -129,13 +128,13 @@ function transformRecipeInstructions(recipeInstructions: unknown): Array<{ text:
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean)
-      .map((text) => ({ text }));
+      .map(makeStep);
   }
 
   return [];
 }
 
-// Main Scraper: JS Package (@rethora/url-recipe-scraper) - primary scraper
+// Fallback 1: JS Package (@rethora/url-recipe-scraper)
 async function tryJsPackageScraper(
   link: string
 ): Promise<FallbackApiResponse | null> {
@@ -149,10 +148,7 @@ async function tryJsPackageScraper(
   try {
     const data = await Promise.race([
       getRecipeData(link),
-      createTimeout<Awaited<ReturnType<typeof getRecipeData>>>(
-        SCRAPER_TIMEOUT_MS,
-        "Scraper timeout"
-      ),
+      createTimeout(SCRAPER_TIMEOUT_MS, "Scraper timeout"),
     ]);
 
     if (!data?.name || !data?.recipeIngredient?.length) {
@@ -201,11 +197,11 @@ async function tryJsPackageScraper(
   }
 }
 
-// Fallback 1: Flask API
+// Primary scraper: Flask API
 async function tryFlaskApiScraper(
   link: string,
   baseUrl: string
-): Promise<FlaskApiResponse> {
+): Promise<FlaskApiResponse | null> {
   const log = logger.forComponent("FlaskApiScraper");
 
   try {
@@ -237,7 +233,7 @@ async function tryFlaskApiScraper(
           link,
         });
       }
-      return schemas.flaskApiResponse.parse({});
+      return null;
     }
 
     const rawData: unknown = await response.json();
@@ -246,15 +242,15 @@ async function tryFlaskApiScraper(
     const rawInstructions = (rawData as { instructions?: unknown })
       ?.instructions;
 
-    let processedInstructions: string | undefined;
+    const joinedInstructions = Array.isArray(rawInstructions)
+      ? (rawInstructions as string[]).join("\n")
+      : typeof rawInstructions === "string"
+        ? rawInstructions
+        : undefined;
 
-    if (Array.isArray(rawInstructions)) {
-      // If it's an array, join with newlines (already structured)
-      processedInstructions = (rawInstructions as string[]).join("\n");
-    } else if (typeof rawInstructions === "string") {
-      // If it's a string, fix incorrectly split instructions
-      processedInstructions = fixInstructionString(rawInstructions);
-    }
+    const processedInstructions = joinedInstructions
+      ? fixInstructionString(joinedInstructions)
+      : undefined;
 
     const validatedData = schemas.flaskApiResponse.parse({
       ...(rawData as Record<string, unknown>),
@@ -285,22 +281,14 @@ async function tryFlaskApiScraper(
       ingredientsCount: ingredients.length,
     });
 
-    return schemas.flaskApiResponse.parse({});
+    return null;
   } catch (error) {
     log.warn("Flask API request failed", {
       error: error instanceof Error ? error.message : String(error),
       link,
     });
-    return schemas.flaskApiResponse.parse({});
+    return null;
   }
-}
-
-// Scraped recipe data from any source
-export interface ScrapedRecipeData {
-  name: string;
-  instructions: string;
-  ingredients: string[];
-  imageUrl?: string;
 }
 
 // Orchestrates recipe scraping with Flask as primary scraper and two fallbacks
@@ -314,21 +302,17 @@ export async function scrapeRecipe(
   log.debug("Attempting Flask API scraper", { link });
   const flaskResult = await tryFlaskApiScraper(link, flaskBaseUrl);
   if (
-    flaskResult.name &&
+    flaskResult?.name &&
     flaskResult.instructions &&
     flaskResult.ingredients?.length
   ) {
     log.info("Flask API scraper succeeded", { link });
-    let imageUrl = flaskResult.imageUrl ?? undefined;
-    if (!imageUrl) {
-      const imageUrls = await fetchRecipeImages(link);
-      imageUrl = imageUrls[0] ?? undefined;
-    }
+    // Flask already falls back to og:image internally; no extra fetch needed here.
     return {
       name: flaskResult.name,
       instructions: flaskResult.instructions,
       ingredients: flaskResult.ingredients,
-      imageUrl,
+      imageUrl: flaskResult.imageUrl ?? undefined,
     };
   }
 
@@ -338,7 +322,7 @@ export async function scrapeRecipe(
   if (
     mainResult?.name &&
     mainResult.recipeInstructions &&
-    mainResult.recipeIngredient.length
+    mainResult.recipeIngredient?.length
   ) {
     log.info("JS package scraper succeeded", { link });
     let imageUrl = mainResult.image?.url;

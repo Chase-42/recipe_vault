@@ -147,5 +147,6 @@ export const schemas = {
   searchParamsSchema,
 } as const;
 
-// Note: This file now only exports Zod schemas for validation
-// All TypeScript types should be imported from ~/types
+// Inferred type for shapes whose canonical definition lives in this file.
+// Re-exported via ~/types to preserve the "import types from ~/types" convention.
+export type FallbackApiResponse = z.infer<typeof fallbackApiResponse>;
