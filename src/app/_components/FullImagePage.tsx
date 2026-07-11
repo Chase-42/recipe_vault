@@ -84,11 +84,12 @@ interface SectionHeaderProps {
 
 function SectionHeader({ title, checkedCount, totalCount, label, children }: SectionHeaderProps) {
   return (
-    <div className="mb-3 flex flex-shrink-0 items-center gap-2">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+    <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2">
+      <h2 className="whitespace-nowrap text-lg font-semibold text-foreground">{title}</h2>
       <Badge
         variant="outline"
         className={cn(
+          "whitespace-nowrap",
           checkedCount === totalCount && totalCount > 0
             ? "border-green-800 bg-green-900/30 text-green-400"
             : ""
@@ -434,7 +435,7 @@ export default function FullImagePage({
           <button
             type="button"
             onClick={() => setImageVisible(true)}
-            className="flex w-full items-center justify-center gap-1.5 border-b border-border bg-black/40 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="flex w-full items-center justify-end gap-1.5 border-b border-border bg-black/40 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <ChevronDown className="h-3.5 w-3.5" />
             Show image
@@ -558,7 +559,7 @@ export default function FullImagePage({
               <button
                 type="button"
                 onClick={() => setImageVisible(true)}
-                className="mb-3 flex flex-shrink-0 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="mb-3 flex flex-shrink-0 self-end items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ChevronDown className="h-3.5 w-3.5" />
                 Show image
