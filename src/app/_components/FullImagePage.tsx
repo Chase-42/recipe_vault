@@ -84,19 +84,21 @@ interface SectionHeaderProps {
 
 function SectionHeader({ title, checkedCount, totalCount, label, children }: SectionHeaderProps) {
   return (
-    <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2">
-      <h2 className="whitespace-nowrap text-lg font-semibold text-foreground">{title}</h2>
-      <Badge
-        variant="outline"
-        className={cn(
-          "whitespace-nowrap",
-          checkedCount === totalCount && totalCount > 0
-            ? "border-green-800 bg-green-900/30 text-green-400"
-            : ""
-        )}
-      >
-        {checkedCount} of {totalCount} {label}
-      </Badge>
+    <div className="mb-3 flex flex-shrink-0 flex-col items-start gap-1.5">
+      <div className="flex items-center gap-2">
+        <h2 className="whitespace-nowrap text-lg font-semibold text-foreground">{title}</h2>
+        <Badge
+          variant="outline"
+          className={cn(
+            "whitespace-nowrap",
+            checkedCount === totalCount && totalCount > 0
+              ? "border-green-800 bg-green-900/30 text-green-400"
+              : ""
+          )}
+        >
+          {checkedCount} of {totalCount} {label}
+        </Badge>
+      </div>
       {children}
     </div>
   );

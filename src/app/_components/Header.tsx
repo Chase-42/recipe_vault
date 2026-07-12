@@ -318,7 +318,7 @@ export function Header() {
         className="z-50 flex items-center justify-between border-b bg-black px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:py-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
       >
         {/* Left side */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3 md:gap-4">
           {config.showBackButton && (
             <button
               type="button"
@@ -352,12 +352,14 @@ export function Header() {
           )}
 
           {displayTitle && (
-            <h1 className="max-w-[120px] truncate text-base font-bold sm:max-w-[180px] sm:text-lg md:max-w-[280px]">
+            <h1 className="min-w-0 flex-1 truncate text-base font-bold sm:text-lg">
               {displayTitle}
             </h1>
           )}
+        </div>
 
-          {/* Recipe Actions (edit, favorite) for image viewer */}
+        {/* Right side */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           {config.showRecipeActions && recipeData && (
             <div className="flex items-center gap-1">
               <Tooltip>
@@ -366,7 +368,7 @@ export function Header() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push(`/edit/${recipeData.id}`)}
-                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    className="hidden h-11 w-11 text-white hover:bg-zinc-800 sm:inline-flex"
                     aria-label="Edit recipe"
                   >
                     <Edit className="h-5 w-5" />
@@ -403,7 +405,7 @@ export function Header() {
                     variant="ghost"
                     size="icon"
                     onClick={() => window.print()}
-                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    className="hidden h-11 w-11 text-white hover:bg-zinc-800 sm:inline-flex"
                     aria-label="Print recipe"
                   >
                     <Printer className="h-5 w-5" />
@@ -414,10 +416,7 @@ export function Header() {
               <RecipeTimer />
             </div>
           )}
-        </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           {/* Mobile search - icon that expands to full-width */}
           {config.showSearch && (
             <div className="md:hidden">
@@ -548,6 +547,25 @@ export function Header() {
                     )}
                   </div>
                 </DropdownMenuLabel>
+                {config.showRecipeActions && recipeData && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => router.push(`/edit/${recipeData.id}`)}
+                      className="cursor-pointer sm:hidden"
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>Edit recipe</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => window.print()}
+                      className="cursor-pointer sm:hidden"
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      <span>Print recipe</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
