@@ -231,7 +231,7 @@ export function RecipeTimer() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 top-full mt-2 w-72 rounded-xl bg-zinc-950 p-4 shadow-2xl shadow-black/60 ring-1 ring-white/10"
+          className="absolute right-0 top-full mt-2 w-72 rounded-xl bg-zinc-950 p-4 shadow-2xl shadow-black/60 ring-1 ring-white/10"
         >
           <TimerRing
             hours={hours}
@@ -313,12 +313,12 @@ export function RecipeTimer() {
             onClick={() => setOpen((v) => !v)}
             aria-label="Recipe timer"
             className={cn(
-              "flex h-11 items-center justify-center gap-1.5 rounded-md px-2 text-white transition-colors hover:bg-zinc-800",
+              "flex h-9 items-center justify-center gap-1 rounded-md px-1.5 text-white transition-colors hover:bg-zinc-800 sm:h-11 sm:gap-1.5 sm:px-2",
               isRunning && "text-green-400",
               isDone && "animate-pulse text-red-400"
             )}
           >
-            <Clock className="h-5 w-5 flex-shrink-0" />
+            <Clock className="h-4 w-4 flex-shrink-0 sm:h-5 sm:w-5" />
             {isActive && (
               <span className="font-mono text-xs tabular-nums leading-none">
                 {displayTime}

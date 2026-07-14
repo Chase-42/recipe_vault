@@ -329,7 +329,7 @@ export function Header() {
                   router.push(config.backDestination);
                 }
               }}
-              className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md hover:bg-accent"
               aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -352,26 +352,23 @@ export function Header() {
           )}
 
           {displayTitle && (
-            <h1 className="min-w-0 flex-1 truncate text-base font-bold sm:text-lg">
+            <h1 className="min-w-0 truncate text-base font-bold sm:text-lg">
               {displayTitle}
             </h1>
           )}
-        </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           {config.showRecipeActions && recipeData && (
-            <div className="flex items-center gap-1">
+            <div className="flex flex-shrink-0 items-center gap-0 sm:gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push(`/edit/${recipeData.id}`)}
-                    className="hidden h-11 w-11 text-white hover:bg-zinc-800 sm:inline-flex"
+                    className="h-9 w-9 text-white hover:bg-zinc-800 sm:h-11 sm:w-11"
                     aria-label="Edit recipe"
                   >
-                    <Edit className="h-5 w-5" />
+                    <Edit className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Edit recipe</TooltipContent>
@@ -382,13 +379,12 @@ export function Header() {
                     variant="ghost"
                     size="icon"
                     onClick={handleToggleFavorite}
-                    className="h-11 w-11 text-white hover:bg-zinc-800"
+                    className="h-9 w-9 text-white hover:bg-zinc-800 sm:h-11 sm:w-11"
                     aria-label={favoriteLabel}
                   >
                     <IconHeart
-                      size={20}
                       className={cn(
-                        "transition-colors duration-300",
+                        "h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300",
                         recipeData.favorite
                           ? "text-destructive fill-current"
                           : "text-white"
@@ -405,10 +401,10 @@ export function Header() {
                     variant="ghost"
                     size="icon"
                     onClick={() => window.print()}
-                    className="hidden h-11 w-11 text-white hover:bg-zinc-800 sm:inline-flex"
+                    className="h-9 w-9 text-white hover:bg-zinc-800 sm:h-11 sm:w-11"
                     aria-label="Print recipe"
                   >
-                    <Printer className="h-5 w-5" />
+                    <Printer className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Print recipe</TooltipContent>
@@ -416,7 +412,10 @@ export function Header() {
               <RecipeTimer />
             </div>
           )}
+        </div>
 
+        {/* Right side */}
+        <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3 md:gap-4">
           {/* Mobile search - icon that expands to full-width */}
           {config.showSearch && (
             <div className="md:hidden">
@@ -547,25 +546,6 @@ export function Header() {
                     )}
                   </div>
                 </DropdownMenuLabel>
-                {config.showRecipeActions && recipeData && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => router.push(`/edit/${recipeData.id}`)}
-                      className="cursor-pointer sm:hidden"
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      <span>Edit recipe</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => window.print()}
-                      className="cursor-pointer sm:hidden"
-                    >
-                      <Printer className="mr-2 h-4 w-4" />
-                      <span>Print recipe</span>
-                    </DropdownMenuItem>
-                  </>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
