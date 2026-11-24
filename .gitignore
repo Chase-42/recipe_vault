@@ -71,3 +71,6 @@ docs/*.md
 
 .kiro
 .claude
+.agents/
+blueprint/
+CLAUDE.md
