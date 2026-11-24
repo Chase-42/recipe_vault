@@ -336,6 +336,19 @@ export function Header() {
             </button>
           )}
 
+          {/* Mobile hamburger menu - left side, visible below md */}
+          {config.showNav && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsNavDrawerOpen(true)}
+              className="h-11 w-11 text-white hover:bg-zinc-800 md:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          )}
+
           {config.showLogo && (
             <Link href="/" className="flex h-11 min-w-[44px] items-center gap-2">
               <Image
@@ -474,19 +487,6 @@ export function Header() {
               />
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             </div>
-          )}
-
-          {/* Mobile hamburger menu - visible below md */}
-          {config.showNav && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsNavDrawerOpen(true)}
-              className="h-11 w-11 text-white hover:bg-zinc-800 md:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
           )}
 
           {/* Desktop nav - hidden below md */}
