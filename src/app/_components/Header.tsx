@@ -315,7 +315,7 @@ export function Header() {
     <>
       <header
         ref={headerRef}
-        className="z-50 flex items-center justify-between border-b bg-black px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:pb-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
+        className="flex items-center justify-between border-b bg-black px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:pb-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
       >
         {/* Left side */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3 md:gap-4">
