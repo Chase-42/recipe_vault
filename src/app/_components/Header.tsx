@@ -315,7 +315,7 @@ export function Header() {
     <>
       <header
         ref={headerRef}
-        className="flex items-center justify-between border-b bg-black px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:pb-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
+        className="sticky top-0 z-10 flex items-center justify-between border-b bg-black px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xl font-semibold print:hidden sm:px-4 sm:pb-4 sm:pt-[max(1rem,env(safe-area-inset-top))]"
       >
         {/* Left side */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3 md:gap-4">
@@ -431,7 +431,7 @@ export function Header() {
                       setTimeout(() => setIsMobileSearchExpanded(false), 150);
                     }}
                     placeholder="Search recipes..."
-                    className="w-[200px] pl-9 pr-9 placeholder:text-zinc-400"
+                    className="w-[200px] pl-9 pr-9 placeholder:text-zinc-400 focus-visible:ring-zinc-600"
                   />
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
                   <button
