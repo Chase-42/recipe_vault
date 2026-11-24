@@ -230,6 +230,11 @@
 
   body {
     @apply text-foreground;
+    overscroll-behavior: none;
+  }
+
+  html {
+    overscroll-behavior: none;
   }
 }
 
