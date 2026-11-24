@@ -13,6 +13,7 @@ import {
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { RecipeError } from "~/lib/errors";
 import { logger } from "~/lib/logger";
+import { parseIngredient } from "~/utils/ingredientParser";
 import type { AddToListModalProps } from "~/types";
 
 const IngredientItem = memo(function IngredientItem({
@@ -75,10 +76,18 @@ export function AddToListModal({
   }, []);
 
   const handleAddToList = async () => {
-    const selectedItems = Array.from(selectedIngredients).map((index) => ({
-      name: ingredients[index],
-      recipeId,
-    }));
+    const selectedItems = Array.from(selectedIngredients).map((index) => {
+      const raw = ingredients[index]!;
+      const parsed = parseIngredient(raw);
+      return {
+        name:           raw,
+        ingredientName: parsed.name,
+        quantity:       parsed.quantity,
+        unit:           parsed.unit,
+        recipeId,
+        recipeName,
+      };
+    });
 
     if (selectedItems.length === 0) return;
 

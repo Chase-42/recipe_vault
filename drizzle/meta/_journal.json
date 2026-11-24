@@ -8,6 +8,13 @@
       "when": 1767204959723,
       "tag": "0000_add_auth_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752278400000,
+      "tag": "0001_shopping_items_structured_columns",
+      "breakpoints": true
     }
   ]
 }

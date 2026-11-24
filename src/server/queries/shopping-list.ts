@@ -5,7 +5,6 @@ import { db } from "../db";
 import { shoppingItems, recipes, currentWeekMeals } from "../db/schema";
 import {
   formatIngredientDisplay,
-  generateShoppingListFromIngredients,
   generateEnhancedShoppingListFromIngredients,
 } from "~/utils/ingredientParser";
 import { detectDuplicates } from "~/utils/duplicateDetection";
@@ -24,13 +23,17 @@ import type {
 
 // Standard column selection for shopping items
 const shoppingItemColumns = {
-  id: shoppingItems.id,
-  userId: shoppingItems.userId,
-  name: shoppingItems.name,
-  checked: shoppingItems.checked,
-  recipeId: shoppingItems.recipeId,
-  fromMealPlan: shoppingItems.fromMealPlan,
-  createdAt: shoppingItems.createdAt,
+  id:             shoppingItems.id,
+  userId:         shoppingItems.userId,
+  name:           shoppingItems.name,
+  ingredientName: shoppingItems.ingredientName,
+  quantity:       shoppingItems.quantity,
+  unit:           shoppingItems.unit,
+  recipeName:     shoppingItems.recipeName,
+  checked:        shoppingItems.checked,
+  recipeId:       shoppingItems.recipeId,
+  fromMealPlan:   shoppingItems.fromMealPlan,
+  createdAt:      shoppingItems.createdAt,
 } as const;
 
 // Convert database shopping item to API ShoppingItem type
@@ -39,6 +42,10 @@ function convertDbItemToShoppingItem(
     id: number;
     userId: string;
     name: string;
+    ingredientName: string | null;
+    quantity: number | null;
+    unit: string | null;
+    recipeName: string | null;
     checked: boolean;
     recipeId: number | null;
     fromMealPlan: boolean;
@@ -46,9 +53,17 @@ function convertDbItemToShoppingItem(
   }
 ): ShoppingItem {
   return {
-    ...item,
-    recipeId: item.recipeId ?? undefined,
-    createdAt: item.createdAt.toISOString(),
+    id:             item.id,
+    userId:         item.userId,
+    name:           item.name,
+    ingredientName: item.ingredientName ?? undefined,
+    quantity:       item.quantity ?? undefined,
+    unit:           item.unit ?? undefined,
+    recipeName:     item.recipeName ?? undefined,
+    checked:        item.checked,
+    recipeId:       item.recipeId ?? undefined,
+    fromMealPlan:   item.fromMealPlan,
+    createdAt:      item.createdAt.toISOString(),
   };
 }
 
@@ -58,6 +73,10 @@ function convertDbItemsToShoppingItems(
     id: number;
     userId: string;
     name: string;
+    ingredientName: string | null;
+    quantity: number | null;
+    unit: string | null;
+    recipeName: string | null;
     checked: boolean;
     recipeId: number | null;
     fromMealPlan: boolean;
@@ -253,15 +272,27 @@ export async function deleteShoppingItem(
 
 export async function addShoppingItems(
   userId: string,
-  items: Array<{ name: string; recipeId?: number; fromMealPlan?: boolean }>
+  items: Array<{
+    name: string;
+    ingredientName?: string;
+    quantity?: number;
+    unit?: string;
+    recipeId?: number;
+    recipeName?: string;
+    fromMealPlan?: boolean;
+  }>
 ): Promise<ShoppingItem[]> {
   try {
     const itemsToInsert = items.map((item) => ({
       userId,
-      name: item.name,
-      recipeId: item.recipeId,
-      checked: false,
-      fromMealPlan: item.fromMealPlan ?? false,
+      name:           item.name,
+      ingredientName: item.ingredientName,
+      quantity:       item.quantity,
+      unit:           item.unit,
+      recipeName:     item.recipeName,
+      recipeId:       item.recipeId,
+      checked:        false,
+      fromMealPlan:   item.fromMealPlan ?? false,
     }));
 
     // Insert items
@@ -353,15 +384,23 @@ export async function generateShoppingListFromWeek(
     }
 
     // Transform to the format expected by the ingredient parser
+    // recipeName is duck-typed onto each ParsedIngredient alongside recipeId
     const recipeIngredients = plannedMeals.map((meal) => ({
       recipeId: meal.recipeId,
+      recipeName: meal.recipeName,
       ingredients: meal.ingredients
         ? meal.ingredients.split("\n").filter((line) => line.trim())
         : [],
     }));
 
     // Generate and consolidate shopping list
-    return generateShoppingListFromIngredients(recipeIngredients);
+    // We use the enhanced generator so recipeName is tracked per ingredient
+    const enhanced = generateEnhancedShoppingListFromIngredients(recipeIngredients);
+    return enhanced.map((ing) => ({
+      ...ing,
+      recipeId: ing.sourceRecipes[0]?.recipeId,
+      recipeName: ing.sourceRecipes[0]?.recipeName,
+    }));
   } catch (error) {
     logger.error(
       "Failed to generate shopping list from week",
@@ -386,13 +425,18 @@ export async function addMealPlanItemsToShoppingList(
 
     // Convert parsed ingredients to shopping items
     const items = ingredients.map((ingredient) => {
-      const recipeId = (ingredient as ParsedIngredient & { recipeId?: number })
-        .recipeId;
-
+      const typed = ingredient as ParsedIngredient & {
+        recipeId?: number;
+        recipeName?: string;
+      };
       return {
-        name: formatIngredientDisplay(ingredient),
-        recipeId,
-        fromMealPlan: true,
+        name:           formatIngredientDisplay(ingredient),
+        ingredientName: ingredient.name,
+        quantity:       ingredient.quantity,
+        unit:           ingredient.unit,
+        recipeId:       typed.recipeId,
+        recipeName:     typed.recipeName,
+        fromMealPlan:   true,
       };
     });
 
@@ -596,12 +640,32 @@ export async function addProcessedIngredientsToShoppingList(
 
             if (existingItem) {
               try {
-                const combinedName = `${existingItem.name} + ${ingredient.displayName}`;
+                const sameUnit =
+                  existingItem.unit != null &&
+                  ingredient.unit != null &&
+                  existingItem.unit === ingredient.unit;
+
+                if (!sameUnit) {
+                  // Incompatible units — add as a separate item rather than
+                  // mangling both display strings together
+                  toAdd.push(ingredient);
+                  continue;
+                }
+
+                const newQty =
+                  (existingItem.quantity ?? 0) +
+                  (ingredient.editedQuantity ?? ingredient.quantity ?? 0);
+                const combinedName = formatIngredientDisplay({
+                  name: existingItem.ingredientName ?? existingItem.name,
+                  quantity: newQty,
+                  unit: existingItem.unit ?? undefined,
+                });
 
                 const [updatedItem] = await tx
                   .update(shoppingItems)
                   .set({
-                    name: combinedName,
+                    name:     combinedName,
+                    quantity: newQty,
                     fromMealPlan: true,
                   })
                   .where(
@@ -641,10 +705,14 @@ export async function addProcessedIngredientsToShoppingList(
       if (toAdd.length > 0) {
         const itemsToInsert = toAdd.map((ingredient) => ({
           userId,
-          name: ingredient.displayName,
-          recipeId: ingredient.sourceRecipes[0]?.recipeId,
-          checked: false,
-          fromMealPlan: true,
+          name:           ingredient.displayName,
+          ingredientName: ingredient.name,
+          quantity:       ingredient.editedQuantity ?? ingredient.quantity,
+          unit:           ingredient.unit,
+          recipeName:     ingredient.sourceRecipes[0]?.recipeName,
+          recipeId:       ingredient.sourceRecipes[0]?.recipeId,
+          checked:        false,
+          fromMealPlan:   true,
         }));
 
         const insertedItems = await tx

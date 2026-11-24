@@ -5,6 +5,7 @@ import {
   integer,
   pgTable,
   pgTableCreator,
+  real,
   serial,
   text,
   timestamp,
@@ -168,6 +169,10 @@ export const shoppingItems = createTable(
     id: serial("id").primaryKey(),
     userId: varchar("userId", { length: 256 }).notNull(),
     name: text("name").notNull(),
+    ingredientName: text("ingredient_name"),
+    quantity: real("quantity"),
+    unit: text("unit"),
+    recipeName: text("recipe_name"),
     checked: boolean("checked").default(false).notNull(),
     recipeId: integer("recipe_id").references(() => recipes.id, {
       onDelete: "cascade",

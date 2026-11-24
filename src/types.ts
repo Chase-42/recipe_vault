@@ -121,6 +121,10 @@ export interface ShoppingItem {
   id: number;
   userId: string;
   name: string;
+  ingredientName?: string;
+  quantity?: number;
+  unit?: string;
+  recipeName?: string;
   checked: boolean;
   recipeId?: number;
   fromMealPlan: boolean;
@@ -130,7 +134,11 @@ export interface ShoppingItem {
 
 export interface ShoppingItemRequest {
   name: string;
-  recipeId: number;
+  ingredientName?: string;
+  quantity?: number;
+  unit?: string;
+  recipeId?: number;
+  recipeName?: string;
 }
 
 export interface DeleteItemRequest {

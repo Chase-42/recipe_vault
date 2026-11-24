@@ -18,8 +18,12 @@ import { apiSuccess, apiError } from "~/lib/api-response";
 const addItemsSchema = z.object({
   items: z.array(
     z.object({
-      name: z.string(),
-      recipeId: z.number(),
+      name:           z.string(),
+      ingredientName: z.string().optional(),
+      quantity:       z.number().optional(),
+      unit:           z.string().optional(),
+      recipeId:       z.number().optional(),
+      recipeName:     z.string().optional(),
     })
   ),
 });

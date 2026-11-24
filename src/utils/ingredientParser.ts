@@ -98,7 +98,7 @@ const INGREDIENT_PATTERNS = [
 ];
 
 // Parse a single ingredient string into structured data
-function parseIngredient(ingredientText: string): ParsedIngredient {
+export function parseIngredient(ingredientText: string): ParsedIngredient {
   const trimmed = ingredientText.trim();
 
   if (!trimmed) {
