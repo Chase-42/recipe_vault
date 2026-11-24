@@ -82,6 +82,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.5.18",
     "eslint-plugin-drizzle": "^0.2.3",
+    "fallow": "^3.48.0",
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "pg": "^8.11.3",
