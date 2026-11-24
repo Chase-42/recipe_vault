@@ -69,7 +69,7 @@ const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps>(
         role="dialog"
         aria-modal="true"
         className={cn(
-          "fixed z-50 bg-background border shadow-lg",
+          "fixed z-[60] bg-background border shadow-lg",
           sideClasses[side],
           className
         )}
@@ -108,7 +108,7 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, onClick }, ref) => (
   <motion.div
     ref={ref}
-    className={cn("fixed inset-0 z-40 bg-black/50", className)}
+    className={cn("fixed inset-0 z-[55] bg-black/50", className)}
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
