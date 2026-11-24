@@ -2,4 +2,5 @@ flask
 flask-cors
 recipe-scrapers
 requests
-cloudscraper
+curl_cffi
+patchright

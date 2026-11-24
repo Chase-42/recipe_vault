@@ -1,5 +1,5 @@
 import requests
-import cloudscraper
+from curl_cffi import requests as cffi_requests
 from io import BytesIO
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
@@ -10,14 +10,11 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-session = requests.Session()
-retries = Retry(
-    total=3,
-    backoff_factor=0.1,
-    status_forcelist=[500, 502, 503, 504]
-)
-session.mount('http://', HTTPAdapter(max_retries=retries))
-session.mount('https://', HTTPAdapter(max_retries=retries))
+# Used only for image dimension checks — no TLS spoofing needed there.
+_image_session = requests.Session()
+_image_retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+_image_session.mount('http://', HTTPAdapter(max_retries=_image_retries))
+_image_session.mount('https://', HTTPAdapter(max_retries=_image_retries))
 
 # Browser-like headers to avoid 403 blocks from recipe sites.
 # Keep in sync with src/utils/scraper.ts:BROWSER_HEADERS — the TS side omits
@@ -51,7 +48,7 @@ class AccessBlockedError(Exception):
 @lru_cache(maxsize=100)
 def get_image_dimensions(image_url: str) -> Tuple[int, int]:
     try:
-        response = session.get(image_url, timeout=5)
+        response = _image_session.get(image_url, timeout=5)
         image = BytesIO(response.content)
 
         if len(image.getvalue()) < MIN_IMAGE_SIZE:
@@ -186,25 +183,87 @@ def get_recipe_details(scraper) -> Dict:
     return recipe
 
 
+def _fetch_with_browser(url: str) -> str:
+    """
+    Fetch fully-rendered HTML using Patchright (patched Chromium).
+    Used when curl_cffi is blocked or gets a JS-rendered shell with no recipe schema.
+    Timeout budget: 15s, within the caller's 25s budget after the 8s curl_cffi attempt.
+    """
+    from patchright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            context = browser.new_context(
+                user_agent=BROWSER_HEADERS['User-Agent'],
+                viewport={"width": 1920, "height": 1080},
+                locale="en-US",
+                timezone_id="America/New_York",
+            )
+            page = context.new_page()
+            response = page.goto(url, wait_until="domcontentloaded", timeout=15000)
+
+            if response and response.status in (403, 402):
+                raise AccessBlockedError(url, response.status)
+
+            # Wait for recipe schema to hydrate — JS-rendered sites populate this async.
+            try:
+                page.wait_for_selector('script[type="application/ld+json"]', timeout=5000)
+            except Exception:
+                pass  # Proceed even if schema never appears; extraction will handle it.
+
+            html = page.content()
+
+            # Cloudflare challenge pages return 200 but block access.
+            if "Just a moment" in page.title() or "cf-browser-verification" in html:
+                raise AccessBlockedError(url, 403)
+
+            return html
+        finally:
+            browser.close()
+
+
 def fetch_html(url: str) -> str:
     """
-    Fetch HTML from a URL, falling back to cloudscraper if blocked.
+    Fetch HTML from a URL using a two-tier strategy.
 
-    Timeout budget: 8s standard + 12s cloudscraper = 20s worst case.
-    Caller (Next.js) has a 25s timeout for the entire Flask call.
+    Tier 1 — curl_cffi with Chrome TLS impersonation (8s):
+      Properly spoofs JA3/JA4 fingerprint; defeats TLS-based bot detection
+      that broke cloudscraper. Fast path for the majority of sites.
+
+    Tier 2 — Patchright headless browser (15s):
+      Triggered on 403 (blocked fetch) or when tier 1 returns HTML with no
+      recipe schema (JS-rendered pages like Minimalist Baker that only populate
+      structured data after client-side hydration).
+
+    Timeout budget: 8s + 15s = 23s worst case vs. the 25s Next.js budget.
     """
-    response = session.get(url, headers=BROWSER_HEADERS, timeout=8)
+    response = cffi_requests.get(
+        url,
+        headers=BROWSER_HEADERS,
+        impersonate="chrome124",
+        timeout=8,
+    )
 
     if response.status_code in (403, 402):
-        logger.info(f"Standard request blocked ({response.status_code}), retrying with cloudscraper: {url}")
-        cf_scraper = cloudscraper.create_scraper()
-        response = cf_scraper.get(url, timeout=12)
-
-        if response.status_code in (403, 402):
-            logger.warning(f"Access blocked ({response.status_code}) even with cloudscraper for URL: {url}")
-            raise AccessBlockedError(url, response.status_code)
+        logger.info(f"curl_cffi blocked ({response.status_code}), retrying with browser: {url}")
+        return _fetch_with_browser(url)
 
     if not response.ok:
         response.raise_for_status()
 
-    return response.text
+    html = response.text
+
+    # JS-rendered pages return a real 200 but ship an empty HTML shell —
+    # no recipe schema until JavaScript hydrates the page. Detect and re-fetch.
+    if "application/ld+json" not in html:
+        logger.info(f"No schema in curl_cffi response, retrying with browser: {url}")
+        try:
+            return _fetch_with_browser(url)
+        except AccessBlockedError:
+            raise
+        except Exception as e:
+            logger.warning(f"Browser fallback failed ({e}), using curl_cffi HTML: {url}")
+            return html
+
+    return html
