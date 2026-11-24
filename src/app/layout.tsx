@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Recipe Vault",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black",
   },
 };
 
